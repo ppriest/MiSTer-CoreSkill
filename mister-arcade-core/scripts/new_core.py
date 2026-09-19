@@ -137,7 +137,11 @@ def main():
 
     shutil.copy2(SKILL / "references" / "LESSONS_LEARNED.md", dest / "docs" / "LESSONS_LEARNED.md")
 
-    # 5. commit
+    # 5. commit. On a case-insensitive filesystem the template's tracked Readme.md keeps its
+    # casing when README.md is written over it; rename it in the index.
+    tracked = subprocess.run(["git", "ls-files", "Readme.md"], cwd=dest, capture_output=True, text=True).stdout
+    if tracked.strip():
+        run(["git", "mv", "-f", "Readme.md", "README.md"], cwd=dest)
     run(["git", "add", "-A"], cwd=dest)
     run(["git", "commit", "-q", "-m", f"Bootstrap {name} from Template_MiSTer\n\n"
          f"Renamed project files, dropped the Quartus 13 project, added the {name}_stp revision, "
