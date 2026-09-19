@@ -146,6 +146,24 @@ using 40 leaves the other 472 holding one stale Y, all on the same sixteen lines
 engine must *walk*, not what the game meant to draw, and instrument the RTL (`dbg_worst_line`, four
 lines of Verilog, works on hardware too) rather than modelling the workload.
 
+
+### [Seta] Ask what a table of per-game constants has in common before encoding it
+
+Per-game sprite and tilemap offsets, and their flipped-screen counterparts, were carried as magic
+numbers. The question worth asking first is whether they are one mechanism -- signal propagation
+delay, a board-layout difference, a latch -- because a mechanism generalises to the sets nobody has
+measured and a table does not.
+
+### [Seta] Check every enable bit for inversion against the driver
+
+"Are we sure no enable bits for tilemaps are inverted from MAME?" is a cheap question with a whole
+class of wrong-looking frames behind it.
+
+### [Seta] Sanity-check a reported clock against the board
+
+A core reported as clocking at 96 MHz on a board whose CPU runs at 16 MHz is a wrong number, not a
+fast core. Compare every derived clock with the driver's crystal before believing a timing report.
+
 ## ROM loading: .mra, byte order, deployment
 
 ### [Seta] A `<dip>`'s `bits` is a range, "first,last", not a list
@@ -525,6 +543,38 @@ With `HFIX=1` the buffer read counter re-synchronises to `hdump` only while `hs`
 with `hs` before the wrap drew every sprite and displayed none: the counter ran on into the half of
 the buffer nothing writes. "Thousands of buffer writes, zero pixels out" says read side; a counter
 of non-blank values read back found it in one run.
+
+
+### [Seta] Latch the sprite list and the video registers at the same point unless evidence separates them
+
+One core latched sprite RAM in vblank and the tilemap registers at frame start, for no recorded
+reason; the difference was noticed as a question ("why not the same?") rather than as a bug. Pick
+one snapshot point from the write sweep, apply it to every array the frame needs, and record why if
+any array differs.
+
+### [Seta] A glitch that appears only while the game runs, never when paused, is a buffering fault
+
+Wrong sprite tiles and orientations in motion, correct in a frozen frame, means the list or its
+registers are read while being written, not that the decode is wrong. Look at the snapshot point
+and the double-buffer ownership before touching the graphics path.
+
+### [Fuuki] Buffer the sprite list and render per line; do not add a frame buffer
+
+A whole-frame buffer was retired: the shape that works is the sibling cores' one, sprite RAM
+buffered once a frame, a per-frame candidate list, a per-scanline engine, a double-buffered line
+buffer.
+
+### [Fuuki] For raster effects, fire the line interrupt every line and buffer attributes into the line renderer
+
+Waiting a couple of scanlines to buffer, or servicing the interrupt late, shows up as one row of a
+cloud scrolling independently of the rest. NeoGeo_MiSTer and jotego's jtcps are the reference
+implementations for the per-line interrupt plus attribute buffering pattern.
+
+### [Fuuki] A one-line vertical offset between layers is the interrupt's line numbering, not its timing
+
+Sprites a scanline low (and credit text clipped at the bottom) was a 0- versus 1-based raster row,
+not an interrupt fired too late; moving the interrupt a line earlier would not have fixed the text.
+Establish which row the handler believes it is servicing before shifting anything.
 
 ## When simulation passes and hardware fails
 
@@ -1071,6 +1121,15 @@ ack address that is also an input port must acknowledge on writes only.
   -ssh -pw <pw> user@host "cmd"`.
 - **MSYS/Git-Bash silently mangles POSIX-looking arguments** (`/media/fat/...`) into Windows paths
   for non-MSYS programs. `MSYS_NO_PATHCONV=1`.
+
+
+- **[MS32] MAME is not the oracle for sound timing.** A sample's difference in when a voice starts
+  is within the model's own error; deploy and judge by ear before chasing it in RTL.
+- **[Fuuki] A reference frame that looks wrong may be the wrong frame.** Before treating a
+  screenshot mismatch as a fault, check when the grab was taken on each side; the same scene one
+  frame apart is not a difference in the hardware.
+- **[Seta] Drive the plain `mame.exe`, not a fork build.** A fork (`arcade64.exe` and the like) is
+  not the driver reference the notes cite and its Lua surface can differ.
 
 ## Tooling and workflow (Quartus, ModelSim, Verilator, and the shell around them)
 

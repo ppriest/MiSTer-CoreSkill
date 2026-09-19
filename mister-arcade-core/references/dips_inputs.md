@@ -116,7 +116,24 @@ Coin: level from the joystick bit, no pulse shaping or coin counter in any of th
 7. Copy Seta `check_dips.py` and `check_inputs.py` + `mame/ports.lua`; adapt the transcribed port tables.
 8. Copy Psikyo `validate_mra.py` into the deploy step.
 
-## 5. Where the cores disagree
+## 5. Defaults, .cfg and testing
+
+- **Default every DIP to the setting that boots into the game**, not whatever the ROM's switch
+  block happens to be. A service-mode or test DIP left on strands the player in the service menu
+  (Seta's Thunder & Lightning did exactly that).
+- **Comment out DIPs MAME marks unknown** in the generated `.mra`, with the entry left in place so
+  a user can re-enable it. Do it in the generator, not by hand.
+- **A changed default does not reach a game that already has a `.cfg` on the device.** MiSTer
+  stores the status word per set in `/media/fat/config/<setname>.CFG`; a stale one leaves a DIP in
+  a state the new build never intended. Delete or rewrite it (`cfg.py`) when defaults change, and
+  say so when a change does not appear.
+- **Exit to the OSD main menu between tests.** Launching a set while it is already loaded reuses
+  what is in the FPGA, so a DIP or ROM change can silently not be under test.
+- **Test inputs on a d-pad-only gamepad as well as analogue sticks, and for both players.** A gun
+  aiming path that worked on sticks was broken on d-pads, and a fix applied to player 1 only
+  looked like a player-2 bug (Seta).
+
+## 6. Where the cores disagree
 
 - **`bits=` encoding.** Seta (:677-681) and KonamiGX (:280-281) treat `bits` as a first,last range and reject gaps. MS32 `switches_xml` emits the full bit list (`",".join(map(str,pos))`, :136), so a 3-bit switch is written `bits="10,11,12"` (`Best Bout Boxing (ver 1.3).mra:20-21`). If mra_loader reads only the first two numbers (as Seta's comment states, citing "issue #6"), MS32's Coin A/B switches are 2-bit in the OSD. Unverified here; no MS32 doc records it.
 - **Button bit positions** differ per core (Start at 8, 9 or 10). Seta/KonamiGX/Psikyo share Start 10 / Coin 11 / Pause 12; MS32 and Fuuki do not.

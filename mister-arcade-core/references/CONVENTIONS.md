@@ -17,7 +17,10 @@ What every core repository in this family shares. Terse by design; the reasons a
 - Deployed cores on the device: `<Name>_NNNNNNNN.rbf` in `/media/fat/_Arcade/cores/`, number
   incrementing per deploy (`scripts/deploy.py`). Released cores: `releases/Arcade-<Name>_YYYYMMDD.rbf`.
 - `.mra` files are named by MAME's description, parents in `releases/`, clones in
-  `releases/_alternatives/`. `<rbf><Name></rbf>`.
+  `releases/_alternatives/`. `<rbf><Name></rbf>`: the `.mra` names the core file **without** the
+  `Arcade-` prefix, while the released bitstream keeps it, so the README's install step says to
+  drop the prefix when copying the `.rbf` to the device. `deploy.py` already installs it under the
+  un-prefixed name.
 
 ## Files and directories
 

@@ -17,7 +17,11 @@ MiSTer arcade core for {{NAME}}. Built with the `mister-arcade-core` skill.
 - No JTAG while Quartus runs, and the reverse. Use `scripts/read_issp.py` and
   `scripts/probe.py`, which take `hwlock.py`.
 - Deploy only with `scripts/deploy.py`. Launch and screenshot with `scripts/hw.py`,
-  `--native` for pixel comparison.
+  `--native` for pixel comparison. Deploying is always fine; launching or resetting takes the
+  board from whoever is using it, so only when asked. Announce long compiles: they block every
+  session's JTAG (`docs/WORKFLOW.md`, section 2a).
+- Commit to `develop` as work lands. Never push `develop`; squash onto `master` only when asked.
+  Revert the commit of a build that is rejected.
 - MAME is the reference. Follow it where it is wrong and log it in `docs/MAME_KLUDGES.md`.
 - Anything approximate, stubbed or special-cased goes in `docs/HACKS.md` when written.
 - Every subsystem gets a testbench fed from a MAME capture before it goes on hardware.

@@ -66,7 +66,9 @@ As `zombraid` in Seta (`Seta.sv:112-117, 335-470`):
   button (`Seta.sv:343-357`).
 - **Synthetic crosshair**: the core draws a marker at each enabled player's aim point over the
   final video, on both outputs, so a gun game is playable without a light gun on a flat panel.
-  It is an overlay after the mixer, never a game layer.
+  It is an overlay after the mixer, never a game layer. Player 1 red, player 2 blue, following the
+  other MiSTer-devel cores (search the organisation for `crosshair` before writing one). Keep it
+  separate from any debug overlay that prints the raw aim values.
 - Real light guns on a CRT: where the board reads a gun's position from the beam, the same aim
   registers are what a MiSTer light-gun adapter drives; keep that path in mind when choosing the
   units.
