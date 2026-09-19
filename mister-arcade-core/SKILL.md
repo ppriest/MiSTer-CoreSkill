@@ -93,6 +93,8 @@ Per roadmap phase, typically CPU + ROM path, then video, then sound, then integr
   layer needs flipped or offset is a per-core exercise, verified against the unflipped frame
   rotated 180 degrees (`video_audio_options.md`, last section). If it cannot be made right,
   say so in `docs/HACKS.md` and the README.
+- Controls include a fake **Pause** input (a `J1` slot) that suspends the main CPU by clock
+  enable, shared with the OSD pause and hiscore's pause (`dips_inputs.md`, checklist).
 - The OSD shows only what applies: CRT offset parameters hidden until "CRT adjust" is on,
   HDMI-only options hidden under direct video, and every peripheral group (light gun, rotary,
   trackball) hidden unless the running set has it, from the `.mra` mod byte. Rotary games

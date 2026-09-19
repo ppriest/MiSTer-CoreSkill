@@ -107,9 +107,14 @@ Coin: level from the joystick bit, no pulse shaping or coin counter in any of th
 2. In `build_mra.py`, copy Seta's `dip_xml` (contiguity check, default 0xFF, LSB-first ids, no commas) and `osd_fit`/`OSD_COLS = 28`; define the byte order of `<switches default>` to match the register the CPU reads, and write that order as a comment at the latch in the .sv (as KonamiGX.sv:222-223 and Fuuki.sv:371-373 do).
 3. In the .sv: `"DIP;"` in CONF_STR; index-254 latch (`!ioctl_addr[24:N]` guard); `initial` defaults if the board is reset before the .mra arrives.
 4. `J1` line with padded "-" slots so Start/Coin/Pause/Service sit at fixed bits; `buttons_xml` in build_mra.py padding to the same layout; `jn` line for the default pad map; `V,v` + `BUILD_DATE.
-5. Assemble ports with inverted joystick bits and a per-board layout selector (mod byte / board cfg), TILT tied high.
-6. Copy Seta `check_dips.py` and `check_inputs.py` + `mame/ports.lua`; adapt the transcribed port tables.
-7. Copy Psikyo `validate_mra.py` into the deploy step.
+5. **Add a Pause input** even though the board has none: a `Pause` slot in `J1` that toggles a
+   latch suspending the main CPU (and every CPU that must stay in step with it), so the game
+   freezes mid-play. OR in the OSD-open pause and hiscore's `pause_cpu`; feed the combined
+   pause back to hiscore's `paused`. Pattern: `Seta.sv:407-418`, Fuuki `rtl/pause_control.sv`
+   (`ext_pause`). Suspend by clock-enable, never by holding reset or gating a clock.
+6. Assemble ports with inverted joystick bits and a per-board layout selector (mod byte / board cfg), TILT tied high.
+7. Copy Seta `check_dips.py` and `check_inputs.py` + `mame/ports.lua`; adapt the transcribed port tables.
+8. Copy Psikyo `validate_mra.py` into the deploy step.
 
 ## 5. Where the cores disagree
 
