@@ -38,24 +38,24 @@ gating and, if BRAM allows, Fuuki's `crt_vsize` wiring.
 
 | Core | OSD feature | Status bits | Menu mask | Module | Instantiation | Video path after it |
 |---|---|---|---|---|---|---|
-| MS32 | CRT adjust On/Off | O[94] | H3 = ~status[94] (`MS32.sv:164`) | `rtl/video/ms32_crt.sv` -> `crt_adjust` | `E:\Arcade-JalecoMS32_MiSTer\MS32.sv:505-514` | direct `VGA_*` assigns `MS32.sv:516-523`; no arcade_video, no gamma, no video_freak |
+| MS32 | CRT adjust On/Off | O[94] | H3 = ~status[94] (`MS32.sv:164`) | `rtl/video/ms32_crt.sv` -> `crt_adjust` | the JalecoMS32 core's `MS32.sv:505-514` | direct `VGA_*` assigns `MS32.sv:516-523`; no arcade_video, no gamma, no video_freak |
 | | H-Size | O[99:95] signed 5 | | | | |
 | | H-Position | O[106:100] idx 0..96 | | | | |
 | | V-Shift | O[112:107] signed 6 | | | | |
-| Seta | CRT adjust On/Off | O[94] | H3 = ~status[94] (`Seta.sv:171`) | `rtl/video/seta_crt.sv` -> `crt_adjust` | `E:\Arcade-Seta_MiSTer\Seta.sv:785-794` | `arcade_video` (WIDTH 384, GAMMA 1) `Seta.sv:796-817` -> `video_freak` `Seta.sv:824-841` |
+| Seta | CRT adjust On/Off | O[94] | H3 = ~status[94] (`Seta.sv:171`) | `rtl/video/seta_crt.sv` -> `crt_adjust` | the Seta core's `Seta.sv:785-794` | `arcade_video` (WIDTH 384, GAMMA 1) `Seta.sv:796-817` -> `video_freak` `Seta.sv:824-841` |
 | | H-Size / H-Position / V-Shift | same bits as MS32 | | | | |
 | | Scale / Crop / Crop offset | O[68:66] / O[70:69] / O[75:71] | | `sys/video_freak.sv` | `Seta.sv:820-841` | |
-| Fuuki | CRT Adjust On/Off | O[76] | H2 = ~status[76] (`Fuuki.sv:190`) | `rtl/video/crt_vsize.sv` -> `rtl/video/crt_adjust.sv` (no wrapper; glue inline) | `E:\Arcade-Fuuki_MiSTer\Fuuki.sv:544-611` | `arcade_video` (WIDTH 320) `Fuuki.sv:615-639` -> `video_freak` `Fuuki.sv:648-665` |
+| Fuuki | CRT Adjust On/Off | O[76] | H2 = ~status[76] (`Fuuki.sv:190`) | `rtl/video/crt_vsize.sv` -> `rtl/video/crt_adjust.sv` (no wrapper; glue inline) | the Fuuki core's `Fuuki.sv:544-611` | `arcade_video` (WIDTH 320) `Fuuki.sv:615-639` -> `video_freak` `Fuuki.sv:648-665` |
 | | H-Size | O[96:92] signed 5 | | | | |
 | | H-Position | O[83:77] idx 0..96 | | | | |
 | | V-Shift | O[89:84] signed 6 | | | | |
 | | V-Size | O[100:97] signed 4, x3 lines | | | | |
 | | V-Size Mode PVM/Cabinet | O[101] | | | | |
 | | Scale / Vertical crop / Crop offset | O[68:66] / O[70:69] / O[75:71] | | `sys/video_freak.sv` | `Fuuki.sv:644-665` | |
-| Psikyo | CRT Adjust On/Off | O[64] | H2 = ~status[64] (`Psikyo.sv:228`) | `rtl/video/crt_adjust.sv` (hsize=0) | `E:\Arcade-Psikyo_MiSTer\Psikyo.sv:737-756` | `arcade_video` (WIDTH 320) `Psikyo.sv:762-786`; no video_freak (`Psikyo.sv:96-97`) |
+| Psikyo | CRT Adjust On/Off | O[64] | H2 = ~status[64] (`Psikyo.sv:228`) | `rtl/video/crt_adjust.sv` (hsize=0) | the Psikyo core's `Psikyo.sv:737-756` | `arcade_video` (WIDTH 320) `Psikyo.sv:762-786`; no video_freak (`Psikyo.sv:96-97`) |
 | | H-Position | O[71:65] idx 0..96 | | | | |
 | | V-Shift | O[77:72] signed 6 | | | | |
-| KonamiGX | none | -- | `status_menumask(16'd0)` `KonamiGX.sv:101` | -- | -- | `arcade_video` (WIDTH 288) `E:\Arcade-KonamiGX_MiSTer\KonamiGX.sv:310-328`; VIDEO_ARX/ARY direct `KonamiGX.sv:56-57` |
+| KonamiGX | none | -- | `status_menumask(16'd0)` `KonamiGX.sv:101` | -- | -- | `arcade_video` (WIDTH 288) the KonamiGX core's `KonamiGX.sv:310-328`; VIDEO_ARX/ARY direct `KonamiGX.sv:56-57` |
 
 ## 3. Mechanism
 
@@ -65,7 +65,7 @@ gating and, if BRAM allows, Fuuki's `crt_vsize` wiring.
 copy: 413 lines, md5 61dd3b20...; they differ only in the header and one
 line, section 6).
 
-Ports, `E:\Arcade-Seta_MiSTer\rtl\video\crt_adjust.sv:109-158`:
+Ports, the Seta core's `rtl/video/crt_adjust.sv:109-158`:
 
 ```
 module crt_adjust #(parameter VTOTAL = 263, HTOTAL = 384, HPOS_MODE = `HPOS_CONTENTSHIFT)
@@ -92,7 +92,7 @@ least 3 M10K. Unverified in any fit report.
 
 ### 3.2 CONF_STR lines
 
-MS32 `E:\Arcade-JalecoMS32_MiSTer\MS32.sv:91-94` (Seta `Seta.sv:105-108` identical):
+MS32 the JalecoMS32 core's `MS32.sv:91-94` (Seta `Seta.sv:105-108` identical):
 
 ```
 "O[94],CRT adjust,Off,On;",
@@ -101,21 +101,21 @@ MS32 `E:\Arcade-JalecoMS32_MiSTer\MS32.sv:91-94` (Seta `Seta.sv:105-108` identic
 "H3O[112:107],CRT V-Shift,0,+1,...,+31,-32,...,-1;",
 ```
 
-Fuuki `E:\Arcade-Fuuki_MiSTer\Fuuki.sv:108-113` adds:
+Fuuki the Fuuki core's `Fuuki.sv:108-113` adds:
 
 ```
 "H2O[100:97],CRT V-Size,0,+1,+2,+3,+4,+5,+6,+7,-8,-7,-6,-5,-4,-3,-2,-1;",
 "H2O[101],CRT V-Size Mode,PVM,Cabinet;",
 ```
 
-Psikyo `E:\Arcade-Psikyo_MiSTer\Psikyo.sv:130-132`: On/Off, H-Position, V-Shift only.
+Psikyo the Psikyo core's `Psikyo.sv:130-132`: On/Off, H-Position, V-Shift only.
 
 ### 3.3 Decode (same arithmetic in all four)
 
 H-Position is an INDEX into a 97-entry list, so the negative half wraps at
 97, not 128 (`Psikyo.sv:723-725`). H-Size and V-Shift are two's complement.
 
-`E:\Arcade-Seta_MiSTer\rtl\video\seta_crt.sv:26-35` (MS32 `ms32_crt.sv:35-44`, Fuuki `Fuuki.sv:547-551`, Psikyo `Psikyo.sv:726-732`):
+the Seta core's `rtl/video/seta_crt.sv:26-35` (MS32 `ms32_crt.sv:35-44`, Fuuki `Fuuki.sv:547-551`, Psikyo `Psikyo.sv:726-732`):
 
 ```
 hsize  <= adjust ? $signed(hsize_idx) : 5'sd0;
@@ -183,14 +183,14 @@ was edited for this feature; the "sys-side variant" the module header mentions
 
 No code identifier `CRT_Offset`/`CRT_OFFSET` exists in any of the five trees.
 It appears only as prose:
-- `E:\Arcade-Psikyo_MiSTer\docs\ROADMAP.md:150` "CRT_Offset module -- standard
+- the Psikyo core's `docs/ROADMAP.md:150` "CRT_Offset module -- standard
   MiSTer-devel helper" and `:239-240` "matches the framework's usual
   `CRT_OFFSET` convention" -- written before the feature was built; there is
   no such helper in `sys/`. `Psikyo.sv:708` and `rtl/psikyo_top.sv:14`,
   `rtl/psikyo_core.sv:14` use "CRT Offset"/"CRT_Offset" as the feature name.
-- `E:\Arcade-JalecoMS32_MiSTer\Readme.md:126` "CRT Offset: OSD CRT adjust ...".
-- `E:\Arcade-Fuuki_MiSTer\README.md:62` "CRT offset"; `:120` "CRT Adjust".
-- `E:\Arcade-Seta_MiSTer\docs\ROADMAP.md:992` "CRT offset is a per-game H/V
+- the JalecoMS32 core's `Readme.md:126` "CRT Offset: OSD CRT adjust ...".
+- the Fuuki core's `README.md:62` "CRT offset"; `:120` "CRT Adjust".
+- the Seta core's `docs/ROADMAP.md:992` "CRT offset is a per-game H/V
   shift ... applied at the video output, not in the core's timing".
 - `E:\MiSTer-CoreSkill\mister-arcade-core\SKILL.md:76,120` references a
   `references/crt_offset.md` that does not exist (only
@@ -204,7 +204,7 @@ Only Fuuki. MS32 states "no V-size" (`ms32_crt.sv:6`, `Readme.md:126`).
 Psikyo `README.md:139-141`: "H-Size/V-Size are still not implemented, but the
 block RAM that blocked them is now free". Seta: not mentioned.
 
-Module: `E:\Arcade-Fuuki_MiSTer\rtl\video\crt_vsize.sv`, vendored unmodified
+Module: the Fuuki core's `rtl/video/crt_vsize.sv`, vendored unmodified
 from Arcade-Raiden_MiSTer (rmonic79, GPL-3.0-or-later), `:1-10`.
 
 Mechanism (`:17-34`): frame rate fixed; the TOTAL line count per frame is
@@ -251,7 +251,7 @@ bits. No V-Size bench exists in any repo.
 
 ## 5. Checklist for a new core (KonamiGX numbers where they matter)
 
-GX timing (`E:\Arcade-KonamiGX_MiSTer\rtl\video\gx_video.sv:9-13`): 384 x 264
+GX timing (the KonamiGX core's `rtl/video/gx_video.sv:9-13`): 384 x 264
 total, 288 x 224 visible, 6 MHz dot = 8 clk at clk_vid 48 MHz.
 
 1. Vendor `rtl/video/crt_adjust.sv` from Seta (it carries the `$signed` fix at
@@ -283,7 +283,7 @@ total, 288 x 224 visible, 6 MHz dot = 8 clk at clk_vid 48 MHz.
 8. Optional V-Size: vendor `crt_vsize.sv`, `RING_LINES(52), LINE_PX(288)` =
    359,424 bit, >= 36 M10K by capacity (unverified). Wire as `Fuuki.sv:553-575,
    592, 603`. Needs clk/pixel >= 8 for Cabinet mode (GX has exactly 8).
-9. Bench: copy `E:\Arcade-Seta_MiSTer\sim\seta_crt_tb\tb_seta_crt.sv`
+9. Bench: copy the Seta core's `sim/seta_crt_tb/tb_seta_crt.sv`
    (checks every source pixel appears once, in order, and where the picture
    lands for H-Size +10 / H-Position -19 / -8). Include a negative
    H-Position case; that is what caught the signedness bug.

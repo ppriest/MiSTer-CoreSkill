@@ -9,10 +9,11 @@ The core root is the parent of this scripts/ directory (or CORE_ROOT). From it:
     revision()   the Quartus revision to build: CORE_REV, else the one .qsf,
                  else the last PROJECT_REVISION the .qpf lists. A core with
                  several revisions (X and X_stp) picks with CORE_REV or --rev.
-    load_env()   <core>/mister.env, the gitignored per-machine file with the
-                 MiSTer connection settings and tool locations.
+    load_env()   settings: ~/.mister-core.env (or MISTER_CORE_ENV) for the whole
+                 machine, overridden by <core>/mister.env (gitignored).
 
-Tool locations, in order: the environment, mister.env, then a default.
+Tool locations and the MiSTer connection, in order: the environment, the core's
+mister.env, the per-machine file, then a default.
 
     QUARTUS_BIN    .../intelFPGA_lite/17.0/quartus/bin64
     MODELSIM_BIN   defaults to <quartus root>/modelsim_ase/win32aloem
@@ -77,28 +78,45 @@ def revision(root=None, override=None):
              % (root, len(qsfs)))
 
 
-def load_env(root=None, path=None, require=()):
-    """KEY=VALUE pairs from <core>/mister.env (comments and blanks skipped)."""
-    path = Path(path or ((root or core_root()) / "mister.env"))
+def machine_env_path():
+    """The per-machine settings file: MISTER_CORE_ENV, else ~/.mister-core.env.
+
+    Tool paths and the MiSTer connection are the same for every core on one machine;
+    keeping them here means a new core needs no mister.env at all. A core's own
+    mister.env still wins, and the environment wins over both.
+    """
+    p = os.environ.get("MISTER_CORE_ENV")
+    return Path(p) if p else Path.home() / ".mister-core.env"
+
+
+def _read_env_file(path):
     env = {}
-    if path.exists():
-        for ln in path.read_text(encoding="utf-8", errors="replace").splitlines():
+    if Path(path).exists():
+        for ln in Path(path).read_text(encoding="utf-8", errors="replace").splitlines():
             ln = ln.strip()
             if not ln or ln.startswith("#") or "=" not in ln:
                 continue
             k, v = ln.split("=", 1)
             env[k.strip()] = v.strip().strip('"').strip("'")
-    elif require:
-        sys.exit("%s not found. Create it with %s (it is gitignored)."
-                 % (path, ", ".join(require)))
+    return env
+
+
+def load_env(root=None, path=None, require=()):
+    """KEY=VALUE pairs: the per-machine file, overridden by <core>/mister.env."""
+    path = Path(path or ((root or core_root()) / "mister.env"))
+    env = _read_env_file(machine_env_path())
+    env.update(_read_env_file(path))
+    if not env and require:
+        sys.exit("no settings found. Set %s in %s (per machine) or %s (per core, gitignored)."
+                 % (", ".join(require), machine_env_path(), path))
     for k in require:
         if not env.get(k):
-            sys.exit("%s does not set %s" % (path.name, k))
+            sys.exit("%s is not set in %s or %s" % (k, machine_env_path(), path))
     return env
 
 
 def setting(name, default=None, root=None):
-    """A tool setting: environment, then mister.env, then the default."""
+    """A setting: environment, then the core's mister.env, then the machine file, then the default."""
     if os.environ.get(name):
         return os.environ[name]
     v = load_env(root).get(name)
@@ -125,7 +143,7 @@ def mame_dir(root=None):
     if not v:
         sys.exit("MAME_DIR is not set: put MAME_DIR=<directory of the MAME "
                  "executable> (and MAME_EXE=<name>, if not mame.exe) in the "
-                 "core's mister.env, or export it")
+                 "core's mister.env, ~/.mister-core.env, or export it")
     return Path(v)
 
 
@@ -137,7 +155,7 @@ def mame_src(root=None):
     v = setting("MAME_SRC", None, root)
     if not v:
         sys.exit("MAME_SRC is not set: put MAME_SRC=<path to the MAME driver "
-                 ".cpp this core follows> in the core's mister.env, or export it")
+                 ".cpp this core follows> in the core's mister.env or ~/.mister-core.env, or export it")
     return Path(v)
 
 

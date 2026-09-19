@@ -2,7 +2,7 @@
 
 ## 1. Summary
 
-- **Psikyo is the only core with hiscore.v integrated.** `E:\Arcade-Psikyo_MiSTer\rtl\hiscore.v` (vendored from JimmyStones/Hiscores_MiSTer, upstream version 14, locally patched for one extra cycle of read latency), instantiated in `E:\Arcade-Psikyo_MiSTer\Psikyo.sv:556-586`, RAM tap in `E:\Arcade-Psikyo_MiSTer\rtl\psikyo_core.sv:238-275`, config block in every `releases/*.mra`.
+- **Psikyo is the only core with hiscore.v integrated.** the Psikyo core's `rtl/hiscore.v` (vendored from JimmyStones/Hiscores_MiSTer, upstream version 14, locally patched for one extra cycle of read latency), instantiated in the Psikyo core's `Psikyo.sv:556-586`, RAM tap in the Psikyo core's `rtl/psikyo_core.sv:238-275`, config block in every `releases/*.mra`.
 - **Fuuki, Seta, KonamiGX, JalecoMS32: not implemented.** All four list it as a todo. None has `rtl/hiscore.v` (`find Arcade-*_MiSTer -name hiscore.v` returns only Psikyo's). Fuuki's ROADMAP says the module is "vendored from the Psikyo tree" but the file is not in the Fuuki tree.
 - Seta and JalecoMS32 have the **sibling feature, NVRAM save**, using the same hps_io `ioctl_upload_req` / `<nvram index="4">` path but no hiscore.v. KonamiGX loads a 93C46 EEPROM image from `<rom index="2">` and does not persist it yet.
 - Reference for a new core: Psikyo. Fuuki's `pause_control.sv` already has the `ext_pause` input intended for it.
@@ -21,7 +21,7 @@
 
 ### 3.1 Provenance
 
-`E:\Arcade-Psikyo_MiSTer\rtl\hiscore.v:1-7`:
+the Psikyo core's `rtl/hiscore.v:1-7`:
 
 ```
 //  MAME hiscore.dat support for MiSTer arcade cores.
@@ -30,7 +30,7 @@
 //  Copyright (c) 2021 Jim Gregory
 ```
 
-GPLv3 (`hiscore.v:9-21`). Version history to 0014 at `hiscore.v:24-39`; `localparam HS_VERSION = 14` at `hiscore.v:163`. Acknowledged in `E:\Arcade-Psikyo_MiSTer\README.md:224-226` and `files.qip:56-57`. No THIRD-PARTY.md; the `PROVENANCE.md` files in the tree cover t80, tg68k, sdram, jt10, jt49 only, not hiscore.v.
+GPLv3 (`hiscore.v:9-21`). Version history to 0014 at `hiscore.v:24-39`; `localparam HS_VERSION = 14` at `hiscore.v:163`. Acknowledged in the Psikyo core's `README.md:224-226` and `files.qip:56-57`. No THIRD-PARTY.md; the `PROVENANCE.md` files in the tree cover t80, tg68k, sdram, jt10, jt49 only, not hiscore.v.
 
 Local patches (all marked with `// Psikyo:` comments):
 - `hiscore.v:113` new state `SM_COMPAREHOLD = 26`; used at `hiscore.v:440-452` and `hiscore.v:493-497` -- one dead cycle because `data_from_ram` is registered in the core.
@@ -118,7 +118,7 @@ always_ff @(posedge clk)
 
 ## 4. .mra layout
 
-Every Psikyo release .mra carries the same two elements. `E:\Arcade-Psikyo_MiSTer\releases\Samurai Aces (World).mra:47-54`:
+Every Psikyo release .mra carries the same two elements. the Psikyo core's `releases/Samurai` Aces (World).mra:47-54`:
 
 ```
 	<rom index="3">
@@ -161,8 +161,8 @@ Entry (8 bytes, `CFG_LENGTHWIDTH=1` format, `hiscore.v:140-149`): `ADDR[4] LEN[1
 ### Scripts
 
 - Psikyo has **no build_mra.py**; the `releases/*.mra` are hand-maintained. `scripts/validate_mra.py:52-54` only whitelists `nvram` as an element whose text/tail is allowed; it does not check the hiscore block. `scripts/deploy_mra.py` copies files; no hiscore logic.
-- Fuuki, Seta, KonamiGX `scripts/mra.py` (docstring, e.g. `E:\Arcade-Fuuki_MiSTer\scripts\mra.py:12-14`) can parse `<part>0A 0B</part>` literal bytes "used for the mod byte and for hiscore configuration blocks", but only the index-0 image is assembled; none of the `build_mra.py` scripts emits a `<rom index="3">` block (grep for hiscore in `build_mra.py` returns nothing in any repo).
-- `E:\Arcade-JalecoMS32_MiSTer\scripts\build_mra.py:222-224` and `E:\Arcade-Seta_MiSTer\scripts\build_mra.py:124, 1080-1084` emit `<nvram index="4" .../>` for the NVRAM feature, not hiscore.
+- Fuuki, Seta, KonamiGX `scripts/mra.py` (docstring, e.g. the Fuuki core's `scripts/mra.py:12-14`) can parse `<part>0A 0B</part>` literal bytes "used for the mod byte and for hiscore configuration blocks", but only the index-0 image is assembled; none of the `build_mra.py` scripts emits a `<rom index="3">` block (grep for hiscore in `build_mra.py` returns nothing in any repo).
+- the JalecoMS32 core's `scripts/build_mra.py:222-224` and the Seta core's `scripts/build_mra.py:124`, 1080-1084` emit `<nvram index="4" .../>` for the NVRAM feature, not hiscore.
 
 ## 5. Pause / RAM-tap requirements
 
@@ -170,16 +170,16 @@ Entry (8 bytes, `CFG_LENGTHWIDTH=1` format, `hiscore.v:140-149`): `ADDR[4] LEN[1
 - Psikyo honours it: `Psikyo.sv:514` `pause_core = pause | hs_pause` -> `psikyo_top.sv:117` -> `psikyo_core.sv:441-446` `effective_pause` -> `maincpu.sv:249` (`else if (pause) cpu_ce <= 1'b0;`) -- the 68020 clock enable stops; video keeps running (`maincpu.sv:192-195`). Sound CPU is not paused (`README.md:142` "CPU pause button suspends main CPU (only)").
 - If a core gives hiscore its own read port, the pause is still needed for the write phase and to keep the compare consistent; Psikyo's choice of sharing the CPU port is a BRAM-budget decision, not a hiscore.v requirement (`psikyo_core.sv:246-254`).
 - `paused` input: feed the core's total pause so the START_WAIT/CHECK_WAIT timers freeze under user pause (`hiscore.v:784-786`).
-- Seta/Fuuki `pause_control.sv` provides the hook: `assign pause_cpu = pause_latched | ext_pause;` (`E:\Arcade-Fuuki_MiSTer\rtl\pause_control.sv:43`, `E:\Arcade-Seta_MiSTer\rtl\pause_control.sv:36`). `ext_pause` is a level input; Fuuki's `sim/pause_tb/tb_pause.sv:86` names "hiscore RAM access" as its intended source. In Fuuki it is currently wired to JTAG `probe_src[5]` (`Fuuki.sv:387-394`); a hiscore integration would OR `hs_pause` in. Fuuki's CPU pause reaches `maincpu` via `fuuki_core.sv:233` `.pause(pause_cpu | walk_active)`. In Seta, `pause_control.sv` is not instantiated (`pause_control.sv:1-2`); `Seta.sv:417` `pause_core = pause_toggle | status[82] | dbg_rd_en` -> `seta_core.sv:281` `.cpu_run(!pause_cpu)`.
+- Seta/Fuuki `pause_control.sv` provides the hook: `assign pause_cpu = pause_latched | ext_pause;` (the Fuuki core's `rtl/pause_control.sv:43`, the Seta core's `rtl/pause_control.sv:36`). `ext_pause` is a level input; Fuuki's `sim/pause_tb/tb_pause.sv:86` names "hiscore RAM access" as its intended source. In Fuuki it is currently wired to JTAG `probe_src[5]` (`Fuuki.sv:387-394`); a hiscore integration would OR `hs_pause` in. Fuuki's CPU pause reaches `maincpu` via `fuuki_core.sv:233` `.pause(pause_cpu | walk_active)`. In Seta, `pause_control.sv` is not instantiated (`pause_control.sv:1-2`); `Seta.sv:417` `pause_core = pause_toggle | status[82] | dbg_rd_en` -> `seta_core.sv:281` `.cpu_run(!pause_cpu)`.
 - Read latency: if the tap registers `data_from_ram` (as Psikyo does), the module needs the Psikyo patches and `CHECK_HOLD >= 2`. If the tap is combinational from the BRAM output, stock hiscore.v timing applies (upstream single-cycle skip). Which of the two a new core wants is a timing-closure decision; Psikyo's record says the unregistered path was its worst (`psikyo_core.sv:268-273`).
 
 ## 6. Checklist for a new core
 
-1. Copy `E:\Arcade-Psikyo_MiSTer\rtl\hiscore.v` (keep the GPLv3 header); decide whether to keep the Psikyo read-latency patches (register `data_from_ram` next to the RAM) or revert to single-cycle reads. Add to `files.qip`/`.qsf` (`Psikyo.qsf:330`).
+1. Copy the Psikyo core's `rtl/hiscore.v` (keep the GPLv3 header); decide whether to keep the Psikyo read-latency patches (register `data_from_ram` next to the RAM) or revert to single-cycle reads. Add to `files.qip`/`.qsf` (`Psikyo.qsf:330`).
 2. Confirm hps_io is not in WIDE mode (`Psikyo.sv:209-216`).
 3. hps_io: connect `ioctl_upload`, `ioctl_upload_req`, `.ioctl_upload_index(8'd4)`, `ioctl_din` (`Psikyo.sv:240-246`).
 4. CONF_STR: `"H<n>O[<bit>],Autosave Hiscores,Off,On;"` with `status_menumask` bit n = `~hs_configured` (`Psikyo.sv:129, 228`).
-5. Parameters: `HS_ADDRESSWIDTH` = log2 of the RAM window such that the low bits of the hiscore.dat address are the RAM offset (else subtract a base in the core); `HS_SCOREWIDTH` >= log2(sum of entry lengths) -- Fuuki needs 9 (`E:\Arcade-Fuuki_MiSTer\docs\ROADMAP.md:719-721`); `CFG_ADDRESSWIDTH` >= log2(entry count); `CFG_LENGTHWIDTH` = 2 if any entry exceeds 255 bytes (Fuuki gogomile 0x161, asurabus 0x132 -- so Fuuki needs 2, which changes the .mra entry format to `hiscore.v:151-159`).
+5. Parameters: `HS_ADDRESSWIDTH` = log2 of the RAM window such that the low bits of the hiscore.dat address are the RAM offset (else subtract a base in the core); `HS_SCOREWIDTH` >= log2(sum of entry lengths) -- Fuuki needs 9 (the Fuuki core's `docs/ROADMAP.md:719-721`); `CFG_ADDRESSWIDTH` >= log2(entry count); `CFG_LENGTHWIDTH` = 2 if any entry exceeds 255 bytes (Fuuki gogomile 0x161, asurabus 0x132 -- so Fuuki needs 2, which changes the .mra entry format to `hiscore.v:151-159`).
 6. Pause: OR `pause_cpu` into the CPU's pause (`ext_pause` on `pause_control.sv`), feed the combined pause back to `paused`.
 7. RAM tap: mux `ram_address`/`data_to_ram`/`ram_write` onto the work-RAM port with correct byte-lane select for a 16-bit RAM (`psikyo_core.sv:243-259`); return the selected byte on `data_from_ram`. Do not put a real address on a previously constant BRAM port without checking `Block Memory Bits` (`docs/LESSONS_LEARNED.md:620-626`).
 8. .mra: `<rom index="3">` with the 16-byte header (`19 9A 57 EF 3F FF 00 02 00 02 00 01 00 0F 10 00` is what Psikyo ships; START_WAIT depends on the game's RAM test) followed by one 8-byte line per hiscore.dat entry; `<nvram index="4" size="<sum of lengths>"/>`.
@@ -195,10 +195,10 @@ Entry (8 bytes, `CFG_LENGTHWIDTH=1` format, `hiscore.v:140-149`): `ADDR[4] LEN[1
 - **Hardware verification of Psikyo's hiscore:** no document records a save/restore round-trip test. Evidence it ran on hardware is indirect: commit `548e832` body reports the restore landing during the power-on RAM test on Strikers/Tengai and the START_WAIT change; `docs/ROADMAP.md:180` claims it is proven on hardware without citing a test. Treat the end-to-end save/restore as **unverified** in the written record. No simulation testbench includes hiscore.v (`sim/psikyo_core_tb/tb_psikyo_core.sv:46-47`, `sim/psikyo_top_tb/tb_psikyo_top.sv:75-76` tie the port off).
 - **hiscore.dat correspondence:** the five .mra entries were not cross-checked against MAME's hiscore.dat here; `README.md:225-226` says they came from it.
 - **Upstream diff:** no upstream hiscore.v in any tree; the set of local modifications is taken from the `// Psikyo:` comments only.
-- **HPS "Save settings" path with autosave off:** behaviour described only in Seta's NVRAM notes (`E:\Arcade-Seta_MiSTer\docs\ROADMAP.md:966-970`), not verified for the hiscore index.
+- **HPS "Save settings" path with autosave off:** behaviour described only in Seta's NVRAM notes (the Seta core's `docs/ROADMAP.md:966-970`), not verified for the hiscore index.
 
 ## Sibling feature: NVRAM save (not hiscore)
 
-- **JalecoMS32:** `E:\Arcade-JalecoMS32_MiSTer\MS32.sv:138-150` -- `nvram_dirty` set on any NVRAM write (`nv_written`), `nvram_save` pulsed on OSD open; `MS32.sv:173-178` `.ioctl_upload_req(nvram_save), .ioctl_upload_index(8'd4), .ioctl_din(nv_rdata)`; `<nvram index="4" size="8192"/>` in every release .mra (emitted by `scripts/build_mra.py:222-224`). No CPU pause; the NVRAM is read through its own port.
-- **Seta:** `E:\Arcade-Seta_MiSTer\rtl\seta_core.sv:429-448` -- `nv_armed`/`nv_dirty` latch driven by the game's `$3000f0` write-enable protocol; `nvram_save` pulses on close-after-write; `Seta.sv:187-190` upload index 4; `<nvram index="4" size="256"/>` (zombraid) / `4096` (calibr50). `Seta.sv:722` `dbg_nv_saves`/`dbg_nv_state`/`ioctl_upload`/`OSD_STATUS` are JTAG probe fields for this NVRAM path, not hiscore. `docs/ROADMAP.md:957-975` records a DE10-nano verification of the `.nvm` round trip.
+- **JalecoMS32:** the JalecoMS32 core's `MS32.sv:138-150` -- `nvram_dirty` set on any NVRAM write (`nv_written`), `nvram_save` pulsed on OSD open; `MS32.sv:173-178` `.ioctl_upload_req(nvram_save), .ioctl_upload_index(8'd4), .ioctl_din(nv_rdata)`; `<nvram index="4" size="8192"/>` in every release .mra (emitted by `scripts/build_mra.py:222-224`). No CPU pause; the NVRAM is read through its own port.
+- **Seta:** the Seta core's `rtl/seta_core.sv:429-448` -- `nv_armed`/`nv_dirty` latch driven by the game's `$3000f0` write-enable protocol; `nvram_save` pulses on close-after-write; `Seta.sv:187-190` upload index 4; `<nvram index="4" size="256"/>` (zombraid) / `4096` (calibr50). `Seta.sv:722` `dbg_nv_saves`/`dbg_nv_state`/`ioctl_upload`/`OSD_STATUS` are JTAG probe fields for this NVRAM path, not hiscore. `docs/ROADMAP.md:957-975` records a DE10-nano verification of the `.nvm` round trip.
 - **KonamiGX:** 93C46 EEPROM image loaded from `<rom index="2">` (`KonamiGX.sv:201-206`); write-back to `.nvm` is a todo (`KonamiGX.sv:14`, `README.md:143`).

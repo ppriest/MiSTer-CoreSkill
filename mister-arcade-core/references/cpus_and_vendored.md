@@ -76,6 +76,6 @@ commit and local changes; read the one for a module before copying it.
 
 ## Finding a module
 
-Enumerate the boards that use the chip in MAME (`grep -rl <device> E:/mame/src/mame`), then
+Enumerate the boards that use the chip in MAME (`grep -rl <device> $MAME_SRC/src/mame`), then
 look for those boards' MiSTer cores and jotego's jtcores, rather than searching for the chip
 number. Record every candidate looked at in the reuse map, including the ones rejected and why.

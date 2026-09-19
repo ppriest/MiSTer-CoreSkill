@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Bootstrap a new MiSTer arcade core repository from MiSTer-devel/Template_MiSTer.
 
-    python new_core.py <Name> [--owner ppriest] [--root E:/] [--public] [--no-github]
+    python new_core.py <Name> [--owner <github-user>] [--root <dir>] [--public] [--no-github]
 
 Creates <root>/Arcade-<Name>_MiSTer:
   1. private <owner>/Arcade-<Name>_MiSTer generated from the template (gh REST API), cloned
@@ -30,6 +30,26 @@ def gh_exe():
     return None
 
 
+def machine_setting(key):
+    """One value from the per-machine settings file, or the environment."""
+    if os.environ.get(key):
+        return os.environ[key]
+    path = Path(os.environ.get("MISTER_CORE_ENV") or Path.home() / ".mister-core.env")
+    if path.exists():
+        for ln in path.read_text(encoding="utf-8", errors="replace").splitlines():
+            ln = ln.strip()
+            if ln and not ln.startswith("#") and "=" in ln:
+                k, v = ln.split("=", 1)
+                if k.strip() == key:
+                    return v.strip().strip('"').strip("'")
+    return None
+
+
+def gh_login(gh):
+    r = subprocess.run([gh, "api", "user", "-q", ".login"], capture_output=True, text=True)
+    return r.stdout.strip() or None
+
+
 def run(cmd, cwd=None, check=True):
     print("+", " ".join(str(c) for c in cmd), flush=True)
     return subprocess.run(cmd, cwd=cwd, check=check)
@@ -46,12 +66,16 @@ def sub(path: Path, pattern, repl, count=0):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("name", help="project name, e.g. Toaplan2; repo becomes Arcade-<Name>_MiSTer")
-    ap.add_argument("--owner", default="ppriest")
-    ap.add_argument("--root", default="E:/")
+    ap.add_argument("--owner", default=None,
+                    help="GitHub owner; default MISTER_CORE_OWNER, else the signed-in gh account")
+    ap.add_argument("--root", default=None,
+                    help="where to clone; default MISTER_CORES_ROOT, else this skill repo's parent")
     ap.add_argument("--public", action="store_true", help="default is a private repo")
     ap.add_argument("--no-github", action="store_true", help="local clone of the template only")
     a = ap.parse_args()
 
+    a.root = a.root or machine_setting("MISTER_CORES_ROOT") or str(SKILL.parent.parent)
+    a.owner = a.owner or machine_setting("MISTER_CORE_OWNER")
     name = a.name
     if not re.fullmatch(r"[A-Za-z][A-Za-z0-9]*", name):
         sys.exit("name must be alphanumeric, starting with a letter (it becomes the Quartus revision)")
@@ -63,6 +87,12 @@ def main():
 
     # 1. create
     gh = gh_exe()
+    if not a.owner and gh:
+        a.owner = gh_login(gh)
+    if not a.no_github and not a.owner:
+        sys.exit("no GitHub owner: sign in with `gh auth login`, pass --owner, or set "
+                 "MISTER_CORE_OWNER in ~/.mister-core.env")
+    a.owner = a.owner or "unknown"          # --no-github: only fills {{OWNER}} in the docs
     if a.no_github or not gh:
         if not a.no_github:
             print("gh not found; falling back to a local template clone (no GitHub repo created)")

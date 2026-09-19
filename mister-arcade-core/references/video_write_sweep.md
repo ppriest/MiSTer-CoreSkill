@@ -1,6 +1,6 @@
 # Video write sweep: recording when a game writes its video chips, in MAME
 
-Survey of `E:\Arcade-Seta_MiSTer` (primary), cross-checked against Fuuki, Psikyo,
+Survey of the Seta core (primary), cross-checked against Fuuki, Psikyo,
 JalecoMS32 and KonamiGX. `build/` ignored. All pointers absolute `file:line`.
 
 Scope note: `scripts/mame_subtrace.py`, `scripts/flip_shots.py` and
@@ -18,7 +18,7 @@ a Python wrapper; regions come from `mame_capture.py`'s `FAMILIES` table.
 ### 1a. `write_timing.py` + `mame/wtiming.lua` — histogram of writes by scanline
 
 **Regions.** Seven named ranges, filtered from the family's region map:
-`E:\Arcade-Seta_MiSTer\scripts\write_timing.py:23`
+the Seta core's `scripts/write_timing.py:23`
 ```
 REGIONS = ("sprylow", "sprctrl", "sprcode", "l0vram", "l1vram", "l0ctrl", "l1ctrl")
 ```
@@ -29,7 +29,7 @@ taps = ",".join(f"{r}:{lo:06x}:{lo + ln - 1:06x}" for r, (lo, ln) in regions.ite
 ```
 A family without one of the names (Group A has no layers) simply does not tap it.
 
-Example address map (one family), `E:\Arcade-Seta_MiSTer\scripts\mame_capture.py:86-92`:
+Example address map (one family), the Seta core's `scripts/mame_capture.py:86-92`:
 ```
 "l0vram":    (0x800000, 0x004000),
 "l1vram":    (0x880000, 0x004000),
@@ -41,7 +41,7 @@ Example address map (one family), `E:\Arcade-Seta_MiSTer\scripts\mame_capture.py
 ```
 Other families at `mame_capture.py:138-144, 154-160, 178-182, 192-197, 207-211, 220-222, 228-230, 238-240, 247-249, 257-259, 266-268, 281-283`.
 
-**Tap install**, `E:\Arcade-Seta_MiSTer\scripts\mame\wtiming.lua:60-68`:
+**Tap install**, the Seta core's `scripts/mame/wtiming.lua:60-68`:
 ```lua
 local tap = prog:install_write_tap(lo, hi, "wt_" .. name, function(offset, data, mask)
     if counting then
@@ -58,7 +58,7 @@ The tap is kept in a global so the GC does not collect it (`scripts/README.md:14
 
 **Scanline source.** Not `screen:vpos()` — MAME 0.286's Lua screen binding has
 no `vpos()`/`hpos()`; calling them inside a tap raises an error MAME swallows
-(`E:\Arcade-Seta_MiSTer\scripts\mame\capture.lua:157-164`). Derived from
+(the Seta core's `scripts/mame/capture.lua:157-164`). Derived from
 `time_until_pos` instead, `wtiming.lua:31-41`:
 ```lua
 local frame_period = 1.0 / scr.refresh
@@ -95,7 +95,7 @@ last <region> c0,c1,...,c255      -- frames whose last write to the region fell 
 ```
 (one `hist` and one `last` row per region; verified against `debug/wtiming/madshark.txt`).
 
-**MAME command line**, `E:\Arcade-Seta_MiSTer\scripts\write_timing.py:40-47`:
+**MAME command line**, the Seta core's `scripts/write_timing.py:40-47`:
 ```
 MAME_EXE <game> -skip_gameinfo -nodebug -nothrottle -sound none -video none -nowindow
     -autoboot_delay 0 -autoboot_script scripts/mame/wtiming.lua
@@ -107,7 +107,7 @@ env: WT_OUT WT_TAPS WT_SKIP WT_FRAMES WT_COIN WT_SNAP=1
 
 ### 1b. `sprctrl_scan.py` + `mame/sprctrl.lua` — the four X1-001 control bytes
 
-One tap on the 8-byte control block, `E:\Arcade-Seta_MiSTer\scripts\mame\sprctrl.lua:45-61`:
+One tap on the 8-byte control block, the Seta core's `scripts/mame/sprctrl.lua:45-61`:
 ```lua
 _G.__sc_tap = prog:install_write_tap(BASE, BASE + 7, "sprctrl", function(offset, data, mask)
     local idx = math.floor((offset - BASE) / 2)
@@ -142,12 +142,12 @@ val <byte> <hex> <count>
 flip <line> <count>
 ```
 (verified against `debug/sprctrl/stg.txt`: `flip 113 574`.)
-Command line at `E:\Arcade-Seta_MiSTer\scripts\sprctrl_scan.py:32-37` (same as
+Command line at the Seta core's `scripts/sprctrl_scan.py:32-37` (same as
 1a without snapshot options; env `SC_OUT SC_BASE SC_SKIP SC_FRAMES SC_COIN`).
 
 ### 1c. `mame_capture.py --wlog` + `mame/capture.lua` — per-write log with PC
 
-Per-write, not a histogram. Tap at `E:\Arcade-Seta_MiSTer\scripts\mame\capture.lua:213-224`:
+Per-write, not a histogram. Tap at the Seta core's `scripts/mame/capture.lua:213-224`:
 ```lua
 local tap = prog:install_write_tap(lo, hi, "setawr", function(offset, data, mask)
     tap_hits = tap_hits + 1
@@ -175,7 +175,7 @@ in the repo turns it into the 8-line-per-column strip quoted in
 ### 1d. `mame/vread.lua` — does the game read VRAM back?
 
 Read and write taps per range, with PC histogram on reads,
-`E:\Arcade-Seta_MiSTer\scripts\mame\vread.lua:18-27`. Output
+the Seta core's `scripts/mame/vread.lua:18-27`. Output
 `<name> reads N writes M` + `  pc XXXXXX k` (`vread.lua:33-37`). Env
 `VR_OUT VR_RANGES VR_FRAMES`. No Python driver found in `scripts/*.py`; run by
 hand with `-autoboot_script`. Its result is cited at
@@ -188,7 +188,7 @@ PCs 0x20f2-0x217e).
 
 Text only. No PNG/plot script exists for any of these outputs.
 
-**`write_timing.py report()`**, `E:\Arcade-Seta_MiSTer\scripts\write_timing.py:63-86`.
+**`write_timing.py report()`**, the Seta core's `scripts/write_timing.py:63-86`.
 Per region, one line:
 
 | column | meaning (from `report()` docstring `:63-68` and code `:78-85`) |
@@ -219,7 +219,7 @@ scanline). Produced outside the repo; unverified how.
 
 ### From `docs/write_timing_mame.txt`
 
-Run parameters, `E:\Arcade-Seta_MiSTer\docs\write_timing_mame.txt:1-3`:
+Run parameters, the Seta core's `docs/write_timing_mame.txt:1-3`:
 ```
 Attract: write_timing.py --skip 600 --frames 1800 (no coin).
 Play: write_timing.py --coin 600 --skip 1500 --frames 1800 --tag _play
@@ -253,7 +253,7 @@ Representative rows (attract):
 
 ### From `docs/MAME_DIVERGENCE.md`
 
-- Summary table of the three groups, `E:\Arcade-Seta_MiSTer\docs\MAME_DIVERGENCE.md:452-456`:
+- Summary table of the three groups, the Seta core's `docs/MAME_DIVERGENCE.md:452-456`:
   first 24 lines after vblank start, 96-100% (15 sets); around line 112 (14 sets);
   Blandia's Y/control in the 8 lines before vblank, codes after.
 - `:458-463`: "Mad Shark, for one, writes over 90% of its Y in the first 8 lines.
@@ -284,7 +284,7 @@ Representative rows (attract):
 
 ### From RTL comments (Downtown board, not in write_timing_mame.txt)
 
-`E:\Arcade-Seta_MiSTer\rtl\downtown\downtown_board_cfg.sv:249-253` (calibr50):
+the Seta core's `rtl/downtown/downtown_board_cfg.sv:249-253` (calibr50):
 "flipped at line 249 every frame, Y written from 248 through line 15 (MAME,
 900 frames). The usual snapshot at 267 took Y two-thirds rewritten".
 `:269-275` (tndrcade): "one sprite list, written from line 248 (Y) through
@@ -305,7 +305,7 @@ only the capture pipeline's scanline-tagged writes.
 
 ### 4a. Line buffer vs frame buffer — decided BEFORE the sweep, by arithmetic
 
-`E:\Arcade-Seta_MiSTer\docs\ROADMAP.md:763-788`: per-scanline worst case
+the Seta core's `docs/ROADMAP.md:763-788`: per-scanline worst case
 (512 sprite rows + 2 layers = ~4300 clk of 6144 at 96 MHz) fits; "**double line
 buffers** (384 × 9 bits × 2 ≈ 7 Kbit, negligible) rather than a frame buffer
 (... 1.7 Mbit, 30% of the device's block RAM)". Contingent on 96 MHz closing.
@@ -315,7 +315,7 @@ Acceptance test: the line-buffer overrun counter (`ROADMAP.md:846-851`);
 The write sweep did not inform this choice; it informed *when the inputs to
 the line renderer are sampled*.
 
-RTL: `E:\Arcade-Seta_MiSTer\rtl\video\x1_001.sv:381-410` (two 512-entry
+RTL: the Seta core's `rtl/video/x1_001.sv:381-410` (two 512-entry
 `{written, pen}` line buffers, `render_bank`/`disp_bank`);
 `rtl\video\x1_012.sv:212-229` (tile layer's pair); swap at `line_start`,
 rendering two lines ahead (`seta_video_timing.sv:25-28, 43-46, 67-70`;
@@ -369,7 +369,7 @@ Internal inconsistency in Seta's docs: `MAME_DIVERGENCE.md:31-32` says
 
 Steps 1-2 use the skill's scripts (`write_timing.py`, `mame/wtiming.lua`, sharing
 `scripts/mame/regions.json`). Steps 3-5 use Seta tools the skill does not ship; port them from
-`E:/Arcade-Seta_MiSTer/scripts/` when needed.
+the Seta core's `scripts/` when needed.
 
 1. **Transcribe the address map** from the MAME driver into `scripts/mame/regions.json`: sprite
    RAM, tile VRAM, scroll/zoom RAM and video registers as `read` (CPU-readable) or `wtap`
@@ -378,7 +378,7 @@ Steps 1-2 use the skill's scripts (`write_timing.py`, `mame/wtiming.lua`, sharin
    fields turned out to be written at different times. Guessed addresses count zero in
    silence. If a range is `writeonly()` in the driver, `install_write_tap` on it can abort
    the script at load; tap the driver's share instead
-   (`E:/Arcade-Fuuki_MiSTer/scripts/mame/capture.lua:54-58`).
+   (the Fuuki core's `scripts/mame/capture.lua`:54-58`).
 
 2. **Histogram, attract and play**:
    ```
@@ -404,7 +404,7 @@ Steps 1-2 use the skill's scripts (`write_timing.py`, `mame/wtiming.lua`, sharin
 
 6. **Scanline source**: keep `time_until_pos` (`wtiming.lua:31-41`). Reduce by
    the driver's declared height, never the RTL's frame
-   (`E:\Arcade-KonamiGX_MiSTer\docs\LESSONS_LEARNED.md:1613-1617`). Keep every
+   (the KonamiGX core's `docs/LESSONS_LEARNED.md:1613-1617`). Keep every
    tap in a global; `pcall` every callback with hits/logged counters
    (Seta `capture.lua:204-222`).
 
@@ -442,12 +442,12 @@ Steps 1-2 use the skill's scripts (`write_timing.py`, `mame/wtiming.lua`, sharin
 
 1. **Only Seta and MS32 tag writes with a scanline.** Seta and MS32 derive it
    from `time_until_pos` (`wtiming.lua:31-41`;
-   `E:\Arcade-JalecoMS32_MiSTer\scripts\mame\capture.lua:78-92`). Fuuki's vreg
+   the JalecoMS32 core's `scripts/mame/capture.lua:78-92`). Fuuki's vreg
    log tags each write with the *raster register in force* (`read_u16(0x8c001c)`),
-   not a line (`E:\Arcade-Fuuki_MiSTer\scripts\mame\capture.lua:82-97`), and
+   not a line (the Fuuki core's `scripts/mame/capture.lua:82-97`), and
    `vregs_frames.lua:9-17` samples registers once per frame. KonamiGX's capture
    taps accumulate the last byte per address with no timing at all
-   (`E:\Arcade-KonamiGX_MiSTer\scripts\mame\capture.lua:99-126`). Psikyo has no
+   (the KonamiGX core's `scripts/mame/capture.lua:99-126`). Psikyo has no
    write-timing sweep: `flip_capture.lua:54-57` taps one bank register for its
    value; `mame_flip_capture.py` dumps regions at fixed frames and diffs
    DIP-off vs DIP-on (`:6-15`).
@@ -460,10 +460,10 @@ Steps 1-2 use the skill's scripts (`write_timing.py`, `mame/wtiming.lua`, sharin
 3. **Frame buffer vs line buffer: opposite orders of discovery.** Seta chose
    the line buffer from bandwidth arithmetic before any RTL (`ROADMAP.md:763-788`).
    Psikyo built a 1.7 Mbit frame buffer first, found it tore mid-scanout and
-   its clear overlapped the next pass (`E:\Arcade-Psikyo_MiSTer\docs\sprite_buffering.md:27-38`),
+   its clear overlapped the next pass (the Psikyo core's `docs/sprite_buffering.md:27-38`),
    tried and removed a line buffer (`:183-195`), then reinstated the line path
    as the only one (`:128-181`). Seta's LESSONS notes the reversal
-   (`E:\Arcade-Seta_MiSTer\docs\LESSONS_LEARNED.md:110-115`). Fuuki's engines
+   (the Seta core's `docs/LESSONS_LEARNED.md:110-115`). Fuuki's engines
    also run two lines ahead (`raster_bands.py:20-21`).
 
 4. **Where the sprite list is frozen.** Seta: per board, from the sweep — before
@@ -472,7 +472,7 @@ Steps 1-2 use the skill's scripts (`write_timing.py`, `mame/wtiming.lua`, sharin
    `m_spriteram->copy()` at vblank, table one generation old, displayed the
    following frame (`sprite_buffering.md:164-166, 242-262`). Fuuki: one
    snapshot at the frame boundary for records *and* the registers that qualify
-   them (`E:\Arcade-Fuuki_MiSTer\docs\LESSONS_LEARNED.md:784-791`). MS32
+   them (the Fuuki core's `docs/LESSONS_LEARNED.md:784-791`). MS32
    (capture side): dump sprite RAM at the driver's own copy moment, caught as
    the first write after vblank (`capture.lua:131-165`). Seta's "every input at
    its vblank value" (`MAME_DIVERGENCE.md:137-140`) and Fuuki's rule agree;
@@ -488,7 +488,7 @@ Steps 1-2 use the skill's scripts (`write_timing.py`, `mame/wtiming.lua`, sharin
 
 6. **Raster effects.** Fuuki treats mid-frame register writes as a first-class
    requirement and measures band boundaries on hardware with a per-line display
-   record (`E:\Arcade-Fuuki_MiSTer\docs\ROADMAP.md:408-424, 164-177`;
+   record (the Fuuki core's `docs/ROADMAP.md:408-424`, 164-177`;
    `raster_bands.py`). Seta latches at vblank by default and enables per-line
    latching only for the calibr50 board (`x1_012.sv:61-67`;
    `downtown_board_cfg.sv:246`); `MAME_DIVERGENCE.md:35-37` marks raster

@@ -1,13 +1,13 @@
 # Fast ROM loading via DDR3 — survey of five MiSTer arcade cores
 
-Read-only survey of E:\Arcade-KonamiGX_MiSTer, E:\Arcade-JalecoMS32_MiSTer,
-E:\Arcade-Seta_MiSTer, E:\Arcade-Fuuki_MiSTer, E:\Arcade-Psikyo_MiSTer (top-level
+Read-only survey of the KonamiGX core, the JalecoMS32 core,
+the Seta core, the Fuuki core, the Psikyo core (top-level
 trees; `build/` ignored). Line numbers are from the working trees as read.
 
 ## 1. Summary
 
 Four of the five cores (Psikyo, Fuuki, Seta, MS32) do fast loading; KonamiGX does not
-(`E:\Arcade-KonamiGX_MiSTer\KonamiGX.sv:32` ties every DDRAM output to 0).
+(the KonamiGX core's `KonamiGX.sv:32` ties every DDRAM output to 0).
 
 The mechanism is the same in all four and is not "ioctl into DDRAM": the `.mra`'s
 `<rom index="0" ... address="0x30000000">` makes the HPS (Main_MiSTer, outside these repos)
@@ -24,7 +24,7 @@ Origin chain (from headers): srg320/Arcade-PsikyoSH2_MiSTer → Psikyo
 (`rtl/memory/rom_loader.sv:7-8`) → MS32 (`rtl/memory/ms32_rom_loader.sv:13-18`,
 `MS32.sv:311`).
 
-**Reference implementation: Seta** (`E:\Arcade-Seta_MiSTer\Seta.sv:220-279`,
+**Reference implementation: Seta** (the Seta core's `Seta.sv:220-279`,
 `rtl/memory/seta_sdram_top.sv:222-269`, `rtl/memory/rom_loader.sv`). Reasons:
 - Its `rom_loader` has a generic transform hook (`raw_addr/raw_word` → `xf_addr/xf_data`,
   `rom_loader.sv:26-30, 66-77`) so whatever the byte path does to a word (swizzle, invert)
@@ -42,7 +42,7 @@ ordinary `ioctl_*` download port so the two paths cannot diverge (`ms32_rom_load
 Slower per byte (three FSM states plus `ioctl_wait` per byte, `ms32_rom_loader.sv:56-74`);
 unmeasured.
 
-The only measured load time in any repo: `E:\Arcade-Fuuki_MiSTer\docs\ROADMAP.md:41`
+The only measured load time in any repo: the Fuuki core's `docs/ROADMAP.md:41`
 "Asura Blade is playable ~14 s after launch against ~75 s through the ioctl path."
 Everything else is unmeasured.
 
@@ -86,7 +86,7 @@ input  [7:0]  wdata;
 output busy, valid;   // valid: 1-cycle pulse, rdata holds the granule
 output [63:0] rdata;
 ```
-Address formula (`E:\Arcade-JalecoMS32_MiSTer\rtl\memory\ddram_phy.sv:55-58`):
+Address formula (the JalecoMS32 core's `rtl/memory/ddram_phy.sv:55-58`):
 ```
 assign DDRAM_BURSTCNT = 8'd1;
 assign DDRAM_ADDR     = {4'b0011, addr_r[27:3]};
@@ -100,7 +100,7 @@ MiSTer-devel/TSConf_MiSTer's ddram.sv (Psikyo `ddram_phy.sv:1-3`,
 
 ### 3.3 Trigger and reset (Seta as reference; Fuuki, Psikyo, MS32 are the same block)
 
-`E:\Arcade-Seta_MiSTer\Seta.sv:223-260`:
+the Seta core's `Seta.sv:223-260`:
 ```
 wire ldr_active;
 reg  rom_loaded = 1'b0, dl_index0_seen = 1'b0, ldr_active_d = 1'b0;

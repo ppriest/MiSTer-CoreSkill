@@ -25,9 +25,14 @@ set -euo pipefail
 TB="${1:?usage: scripts/run_verilator.sh <testbench-dir-name> [-Gparam=v] [plusargs...]}"
 shift
 
-MSYS="${MSYS2_ROOT:-/e/msys64}"
+# MSYS2 holds verilator/g++/make/perl on Windows. Probed, not assumed: set
+# MSYS2_ROOT if it lives somewhere else.
 if ! command -v verilator >/dev/null 2>&1; then
-	[ -x "$MSYS/usr/bin/bash.exe" ] || { echo "MSYS2 not found. Set MSYS2_ROOT."; exit 1; }
+	MSYS=""
+	for _c in "${MSYS2_ROOT:-}" /c/msys64 /d/msys64 /e/msys64 C:/msys64; do
+		[ -n "$_c" ] && [ -x "$_c/usr/bin/bash.exe" ] && MSYS="$_c" && break
+	done
+	[ -n "$MSYS" ] || { echo "MSYS2 not found (verilator, g++, make, perl). Set MSYS2_ROOT."; exit 1; }
 	exec env MSYSTEM=MINGW64 CHERE_INVOKING=1 "$MSYS/usr/bin/bash.exe" -lc \
 		'cd "$1" && shift && exec scripts/run_verilator.sh "$@"' _ "$(pwd -W 2>/dev/null || pwd)" "$TB" "$@"
 fi

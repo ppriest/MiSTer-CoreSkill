@@ -1,6 +1,6 @@
 # DIP switches and inputs
 
-Survey of E:\Arcade-KonamiGX_MiSTer, E:\Arcade-JalecoMS32_MiSTer, E:\Arcade-Seta_MiSTer, E:\Arcade-Fuuki_MiSTer, E:\Arcade-Psikyo_MiSTer (top-level trees; `build/` copies ignored).
+Survey of the KonamiGX core, the JalecoMS32 core, the Seta core, the Fuuki core, the Psikyo core (top-level trees; `build/` copies ignored).
 
 ## 1. Summary
 
@@ -24,20 +24,20 @@ All five: `hps_io #(.CONF_STR(CONF_STR))` with `"DIP;"` in CONF_STR (KonamiGX.sv
 
 ### 3a. MAME driver -> extract_dips.py
 
-Not `-listxml`: the parser reads the driver's C++ source. `E:\Arcade-Seta_MiSTer\scripts\extract_dips.py:1-38` (identical prose in KonamiGX and MS32 copies):
+Not `-listxml`: the parser reads the driver's C++ source. the Seta core's `scripts/extract_dips.py:1-38` (identical prose in KonamiGX and MS32 copies):
 
 ```
 python scripts/extract_dips.py thunderl
 python scripts/extract_dips.py --all           # every Group A game
 python scripts/extract_dips.py --selftest
 ```
-`SRC = os.getenv("MAME_SRC", "E:/mame/src/mame/seta/seta.cpp")` (Seta :46; KonamiGX :46 `konami/konamigx.cpp`; MS32 :46 `jaleco/ms32.cpp`).
+`SRC = os.getenv("MAME_SRC", "$MAME_SRC/src/mame/seta/seta.cpp")` (Seta :46; KonamiGX :46 `konami/konamigx.cpp`; MS32 :46 `jaleco/ms32.cpp`).
 
 What is parsed (from the docstring): `PORT_DIPNAME`, `PORT_DIPSETTING`, `PORT_DIPUNUSED_DIPLOC` (default kept, no `<dip>` emitted), `PORT_SERVICE_DIPLOC`, `PORT_BIT` ignored; `PORT_INCLUDE` followed (`parse_ports(body, all_blocks, missing, depth)` Seta :131). `DEF_STR` table is local and `--selftest` fails on a missing token. Seta `_fold()` :267 folds two switches whose meaning depends on each other into one "(a|b)" entry.
 
 Rationale recorded in the header: a fresh MiSTer `.CFG` is all zeroes, so the .mra default is what boots; Fuuki's hand table dropped four `PORT_DIPUNUSED` bits in gogomile (default FF,1D instead of FF,FF) — `extract_dips.py:29-31`.
 
-MAME `-listxml` is used only by the checker: `E:\Arcade-Seta_MiSTer\scripts\check_dips.py:1-20` compares each .mra against `<dipswitch>` masks/values/defaults and the `<control>` button count, reading the .mra the way `Main_MiSTer support/arcade/mra_loader.cpp` does.
+MAME `-listxml` is used only by the checker: the Seta core's `scripts/check_dips.py:1-20` compares each .mra against `<dipswitch>` masks/values/defaults and the `<control>` button count, reading the .mra the way `Main_MiSTer support/arcade/mra_loader.cpp` does.
 
 ### 3b. build_mra.py -> `<switches>`
 
@@ -97,9 +97,9 @@ Coin: level from the joystick bit, no pulse shaping or coin counter in any of th
 
 ### 3e. Checks
 
-- `E:\Arcade-Seta_MiSTer\scripts\check_dips.py` — .mra vs MAME `-listxml` `<dipswitch>` (masks, values, defaults) and `<control buttons=>`; runs MAME from `mame_capture.MAME_DIR/MAME_EXE`.
-- `E:\Arcade-Seta_MiSTer\scripts\check_inputs.py` — every digital MAME field on P1-P4/COINS/EXTRA vs the core's `seta_port`/`dt_port` tables transcribed into the script (`SETA_PORT`), using `scripts/mame/ports.lua` cached in `debug/ports/<set>.txt`.
-- `E:\Arcade-Psikyo_MiSTer\scripts\validate_mra.py:87-97` — `<switches default>` byte count covers every `<dip bits>`.
+- the Seta core's `scripts/check_dips.py` — .mra vs MAME `-listxml` `<dipswitch>` (masks, values, defaults) and `<control buttons=>`; runs MAME from `mame_capture.MAME_DIR/MAME_EXE`.
+- the Seta core's `scripts/check_inputs.py` — every digital MAME field on P1-P4/COINS/EXTRA vs the core's `seta_port`/`dt_port` tables transcribed into the script (`SETA_PORT`), using `scripts/mame/ports.lua` cached in `debug/ports/<set>.txt`.
+- the Psikyo core's `scripts/validate_mra.py:87-97` — `<switches default>` byte count covers every `<dip bits>`.
 
 ## 4. Checklist for a new core
 

@@ -1,7 +1,8 @@
 # Tools
 
-Every script runs from the core's repository root. Settings come from `mister.env`
-(template: `mister.env.example`). MAME scripts read `scripts/mame/regions.json`; see
+Every script runs from the core's repository root. Settings come from the environment, the
+core's `mister.env`, then `~/.mister-core.env` (templates: `mister.env.example` in a core,
+`mister-core.env.example` in the skill). MAME scripts read `scripts/mame/regions.json`; see
 `SCRIPTS_NOTES.md` for every script and what each core fills in.
 
 ## MAME as the reference
@@ -84,7 +85,7 @@ Use for VHDL vendored cores and bus-level benches.
 scripts/run_verilator.sh <tb> [-GNAME=v ...] [--threads=N] [+plusargs ...]
 ```
 
-MSYS2 MinGW64 at `MSYS2_ROOT` (default `E:/msys64`); the script re-executes itself there from
+MSYS2 MinGW64 (`MSYS2_ROOT`, else probed); the script re-executes itself there from
 Git Bash. Sources per bench in `sim/<tb>/verilator.files`. Output in `obj_verilator/<tb>/`.
 Two-state and no VHDL: VHDL CPUs come in as GHDL Verilog conversions, made by the core's own
 `scripts/verilator_prep.sh` if it has one. A disagreement with ModelSim is a finding. Use for

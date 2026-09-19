@@ -5,21 +5,37 @@ description: Build a new MiSTer FPGA arcade core (DE10-nano, Quartus 17.0) from 
 
 # MiSTer arcade core
 
-One core per repository, `Arcade-<Name>_MiSTer` on `E:\`, from `Template_MiSTer`.
+One core per repository, `Arcade-<Name>_MiSTer` under the cores root, from `Template_MiSTer`.
 MAME is the reference for everything the hardware does; open-source RTL is reused
-wherever a tested module of the same chip exists. The prior cores on `E:\Arcade-*`
+wherever a tested module of the same chip exists. Sibling `Arcade-*_MiSTer` cores beside it
 are the worked examples; their cost is distilled in `references/LESSONS_LEARNED.md`.
 
-## Prerequisites
+## Platform
 
-| Tool | Where |
-|---|---|
-| Quartus 17.0 Lite, ModelSim | `C:/intelFPGA_lite/17.0` |
-| Verilator, g++, make | MSYS2 MinGW64 at `E:\msys64` (`MSYS2_ROOT`); `scripts/run_verilator.sh` re-executes itself there |
-| MAME binary | `MAME_DIR` in `mister.env` |
-| MAME source | checkout at `E:\mame` (upstream `github.com/mamedev/mame`, `src/mame/<maker>/`); `git -C E:/mame log -1` for the commit a finding refers to |
-| gh | `%LOCALAPPDATA%/Microsoft/WinGet/Packages/GitHub.cli_*/bin/gh.exe` (per-user install; not on PATH in every shell) |
-| MiSTer on the LAN | `mister.env` |
+Developed and used on Windows: the scripts call `.exe` tools, hide console windows, sweep
+stray simulator processes with PowerShell, clean with `clean.bat`, and get Verilator from
+MSYS2. On Linux the tool lookups, those Windows-only helpers and `capture.lua`'s `mkdir`
+need changing; nothing else is Windows-specific by design.
+
+## Settings
+
+Nothing here hardcodes a machine. Every path and name is read from the environment first,
+then the core's own gitignored `mister.env`, then a per-machine `~/.mister-core.env`
+(`MISTER_CORE_ENV` to move it; template: `mister-core.env.example`), then a probed default.
+
+| Setting | What | Default |
+|---|---|---|
+| `MISTER_CORES_ROOT` | where cores are cloned | the skill repository's parent |
+| `MISTER_CORE_OWNER` | GitHub account that owns new core repos | the signed-in `gh` account |
+| `QUARTUS_BIN`, `MODELSIM_BIN` | Quartus 17.0 Lite and ModelSim | the standard install, probed |
+| `MSYS2_ROOT` | MSYS2 MinGW64: Verilator, g++, make, perl | probed (`C:/msys64`, ...) |
+| `MAME_DIR`, `MAME_EXE` | the MAME binary to drive | none; required for MAME work |
+| `MAME_SRC` | MAME source tree (`github.com/mamedev/mame`); `git -C $MAME_SRC log -1` gives the commit a finding cites | none; required for research |
+| `MAME_ROMPATH` | extra ROM directories | `<core>/roms`, `<MAME_DIR>/roms` |
+| `MISTER_HOST`, `MISTER_USER`, `MISTER_PASSWORD` | the MiSTer on the LAN | none; required to deploy |
+
+`gh` is found on `PATH`, else the standard per-user install. `python scripts/coretools.py` in a
+core prints what it resolved.
 
 ## Phases
 
@@ -28,14 +44,16 @@ Each phase ends with a commit. Do not start hardware work before the roadmap is 
 ### 0. Bootstrap
 
 ```
-python <skill>/scripts/new_core.py <Name> --owner ppriest --root E:/
+python <skill>/scripts/new_core.py <Name> [--owner <user>] [--root <dir>]
 ```
 
-Creates a private GitHub repo from the template (`--public` to override), clones to `E:\Arcade-<Name>_MiSTer`, renames
+Creates a private GitHub repo from the template (`--public` to override), clones it under the
+cores root as `Arcade-<Name>_MiSTer`, renames
 `Template.*` to `<Name>.*`, adds the `<Name>_stp` instrumented revision, deletes the
 Quartus 13 project, copies `assets/core/` (scripts, docs templates, `.gitignore`,
 `CLAUDE.md`, `docs/LESSONS_LEARNED.md`), commits. `sys/` is untouched, now and always. Then copy
-`mister.env.example` to `mister.env` and fill it in. Move the session into the new repo.
+`mister.env.example` to `mister.env` for anything this core overrides; machine-wide settings
+belong in `~/.mister-core.env`. Move the session into the new repo.
 
 ### 1. Research
 
