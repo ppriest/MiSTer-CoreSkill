@@ -34,6 +34,16 @@ then the core's own gitignored `mister.env`, then a per-machine `~/.mister-core.
 | `MAME_ROMPATH` | extra ROM directories | `<core>/roms`, `<MAME_DIR>/roms` |
 | `MISTER_HOST`, `MISTER_USER`, `MISTER_PASSWORD` | the MiSTer on the LAN | none; required to deploy |
 
+## Upstream requirements
+
+Read once before starting, and check the repository against them before a release:
+
+- **Contributing a Core to MiSTer FPGA** (https://github.com/MiSTer-devel/Wiki_MiSTer/wiki/Contributing-a-Core-to-MiSTer-FPGA): repository layout, licence, release and `.mra`
+  rules, the AI-generated-code expectation, and how a core is submitted.
+- **Compiling a core** (https://mister-devel.github.io/MkDocs_MiSTer/developer/mistercompile/): Quartus **17.0.2** is what almost every core uses; open the
+  `.qpf` and build. Linux and WSL2 have their own dependency and PATH caveats; Apple Silicon needs
+  a devcontainer.
+
 `gh` is found on `PATH`, else the standard per-user install. `python scripts/coretools.py` in a
 core prints what it resolved.
 
@@ -133,6 +143,9 @@ Per roadmap phase, typically CPU + ROM path, then video, then sound, then integr
 
 ### 5. Finish
 
+- Check the repository against the contribution guidelines (https://github.com/MiSTer-devel/Wiki_MiSTer/wiki/Contributing-a-Core-to-MiSTer-FPGA): layout, licence, one
+  primary `.mra` per game in `releases/` with alternatives under `releases/_alternatives/_<game>/`,
+  every game fully playable, and the AI-attestation expectation the README covers.
 - `README.md` from the template: sets, status, features, controls, third-party credits.
 - `docs/HACKS.md`: every approximation, workaround or "good enough" in the core, with
   what would make it correct. `docs/MAME_KLUDGES.md`: MAME's own kludges reproduced on

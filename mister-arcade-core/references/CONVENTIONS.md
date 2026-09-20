@@ -16,11 +16,15 @@ What every core repository in this family shares. Terse by design; the reasons a
   starts `"<Name>;;"`.
 - Deployed cores on the device: `<Name>_NNNNNNNN.rbf` in `/media/fat/_Arcade/cores/`, number
   incrementing per deploy (`scripts/deploy.py`). Released cores: `releases/Arcade-<Name>_YYYYMMDD.rbf`.
-- `.mra` files are named by MAME's description, parents in `releases/`, clones in
-  `releases/_alternatives/`. `<rbf><Name></rbf>`: the `.mra` names the core file **without** the
+- `.mra` files are named by MAME's description, one primary per game in `releases/`, the rest in
+  `releases/_alternatives/_<game name>/` as the contribution guidelines require (the KonamiGX core
+  omits the leading underscore; Seta and Fuuki follow the guidelines). `<rbf><Name></rbf>`: the `.mra` names the core file **without** the
   `Arcade-` prefix, while the released bitstream keeps it, so the README's install step says to
   drop the prefix when copying the `.rbf` to the device. `deploy.py` already installs it under the
-  un-prefixed name.
+  un-prefixed name. The guidelines' own shape is the prefixed one, `<rbf>Arcade-<Name></rbf>`
+  beside `releases/Arcade-<Name>_YYYYMMDD.rbf`, which needs no rename on install (KonamiGX does
+  this; Seta and Fuuki drop the prefix and document the rename instead). Pick one per core and
+  make the README's install step match.
 
 ## Files and directories
 

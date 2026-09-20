@@ -46,3 +46,27 @@ Steps for a release:
 7. Update `README.md`: History, Supported table, Status, Resource usage.
 
 **Current state:** <one line: what the latest build passes or fails, with the number>.
+
+## Submitting the core upstream
+
+From the contribution guidelines (https://github.com/MiSTer-devel/Wiki_MiSTer/wiki/Contributing-a-Core-to-MiSTer-FPGA); check each before asking for a release.
+
+- Public repository, licence compatible with the framework (GPL-3.0 here), standard layout
+  (`sys/`, `rtl/`, `releases/`), and the template's own files present and named for this core.
+- `sys/` matches the template: no local edits.
+- `releases/Arcade-<Name>_YYYYMMDD.rbf` is a build verified on hardware, committed with
+  `git add -f`.
+- One primary `.mra` per game in `releases/`, alternatives in `releases/_alternatives/_<game>/`,
+  each `.mra` naming this core in its `<rbf>` tag, no filename clashes with existing platform
+  `.mra` files.
+- Every supported game fully playable; anything not playable is out of the supported list, in the
+  README's "Not yet" table, not shipped as broken.
+- AI-assisted work: the guidelines expect readable code, testing and accuracy verification. The
+  README's AI attestation section and `docs/` hold the evidence: MAME references, benches,
+  `HACKS.md` and `MAME_KLUDGES.md`.
+- Submission is by email to newcores@misterfpga.org with the repository link; the core is then
+  transferred into the MiSTer-devel organisation (the author stays maintainer) and added to the
+  List of Cores wiki page. **The user decides when to submit; never contact anyone on their
+  behalf.**
+
+Compilation reference, including the Quartus 17.0.2 the framework expects: https://mister-devel.github.io/MkDocs_MiSTer/developer/mistercompile/
