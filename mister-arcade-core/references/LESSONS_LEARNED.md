@@ -656,6 +656,16 @@ mirror passes a fill-then-verify test if a write tap shows nothing else writes t
 
 ## Testbench discipline
 
+- **[BallySente] A vendored module's compile WARNING can be a latent fatal.** T80 has carried a
+  vcom-1275 "arguments of overloaded `and` are not the same length" warning through several
+  sibling cores, noted and ignored. It is a real bug: `T80.vhd:685` masks a 9-bit vector with a
+  4-bit literal in the P/V flag path for `INI`/`IND`/`OUTI`/`OUTD`, and ModelSim turns it into a
+  run-time abort (vsim-3424) the first time a block I/O instruction executes. Cores whose Z80
+  never runs one -- which is most of them -- see only the warning. The Bally/Sente 6VB sound
+  program does run them, and the boot died partway through, at a point that looked like the
+  program simply taking a long time. Triage a vendored module's compile warnings before a long
+  run, not after it fails; and when a simulation stops making progress, check for a fatal in the
+  log rather than assuming the model is just slow.
 - **Use `do @(posedge clk); while (signal);`, never `while (signal) @(posedge clk);`.** The latter
   races an `always_ff` updating the signal on the same edge and either deadlocks or returns before
   the transaction started. Recurred in three benches before being recognised as systemic.
