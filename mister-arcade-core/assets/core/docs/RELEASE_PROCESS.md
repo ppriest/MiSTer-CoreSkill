@@ -57,8 +57,10 @@ From the contribution guidelines (https://github.com/MiSTer-devel/Wiki_MiSTer/wi
 - `releases/Arcade-<Name>_YYYYMMDD.rbf` is a build verified on hardware, committed with
   `git add -f`.
 - One primary `.mra` per game in `releases/`, alternatives in `releases/_alternatives/_<game>/`,
-  each `.mra` naming this core in its `<rbf>` tag, no filename clashes with existing platform
-  `.mra` files.
+  no filename clashes with existing platform `.mra` files.
+- The `<rbf>` tag names the core without the `Arcade-` prefix (`<rbf><Name></rbf>`), matching the
+  name `deploy.py` installs; the released file keeps the prefix, and the README's install step says
+  to drop it.
 - Every supported game fully playable; anything not playable is out of the supported list, in the
   README's "Not yet" table, not shipped as broken.
 - AI-assisted work: the guidelines expect readable code, testing and accuracy verification. The
