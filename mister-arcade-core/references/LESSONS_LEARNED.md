@@ -770,6 +770,22 @@ mirror passes a fill-then-verify test if a write tap shows nothing else writes t
 
 ## Timing closure
 
+- **[BallySente] Ask the timing analyser which path fails; do not reason about it.** A filter
+  missed 25 ns by 0.182 ns. The critical path "obviously" ran through the shared multiplier, so
+  the operand mux was registered -- still short. Then the mux was given its own cycle -- slack got
+  slightly WORSE, -0.288 ns. One `get_timing_paths -setup -npaths 3` named it immediately: the
+  failing path was `u_pre -> u`, a 1025-entry `tanh` table the fitter had put in LUTs instead of
+  an M10K, nowhere near the multiplier. Two restructures of correct, verified RTL were spent on
+  guesses. The query costs seconds:
+
+      create_timing_netlist -model slow -temperature -40 -voltage 1100
+      read_sdc <the sdc>; update_timing_netlist
+      foreach_in_collection p [get_timing_paths -setup -npaths 3 -detail path_only] {
+          post_message -type info [format "SLACK %s FROM %s TO %s" [get_path_info $p -slack]               [get_node_info [get_path_info $p -from] -name]               [get_node_info [get_path_info $p -to] -name]] }
+
+  The corollary: check the fit report's RAM-block count against what the design should infer. A
+  table that was meant to be block RAM and landed in logic shows up as an ALM count that looks
+  wrong AND as a path that will not close.
 ### Open the STA summary before believing any hardware-vs-simulation divergence
 
 Quartus reports "Fitter was successful" on a design that grossly fails timing; nothing in the
