@@ -24,7 +24,8 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "scripts"))
-from mame_capture import NO_WINDOW, lua_env, mame_cmd, mame_paths, regions  # noqa: E402
+from mame_capture import (NO_WINDOW, check_lua_error, lua_env, lua_runner_env,  # noqa: E402
+                          mame_cmd, mame_paths, regions)
 
 
 def trace_env(r):
@@ -51,8 +52,8 @@ def run_traced(game, lua, out, env_extra, seconds):
     with tempfile.TemporaryDirectory() as nv:
         if pinned.is_dir():
             shutil.copytree(pinned, Path(nv) / game)
-        env = dict(os.environ, **trace_env(regions()), CORE_OUT=out.as_posix(), CORE_TAG=game,
-                   **env_extra)
+        env = dict(os.environ, **trace_env(regions()), **lua_runner_env(lua),
+                   CORE_OUT=out.as_posix(), CORE_TAG=game, **env_extra)
         cmd = mame_cmd(exe, game, lua, mame_dir,
                        ["-nvram_directory", nv, "-seconds_to_run", str(seconds)])
         return subprocess.run(cmd, cwd=mame_dir, env=env, capture_output=True, text=True,
@@ -60,6 +61,7 @@ def run_traced(game, lua, out, env_extra, seconds):
 
 
 def check(trace, r):
+    check_lua_error(trace.parent)
     if not trace.exists():
         sys.stdout.write(r.stdout[-2000:])
         sys.stderr.write(r.stderr[-2000:])

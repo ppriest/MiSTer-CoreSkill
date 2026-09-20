@@ -29,8 +29,8 @@ then the core's own gitignored `mister.env`, then a per-machine `~/.mister-core.
 | `MISTER_CORE_OWNER` | GitHub account that owns new core repos | the signed-in `gh` account |
 | `QUARTUS_BIN`, `MODELSIM_BIN` | Quartus 17.0 Lite and ModelSim | the standard install, probed |
 | `MSYS2_ROOT` | MSYS2 MinGW64: Verilator, g++, make, perl | probed (`C:/msys64`, ...) |
-| `MAME_DIR`, `MAME_EXE` | the MAME binary to drive | none; required for MAME work |
-| `MAME_SRC` | MAME source tree (`github.com/mamedev/mame`); `git -C $MAME_SRC log -1` gives the commit a finding cites | none; required for research |
+| `MAME_DIR`, `MAME_EXE` | the MAME binary to drive. Vanilla MAME, and the **same version as `MAME_SRC`**: check `<exe> -version` against the source tree's tag before trusting any capture | none; required for MAME work |
+| `MAME_SRC` | the **driver `.cpp`** this core follows, inside a checkout of `github.com/mamedev/mame` — that is what `extract_dips.py`, `extract_romstart.py` and `validate_mra.py` open. `git -C <its directory> log -1` gives the commit a finding cites | none; required for research |
 | `MAME_ROMPATH` | extra ROM directories | `<core>/roms`, `<MAME_DIR>/roms` |
 | `MISTER_HOST`, `MISTER_USER`, `MISTER_PASSWORD` | the MiSTer on the LAN | none; required to deploy |
 

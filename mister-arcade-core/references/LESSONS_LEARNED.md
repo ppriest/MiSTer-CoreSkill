@@ -1057,6 +1057,27 @@ ack address that is also an input port must acknowledge on writes only.
   = (frame_period - time_until_pos(0)) / line_period`.
 - **[Fuuki] Check `mame.ini` for `debug 1` before automating.** The debugger halts at startup; the
   autoboot script still loads and prints. Pass `-nodebug`; same for `window 1` headless.
+- **[BallySente] Point `-autoboot_script` at `run.lua`, never at the script itself.** The skill
+  shipped `run.lua` -- the wrapper whose whole purpose is to turn a Lua fault into a file the
+  Python side reads back -- but `mame_capture.py`'s `mame_cmd()` passed the target script
+  directly, so nothing ever used it. A bad range in `install_write_tap` then surfaced as a modal
+  dialog on the user's desktop while the runner reported only "no trace written": the failure was
+  visible to the human and invisible to the tooling. Two sibling cores (Seta, MS32) already routed
+  through `run.lua` and read `lua_error.txt` back; the skill's copy had regressed. Wire it in
+  `mame_cmd()` and pass `CORE_SCRIPT`, and call `check_lua_error(out)` before blaming the capture.
+- **[BallySente] `install_write_tap` must stay inside the space's global address mask.** An I/O
+  space declared with `map.global_mask(0xff)` rejects `install_write_tap(0, 0xffff)` outright --
+  "end address is outside of the global address mask ff, did you mean ff?". Read the driver's
+  `address_map` for a `global_mask` before choosing the range.
+- **[BallySente] The MAME BINARY must be the version of the MAME SOURCE you read.** Notes cited
+  `balsente.cpp` at a source tree tagged 0.289 while the runner drove an `arcade64.exe` 0.286
+  (ARCADE, a fork) picked up from a sibling core's `mister.env` -- and the installed vanilla
+  `mame.exe` was 0.285. For a device MAME had just rewritten, that is not a detail: 18 commits
+  separate 0.285 from 0.289 on `cem3394.cpp` and the `va_*` primitives, so an audio comparison
+  against either binary would have been a port of the new model diffed against the old model's
+  output, disagreeing for reasons that mean nothing. Check `<exe> -version` against
+  `git -C $MAME_SRC describe --tags` at the start of any work that leans on a specific device, and
+  prefer vanilla MAME over a fork unless the fork is the reason for the work.
 - **[Fuuki] Snapshots work under `-video none`** and land one level deeper than the directory given;
   search recursively.
 - **[Fuuki] Read dumps through the CPU's own address space**:

@@ -72,12 +72,32 @@ def lua_env(r):
             "CORE_BYTES": str(r["bus_bytes"]), "CORE_BIG": "1" if r["big_endian"] else "0"}
 
 
+def lua_runner_env(lua):
+    """Every Lua script runs under scripts/mame/run.lua, which names the real
+    script in CORE_SCRIPT. Merge this into the subprocess environment.
+
+    Without it, MAME reports a Lua syntax or runtime error as a MODAL DIALOG and
+    the process sits there: the output directory looks untouched and the only
+    symptom is that nothing happened. run.lua catches both classes and writes
+    them to lua_error.txt; check_lua_error() reads it back.
+    """
+    return {"CORE_SCRIPT": str(LUA_DIR / lua)}
+
+
+def check_lua_error(out):
+    """Turn a Lua failure into a printed error. Call before blaming the capture."""
+    err = Path(out) / "lua_error.txt"
+    if err.exists():
+        sys.exit("Lua failed: " + err.read_text().strip())
+
+
 def mame_cmd(exe, game, lua, mame_dir, extra=()):
     # -nodebug/-nowindow explicit: a mame.ini with `debug 1` halts in the debugger
     # while the autoboot script still loads and prints, so it looks alive.
+    # -autoboot_script points at run.lua, not at `lua`: see lua_runner_env().
     return [str(exe), game, "-nodebug", "-nowindow", "-video", "none", "-sound", "none",
             "-skip_gameinfo", "-nothrottle", "-autoboot_delay", "0",
-            "-autoboot_script", str(LUA_DIR / lua),
+            "-autoboot_script", str(LUA_DIR / "run.lua"),
             "-rompath", rompath(mame_dir), *extra]
 
 
@@ -108,7 +128,8 @@ def main():
     seconds = a.seconds if a.seconds is not None else max(10, a.frame // 60 + 10)
 
     cmd = mame_cmd(exe, a.set, "capture.lua", mame_dir, ["-seconds_to_run", str(seconds)])
-    env = dict(os.environ, **lua_env(r), CORE_OUT=out.as_posix(), CORE_FRAME=str(a.frame),
+    env = dict(os.environ, **lua_env(r), **lua_runner_env("capture.lua"),
+               CORE_OUT=out.as_posix(), CORE_FRAME=str(a.frame),
                CORE_READ=spec(r.get("read", {})), CORE_WTAP=spec(r.get("wtap", {})))
     print(f"{a.set} frame {a.frame} -> {out}")
     p = subprocess.run(cmd, cwd=mame_dir, env=env, capture_output=True, text=True, **NO_WINDOW)

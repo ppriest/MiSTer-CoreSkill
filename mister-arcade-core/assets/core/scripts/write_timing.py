@@ -24,7 +24,8 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "scripts"))
-from mame_capture import NO_WINDOW, lua_env, mame_cmd, mame_paths, regions, spec  # noqa: E402
+from mame_capture import (NO_WINDOW, lua_env, lua_runner_env, mame_cmd,  # noqa: E402
+                          mame_paths, regions, spec)
 
 
 def run(game, skip, frames, coin=0, tag="", extra=""):
@@ -37,7 +38,8 @@ def run(game, skip, frames, coin=0, tag="", extra=""):
     if extra:
         taps = f"{taps},{extra}" if taps else extra
     inp = r.get("inputs", {})
-    env = dict(os.environ, **lua_env(r), WT_OUT=out.as_posix(), WT_TAPS=taps,
+    env = dict(os.environ, **lua_env(r), **lua_runner_env("wtiming.lua"),
+               WT_OUT=out.as_posix(), WT_TAPS=taps,
                WT_SKIP=str(skip), WT_FRAMES=str(frames), WT_COIN=str(coin), WT_SNAP="1",
                WT_IN_COIN=inp.get("coin", "Coin 1"), WT_IN_START=inp.get("start", "1 Player Start"),
                WT_IN_HOLD=inp.get("hold", "P1 Right"), WT_IN_PULSE=inp.get("pulse", "P1 Button 1"))
