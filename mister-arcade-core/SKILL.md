@@ -183,10 +183,12 @@ Per roadmap phase, typically CPU + ROM path, then video, then sound, then integr
 - `roms/` and `mister.env` are never committed. `releases/*.rbf` only when verified on
   hardware, added with `git add -f`.
 - Report hardware results with evidence: a screenshot path, a probe readout, a log line.
-- **Sharing the machine:** a build or simulation anywhere blocks JTAG everywhere; announce long
-  compiles and their end; deploying to the MiSTer needs no coordination, but launching or
-  resetting takes the board and is done only when asked; ask before killing another session's
-  simulator (`references/WORKFLOW.md`, section 2a).
+- **Sharing the machine:** a build or simulation anywhere blocks JTAG everywhere, and **JTAG has
+  priority** — a session waiting for the Blaster reserves it, and while that reservation stands no
+  new build or simulation starts, including yours (`scripts/hwlock.py --status` shows the queue).
+  Announce long compiles and their end; deploying to the MiSTer needs no coordination, but
+  launching or resetting takes the board and is done only when asked; ask before killing another
+  session's simulator (`references/WORKFLOW.md`, sections 2 and 2a).
 - **Git:** commit to `develop` as work lands, without being asked; never push `develop`; squash
   onto `master` only when the user asks; revert the commit of a build the user rejects.
 - **Verification:** MAME is not the oracle for sound timing — deploy and judge by ear. A

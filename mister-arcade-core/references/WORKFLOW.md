@@ -69,10 +69,18 @@ machine. A JTAG session during a Quartus compile has bugchecked the PC
 (`KERNEL_SECURITY_CHECK_FAILURE`, 0x139) — repeatedly, after it had been written down as a caution —
 which is why it is a lock and not a note.
 
-Both directions:
+Three rules:
 
 - a JTAG tool refuses to start while Quartus **or** ModelSim is running;
-- a build, or a simulation, refuses to start while a JTAG tool holds the marker.
+- a build, or a simulation, refuses to start while a JTAG tool holds the marker;
+- **a build or simulation refuses to start while a JTAG tool is WAITING**, even though that
+  build would be legal on its own. **JTAG has priority.** Without this rule a probe read never
+  runs on a busy machine: every individual compile is fine, and one more always starts. A
+  waiting session publishes a reservation (`mister_jtag_wanted.<pid>` beside the marker), new
+  builds stand off, the in-flight ones finish, and the probe goes first. `jtag_session(wait=True)`
+  is the default, so a probe read now queues instead of refusing; the reservation is dropped on
+  its timeout so a hung tool cannot wedge every later build. `python scripts/hwlock.py --status`
+  prints the holder, the queue and what is compiling.
 
 Quartus and ModelSim are not a hazard to each other: builds and simulations may run side by side,
 several of either at once. Verilator is outside the lock entirely.
@@ -97,6 +105,10 @@ sessions on different cores stepping on each other.
 
 - **A build or a simulation anywhere blocks JTAG everywhere.** The marker is machine-wide, so
   another session's Quartus compile or ModelSim run stops your probe read, not just your own.
+- **JTAG takes priority over starting a build.** A session that wants the Blaster reserves it and
+  waits; while that reservation stands, nobody starts a new build or simulation, including you.
+  Check with `python scripts/hwlock.py --status` before wondering why a build refuses, and let
+  the probe read go first: it is seconds, a compile is tens of minutes.
 - **Say what you are about to take, and for how long.** Before a long compile, tell the other
   sessions it has started and roughly how long it runs; tell them when it ends. Before reading a
   probe, check nothing else holds the tools.
