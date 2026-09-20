@@ -259,6 +259,20 @@ when CONF_STR asks for it; the switches are delivered (ioctl index 254) either w
 misbehaves. `check_dips.py` and the hardware sweep both passed; nothing looked at the menu. Verify
 the end the user touches.
 
+### Find a ROM by its CRC, not by its filename, everywhere
+
+The CRC identifies a dump; the filename is one zip's spelling of it. Four rules follow, and they
+are one rule: a testbench and the board must accept exactly the same zips, or a bench passes on
+a set the hardware refuses.
+
+- **Every `<part>` in a generated `.mra` carries its `crc`** from the driver's `ROM_START`. The
+  `md5="none"` on the `<rom>` element skips the whole-image hash and is not a substitute.
+- **Look the part up by CRC first, by name second** (`scripts/mra.py`). `zipfile` exposes each
+  entry's stored CRC32, so the search costs no reads. A renamed dump then still loads.
+- **Ignore any directory structure inside the zip**: match the basename.
+- **Name the zips as a cascade**, `zip="set.zip|parent.zip|bios.zip"`: the set's own zip, then the
+  parent or merged zip, then a BIOS zip, first hit wins. Split, merged and renamed sets all load.
+
 ## ROM formats
 
 ### [Seta] A `ROM_LOAD24_*`-style macro may be driver-local -- read its definition, not its name

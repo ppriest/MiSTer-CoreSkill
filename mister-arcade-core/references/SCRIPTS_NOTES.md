@@ -32,7 +32,7 @@ project name and revision from the `.qpf` (`coretools.py`). Per-core constants s
 |---|---|---|---|
 | `extract_romstart.py` | a set's `ROM_START` records for one region, from the driver | Seta | `KINDS`: region names and load kinds |
 | `extract_dips.py` | DIP switches from `INPUT_PORTS_START` | KonamiGX | `SETS`, `DSW_PORT` |
-| `mra.py` | build the image an `.mra` describes, as mra-tools-c would | Fuuki | none |
+| `mra.py` | build the image an `.mra` describes, as mra-tools-c would; parts found by CRC first, then basename, across the zip cascade | Fuuki | none |
 | `validate_mra.py` | XML and content checks before deploy | Psikyo | `ROTATION_OVERRIDE` |
 
 No generic `build_mra.py`: each core's generator encodes its ROM layout. Start from the

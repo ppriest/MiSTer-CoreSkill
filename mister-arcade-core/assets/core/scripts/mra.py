@@ -36,14 +36,33 @@ import zlib
 import xml.etree.ElementTree as ET
 
 
-def _zip_read(zs, name):
-    """The file from the first of the zips that has it: an .mra names several
-    with zip="a.zip|b.zip"."""
-    for z in (zs if isinstance(zs, (list, tuple)) else [zs]):
+def _zip_read(zs, name, crc=None):
+    """A part's bytes, looked up BY CRC FIRST and by name second.
+
+    The CRC identifies the dump; the name is only how one zip happened to spell
+    it. Merged and renamed sets, and dumps under a directory inside the zip, all
+    still load, which is what the MiSTer loader achieves and what a testbench must
+    match -- a bench that finds ROMs by name passes on a zip the board would
+    refuse, or fails on one it accepts.
+
+    Zip order is the cascade the .mra names (zip="a.zip|b.zip"): the set's own
+    zip, then the parent/merged zip, then a BIOS zip. The first hit wins.
+
+    zipfile exposes each entry's stored CRC32, so the search costs no reads.
+    """
+    zl = zs if isinstance(zs, (list, tuple)) else [zs]
+    if crc is not None:
+        want = crc if isinstance(crc, int) else int(crc, 16)
+        for z in zl:
+            for info in z.infolist():
+                if info.CRC == want and not info.is_dir():
+                    return z.read(info)
+    for z in zl:
         names = {n.split('/')[-1]: n for n in z.namelist()}
         if name in names:
             return z.read(names[name])
-    raise KeyError(f"{name} not in the zips")
+    where = "by crc and by name" if crc is not None else "by name"
+    raise KeyError(f"{name} not in the zips ({where})")
 
 
 def _part_data(z, el):
@@ -54,7 +73,7 @@ def _part_data(z, el):
     MRA-Alternatives, e.g. the 720 Degrees and APB sets, which slice a 0x10000
     dump into two 0x8000 halves -- one of them inside an <interleave>).
     """
-    d = _zip_read(z, el.get("name"))
+    d = _zip_read(z, el.get("name"), el.get("crc"))
     # crc is the WHOLE file's CRC32, checked before any slice -- so a sliced
     # part still names the dump it was cut from.
     if el.get("crc") is not None:

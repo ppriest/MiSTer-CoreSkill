@@ -337,6 +337,13 @@ Region tables (as the RTL declares them):
 
 ## 7. Checklist for a new core
 
+0. **Every `<part>` carries its `crc`**, taken from the driver's `ROM_START`, and every zip
+   attribute lists the cascade: the set's own zip, then the parent or merged zip, then a BIOS zip
+   (`zip="set.zip|parent.zip|bios.zip"`). The CRC is what identifies a dump; a name is only one
+   zip's spelling of it, and a directory inside the zip is ignored. That is how the loader finds
+   ROMs in merged, renamed and split sets, and `scripts/mra.py` does the same so a testbench and
+   the board accept exactly the same zips. `md5="none"` on the `<rom>` element is separate: it
+   skips the whole-image hash, and does not replace the per-part CRCs.
 1. `.mra`: emit `<rom index="0" zip=… md5="none" address="0x30000000">` from the generator
    (Seta `build_mra.py:986-991`). Omit it for inline-hex test `.mra` and for anything that
    must stream bytes (MS32 capture blobs, `build_mra.py:187-190`). Keep the byte path working.

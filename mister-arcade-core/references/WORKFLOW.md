@@ -329,6 +329,10 @@ Generate every `.mra` from a script (`scripts/build_mra.py`), not by hand:
   testing against that**, not derived by reasoning. (Evidence: every interleave one sibling derived
   by reasoning was wrong.)
 - A BIOS region that every set shares belongs in every `.mra`.
+- Every `<part>` carries its CRC, and the zip attribute lists the cascade
+  (`set.zip|parent.zip|bios.zip`). Testbench fixtures are built through `scripts/mra.py`, which
+  finds parts by CRC first and ignores directories inside the zip, so a bench and the board accept
+  the same zips.
 - The finished file is **re-read and compared byte-for-byte** against an image built directly from
   `ROM_START` (`scripts/mra.py` reimplements mra-tools-c's semantics).
 - SDRAM offsets come from the RTL's own address map (its localparams), never duplicated into the
