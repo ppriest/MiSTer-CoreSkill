@@ -106,6 +106,15 @@ Per roadmap phase, typically CPU + ROM path, then video, then sound, then integr
   captures (`scripts/mame_capture.py`, `scripts/mame/*.lua`); expected output is MAME's
   frame or trace. Verilator for pixel/frame comparison, ModelSim for bus-level and
   vendored VHDL. `references/tools.md` has the invocations and layout.
+- **Render per scanline, from buffered sprite RAM. A frame buffer needs hardware evidence.**
+  The boards drew a line at a time from a list latched once a frame, so that is the default
+  shape: sprite RAM buffered at the snapshot point the sweep identifies, a per-frame candidate
+  list, a per-scanline engine, a double-buffered line buffer. A whole-frame buffer is correct
+  only where the board itself has one, shown in the driver (a frame-buffer RAM region, a
+  hardware copy, a 3D renderer's buffers); cite it in the roadmap. Reaching for one because the
+  per-line budget looks tight is a rewrite later: Psikyo built one, found it tore mid-scanout,
+  and went back to the line path. If the arithmetic says per-line does not fit, bring the numbers
+  to the user rather than changing the shape.
 - Before wiring line buffers, double buffers or vblank-latched copies, run the video-write
   sweep (`references/video_write_sweep.md`): when the game writes sprite/tile/scroll RAM
   and registers relative to vblank decides the buffering scheme. Do not guess it.

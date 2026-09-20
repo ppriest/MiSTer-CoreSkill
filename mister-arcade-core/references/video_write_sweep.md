@@ -426,7 +426,8 @@ the Seta core's `scripts/` when needed.
    | observation | structure |
    |-|-|
    | per-line worst case fits in a line period at the chosen clock | double line buffer, engine two lines ahead, overrun counter (`ROADMAP.md:763-788, 846-851`; `LESSONS_LEARNED.md:798-830`) |
-   | it does not fit, or per-sprite zoom / variable size | frame buffer — but see Psikyo (section 6): swap at the frame boundary, never at end-of-render |
+   | it does not fit at the chosen clock | re-check the clock, the fetch width and the candidate list first; per-line is the shape the hardware had. Take the arithmetic to the user before changing shape |
+   | the board itself has a frame buffer (a frame-buffer RAM region or a 3D renderer in the driver) | frame buffer, cited in the roadmap — and see Psikyo (section 6): swap at the frame boundary, never at end-of-render |
    | list written entirely inside vblank, before line X | snapshot at line X or later, before active video (`snap_start`) |
    | list written mid-frame, chip has a hardware copy (`setac_eof`) | snapshot at end of visible, copy at vblank; per-board copy/draw order from the driver's `VIDEO_UPDATE_AFTER_VBLANK` |
    | game flips its own page (copy off + drawn-half bit toggles) | copy the selected half's codes at the flip; keep single-buffered fields (Y) at the usual point; move the engine when both are ready |

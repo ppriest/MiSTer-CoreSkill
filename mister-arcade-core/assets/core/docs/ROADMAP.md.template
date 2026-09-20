@@ -136,6 +136,11 @@ See [`WORKFLOW.md`](WORKFLOW.md).
 **Licence: {{LICENCE}}.** Every dependency, what it obliges and the release checklist are in
 [`THIRD-PARTY.md`](../THIRD-PARTY.md). `sys/` is never edited.
 
+**Per-scanline rendering from buffered sprite RAM.** The default shape, as the boards worked:
+the list latched once a frame at the point the video-write sweep identifies, a per-scanline
+engine, a double-buffered line buffer. A frame buffer only where the driver shows the board had
+one; cite it here.
+
 **No multiplies, no divides, in 2D pipelines.** Shifts, masks, adds and accumulators; WORKFLOW §14.
 GPU-like chips (3D geometry, rasterisers) use multipliers by design, budgeted in DSP blocks.
 
