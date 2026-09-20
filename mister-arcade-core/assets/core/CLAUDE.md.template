@@ -30,7 +30,9 @@ MiSTer arcade core for {{NAME}}. Built with the `mister-arcade-core` skill.
   path from the OSD or the DIP, verified against the unflipped frame rotated 180 degrees, not
   against MAME alone. The OSD shows only what applies to the running set and output.
   Controls always include a Pause input that suspends the main CPU. Savestates and cheats
-  are optional.
+  are optional to ship, but keep state reachable and `docs/STATE.md` current as RTL lands:
+  retrofitting state capture is the expensive path, and the state dump is what makes a
+  hardware bug reproducible in a bench.
 - Debug switches live on the OSD's hidden page, and probes in the `{{NAME}}_stp` revision
   only.
 - No multiplies or divides in 2D video or CPU glue: shifts, masks, adds, accumulators
