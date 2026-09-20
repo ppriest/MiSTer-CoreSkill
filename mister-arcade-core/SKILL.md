@@ -116,8 +116,14 @@ Per roadmap phase, typically CPU + ROM path, then video, then sound, then integr
   and went back to the line path. If the arithmetic says per-line does not fit, bring the numbers
   to the user rather than changing the shape.
 - Before wiring line buffers, double buffers or vblank-latched copies, run the video-write
-  sweep (`references/video_write_sweep.md`): when the game writes sprite/tile/scroll RAM
-  and registers relative to vblank decides the buffering scheme. Do not guess it.
+  sweep (`references/video_write_sweep.md`): a per-scanline histogram, relative to vblank, of
+  every write to sprite RAM (by field), tilemap VRAM, scroll and zoom RAM, and the video
+  registers. It decides the snapshot and latch points; do not guess them.
+  **Sweep in play, not only attract**, and over a long run: coin up, press Start and keep
+  playing (`--coin`), 1800 frames or more, every set. Attract is a demo loop and need not write
+  the way the game does, and a set has been measured writing sprite codes in a different part
+  of the frame in play than in attract. Where the two disagree, the play run wins. Record both
+  in `docs/write_timing_mame.txt`.
 - Read the routing table at the top of `references/LESSONS_LEARNED.md` before starting each
   subsystem, not after it misbehaves.
 - Standard features, each with its guide in `references/`: DIPs and inputs

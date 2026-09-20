@@ -380,16 +380,29 @@ the Seta core's `scripts/` when needed.
    the script at load; tap the driver's share instead
    (the Fuuki core's `scripts/mame/capture.lua`:54-58`).
 
-2. **Histogram, attract and play**:
+2. **Histogram over a long run, attract AND in play. Both, every set.**
    ```
-   python scripts/write_timing.py <set> --skip 600 --frames 1800
+   python scripts/write_timing.py <set> --skip 600  --frames 1800
    python scripts/write_timing.py <set> --coin 600 --skip 1500 --frames 1800 --tag _play
    python scripts/write_timing.py <set> --reuse        # re-print from debug/wtiming/
    ```
-   Skip past boot: counting from an early frame shows nothing while the game is still in
-   its RAM test (checked on `thunderl`: nothing at `--skip 120`, Seta's result at 600).
-   Check the closing snapshot in `debug/wtiming/snap<tag>/` shows the scene wanted. Paste
-   the tables into `docs/write_timing_mame.txt`.
+   The play run is the decisive one: attract is a demo loop and need not write the way the
+   game does. Seta measured a set whose sprite codes went from 0% to 18% of writes in the
+   first 24 lines after vblank between attract and play; a snapshot point chosen from attract
+   alone would have been wrong in play. `--coin` inserts a coin, presses Start, then holds a
+   direction and pulses a button so play continues unattended.
+
+   Run long: 1800 frames is 30 seconds of game time, enough for several scenes, level
+   transitions and an attract cycle. A short run measures one scene.
+
+   Skip past boot: counting from an early frame shows nothing while the game is still in its
+   RAM test (checked on `thunderl`: nothing at `--skip 120`, Seta's result at 600). For the play
+   run, skip past the coin and Start as well.
+
+   Check the closing snapshot in `debug/wtiming/snap<tag>/` shows the scene wanted: a run that
+   ended on a continue screen or an attract loop measured the wrong thing. Paste both tables
+   into `docs/write_timing_mame.txt`, attract and play side by side, and note any set whose
+   two runs disagree: that difference decides the design, not the average.
 
 3. **Sprite control semantics** (double-buffer ownership): Seta's `sprctrl_scan.py` +
    `mame/sprctrl.lua` log each control-byte value and the line of each page flip. Adapt the
