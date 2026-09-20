@@ -203,7 +203,10 @@ The remaining sets, every clone's `.mra`, {{PHASE4_ITEMS}}. `docs/MAME_KLUDGES.m
 
 **Phase 5 — {{OPTIONAL_SCOPE_EXTENSION}}.** A decision with evidence rather than a default.
 
-**Phase 6 — Savestates and cheats.** Optional but desirable. Not before Phase 4.
+**Phase 6 — Savestates, state dumps and cheats.** Optional but desirable. Not before Phase 4, but
+the RTL is written for it from Phase 1 (the skill's `savestates.md`): reachable RAM ports, a
+`docs/STATE.md` inventory, addressable chip state. The state dump and its simulator loader are worth
+building before the savestate itself, because they make hardware bugs reproducible in a bench.
 
 ## Verification strategy
 

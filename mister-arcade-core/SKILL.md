@@ -128,8 +128,13 @@ Per roadmap phase, typically CPU + ROM path, then video, then sound, then integr
   trackball) hidden unless the running set has it, from the `.mra` mod byte. Rotary games
   clone the Ikari Warriors core's controls and settings; light-gun games support the mouse and
   a synthetic crosshair (`osd_and_peripherals.md`).
-- Optional but desirable: savestates and cheats. Plan them in the roadmap after the standard
-  set; say in the README which are done.
+- Optional but desirable: savestates and cheats. Shipping them comes late, but **design for state
+  capture from the first RTL** (`savestates.md`): every RAM reachable through a borrowable port,
+  a running `docs/STATE.md` inventory, a vendored module with a state port preferred, and a chip
+  written from MAME keeping its state in an addressable register file rather than circulating shift
+  registers. The state dump earns its keep before any savestate ships: one self-describing file,
+  dumped from hardware and loaded into ModelSim or Verilator, turns a bug seen on the board into a
+  deterministic bench at the frame it went wrong. Say in the README which parts are done.
 
 ### 4. Hardware
 
@@ -184,5 +189,6 @@ Per roadmap phase, typically CPU + ROM path, then video, then sound, then integr
 | `references/video_write_sweep.md` | before any video buffering decision |
 | `references/cpus_and_vendored.md` | before vendoring or porting a CPU/sound/video module |
 | `references/dips_inputs.md`, `crt_offset.md`, `hiscore.md`, `ddr_rom_loading.md`, `video_audio_options.md`, `osd_and_peripherals.md`, `sdram_ddr_maps.md` | the matching feature |
+| `references/savestates.md` | before the first RAM is written, and again when savestates are planned |
 | `references/pcb_video_reference.md` | when a PCB comparison is wanted |
 | `references/SCRIPTS_NOTES.md` | what each `scripts/` tool does and which constants are per-core |
