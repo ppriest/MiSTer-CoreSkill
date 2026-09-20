@@ -24,7 +24,9 @@ What every core repository in this family shares. Terse by design; the reasons a
   un-prefixed name. The released bitstream keeps the prefix the guidelines ask for,
   `releases/Arcade-<Name>_YYYYMMDD.rbf`, so the README's install step tells the user to drop it
   when copying to the device. KonamiGX instead puts `Arcade-KonamiGX` in the `<rbf>` tag; that is
-  wrong, and a new core follows Seta and Fuuki.
+  wrong, and a new core follows Seta and Fuuki. Changing the stem of an already-deployed core means
+  deleting the files under the old stem from the device in the same change; MiSTer ignores them, so
+  they only mislead.
 
 ## Files and directories
 

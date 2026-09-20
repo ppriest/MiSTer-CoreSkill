@@ -112,6 +112,12 @@ sessions on different cores stepping on each other.
 
 ## 3. Deploy only what the build actually produced
 
+**If the deployed file's stem ever changes, sweep the old ones off the device.** MiSTer pairs a
+`.mra` with the core file its `<rbf>` tag names, so bitstreams under the previous stem are simply
+ignored: they sit in `/media/fat/_Arcade/cores/` looking current, and the next person to debug a
+stale-looking core finds several candidates. Renaming the tag and deleting the orphans belong in the
+same change (KonamiGX, on dropping the `Arcade-` prefix).
+
 `scripts/deploy.py` refuses to copy a `.rbf` unless:
 
 - the build log says the compile succeeded,
