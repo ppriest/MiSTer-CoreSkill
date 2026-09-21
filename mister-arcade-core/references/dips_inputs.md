@@ -118,6 +118,19 @@ Coin: level from the joystick bit, no pulse shaping or coin counter in any of th
 
 ## 5. Defaults, .cfg and testing
 
+- **Button names are the game's own**, from the manual, the cabinet's control panel, the flyer,
+  or MAME's input port names when nothing better exists: "Shot", "Bomb", "Jump", not
+  "Button 1". They go in the `.mra` `<buttons names=...>` per game, from a table in the generator,
+  because the same board runs games with different controls. `validate_mra.py` fails generic
+  names; `--allow-generic-buttons` lets early bring-up through.
+- **Every DIP line fits the OSD's 28 columns**: `" name:"` plus the longest setting, so
+  `2 + len(name) + len(longest setting) <= 28`. Main_MiSTer pads the line with a signed-char
+  count, so a line that does not fit wraps and the value vanishes off screen while the switch
+  still cycles (the Seta core's issue #6: Arbalester's `Coin A (Mode 1|2)` = `2C/3C|4C/1C` showed
+  only `1C/1C`). Abbreviate in the generator with a hand table first (Seta's `OSD_NAME` and
+  `OSD_ID` in `build_mra.py`), cut only after, and never let two settings become identical once
+  cut. `validate_mra.py` fails any line over 28.
+
 - **Default every DIP to the setting that boots into the game**, not whatever the ROM's switch
   block happens to be. A service-mode or test DIP left on strands the player in the service menu
   (Seta's Thunder & Lightning did exactly that).

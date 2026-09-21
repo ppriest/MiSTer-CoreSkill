@@ -23,9 +23,18 @@ Checks:
      line (MAME_SRC, from mister.env or the environment): ROT0 ->
      "horizontal", ROT90 -> "vertical (cw)", ROT270 -> "vertical (ccw)".
      Skipped, with a note, when the driver is not available.
+  5. Every <dip> fits the OSD: " name:" plus the longest setting within 28
+     columns. Main_MiSTer pads the line with a signed-char count
+     (menu.cpp, MENU_ARCADE_DIP1), so a line that does not fit wraps and the
+     value is pushed off screen: the switch still cycles, invisibly (the Seta
+     core's issue #6, Arbalester's coin switch showing only "1C/1C").
+  6. <buttons names> are the game's own control names, from the manual or
+     another source, not "Button 1". Start, Coin, Pause, Service, Test and "-"
+     are exempt. --allow-generic-buttons lets early bring-up through.
 
 Usage:
     python scripts/validate_mra.py releases/*.mra
+    python scripts/validate_mra.py --allow-generic-buttons releases/*.mra
 Exit status is non-zero if any file fails, so it works as a gate:
     python scripts/validate_mra.py releases/*.mra && <deploy>
 """
@@ -44,6 +53,10 @@ from coretools import setting   # noqa: E402
 # override the driver.
 ROTATION_OVERRIDE = {}
 # ---------------------------------------------------------------------------
+
+OSD_COLS = 28                       # Main_MiSTer's DIP line width
+GENERIC_BUTTON = re.compile(r'^(button|btn|b|fire|action)\s*\d+$', re.I)
+BUTTON_EXEMPT = {'start', 'coin', 'pause', 'service', 'test', 'tilt', '-', ''}
 
 ROT_TAG = {"ROT0": "horizontal", "ROT90": "vertical (cw)", "ROT180": "horizontal",
            "ROT270": "vertical (ccw)"}
@@ -66,7 +79,28 @@ def driver_rotations():
     return out
 
 
-def check(path, rotations):
+def dip_overflows(sw):
+    """[(name, longest setting, columns)] for DIP lines wider than the OSD."""
+    out = []
+    for dip in sw.findall('dip'):
+        name = dip.get('name') or ''
+        ids = [i for i in (dip.get('ids') or '').split(',')]
+        widest = max(ids, key=len) if ids else ''
+        cols = 2 + len(name) + len(widest)      # " name:" is name + 2, value right-aligned
+        if cols > OSD_COLS:
+            out.append((name, widest, cols))
+    return out
+
+
+def generic_buttons(root):
+    b = root.find('buttons')
+    if b is None:
+        return []
+    names = [n.strip() for n in (b.get('names') or '').split(',')]
+    return [n for n in names if n.lower() not in BUTTON_EXEMPT and GENERIC_BUTTON.match(n)]
+
+
+def check(path, rotations, allow_generic_buttons=False):
     problems = []
     try:
         tree = ET.parse(path)
@@ -109,10 +143,25 @@ def check(path, rotations):
             problems.append(
                 'switches default has %d bytes but a <dip> uses bit %d, which '
                 'is outside the range those bytes can cover' % (nbytes, max(bits)))
+    if sw is not None:
+        for name, widest, cols in dip_overflows(sw):
+            problems.append(
+                'DIP %r with setting %r needs %d columns, the OSD has %d: the value '
+                'wraps off screen. Abbreviate the name or the settings in the '
+                'generator' % (name, widest, cols, OSD_COLS))
+
+    if not allow_generic_buttons:
+        gen = generic_buttons(root)
+        if gen:
+            problems.append(
+                "generic button names %s: use the game's own names from the manual "
+                '(e.g. "Shot", "Bomb"), set per game in the generator' % ', '.join(gen))
     return problems
 
 
 def main(argv):
+    allow = '--allow-generic-buttons' in argv
+    argv = [a for a in argv if a != '--allow-generic-buttons']
     files = []
     for pat in (argv or ['releases/*.mra']):
         files.extend(sorted(glob.glob(pat)))
@@ -125,7 +174,7 @@ def main(argv):
 
     bad = 0
     for f in files:
-        problems = check(f, rotations)
+        problems = check(f, rotations, allow)
         if problems:
             bad += 1
             print('FAIL  %s' % f)
