@@ -123,6 +123,16 @@ Coin: level from the joystick bit, no pulse shaping or coin counter in any of th
   "Button 1". They go in the `.mra` `<buttons names=...>` per game, from a table in the generator,
   because the same board runs games with different controls. `validate_mra.py` fails generic
   names; `--allow-generic-buttons` lets early bring-up through.
+  - **The table is keyed by set, and a clone without an entry takes its parent's**, so naming a
+    parent names every clone (Fuuki's `BUTTON_NAMES` and `button_names()` in `build_mra.py`).
+  - **Never hand-edit a generated `.mra`.** The next regeneration silently reverts it. Fuuki's
+    first real button names were typed into the `.mra` files and would have been lost; they
+    moved into the table, and the generator then reproduced the edited files byte for byte.
+  - **A name nobody has found stays "Button N"**, so the validator keeps it visible as an open
+    item. Do not invent one: Fuuki's `asurabusjr` has a fourth button that MAME declares only as
+    `IPT_BUTTON4`.
+  - A clone with more buttons than its parent (the same review build) keeps the parent's names
+    for the shared buttons and needs its own entry, or a generic name, for the rest.
 - **Every DIP line fits the OSD's 28 columns**: `" name:"` plus the longest setting, so
   `2 + len(name) + len(longest setting) <= 28`. Main_MiSTer pads the line with a signed-char
   count, so a line that does not fit wraps and the value vanishes off screen while the switch
