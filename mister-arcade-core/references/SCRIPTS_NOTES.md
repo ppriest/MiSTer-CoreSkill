@@ -23,7 +23,8 @@ project name and revision from the `.qpf` (`coretools.py`). Per-core constants s
 | `deploy.py` | copy `.rbf` (numbered) and `.mra` files to the MiSTer, only for a build that met timing | KonamiGX | `REMOTE_ARCADE`, `HELD_BACK_SETS` |
 | `hw.py` | MiSTer Remote: launch via `menu.rbf`, native or scaled screenshot, what is playing | Seta, MS32 | `REMOTE_ARCADE_DIR` |
 | `read_issp.py`, `read_issp.tcl` | ISSP probe readout under `hwlock` | KonamiGX | field table per instance, matching the RTL's probe bus bit for bit |
-| `probe.py` | probe readout, one line per sample | MiSTer-CoreTools | `DEFAULT_INSTANCE` |
+| `probe.py` | probe readout, one line per sample, prefixed `<core>\|<build>\|<set>\|` | MiSTer-CoreTools | `DEFAULT_INSTANCE` |
+| `identity.py` | the prefix: core file and set from the device, commit from the machine-wide deploy log `deploy.py` appends to; warns when the loaded core is not this repository's | skill | none |
 | `decode_debug_screenshot.py`, `png_census.py` | decode values encoded in the video output; colour census of a screenshot | Psikyo, Fuuki | none |
 
 ## ROMs and `.mra`

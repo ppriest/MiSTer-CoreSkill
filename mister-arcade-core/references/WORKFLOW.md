@@ -196,6 +196,20 @@ would otherwise be rebuilds. One trap: `write_source_data -value` takes a **bina
 decimal one is silently rejected while still printing "source set to N". Pass `-value_in_hex`, and
 read every source back after writing it.
 
+**Every probe reading is labelled with what produced it: `<core>|<build>|<set>|`.** Several
+sessions share one MiSTer, so the core that answers a JTAG read is whatever is loaded, not
+necessarily the repository that asked. `read_issp.py` and `probe.py` prefix every line from
+`scripts/identity.py`: the core file and set come from the device (`/tmp/RBFNAME`,
+`/tmp/CORENAME`), the commit from a machine-wide deploy log that `deploy.py` appends to
+(`%LOCALAPPDATA%/mister_deployed.tsv`). A field that cannot be established prints `?`, and when
+the loaded core is not this repository's, a warning goes to stderr. Quote readings with their
+prefix in notes, commit messages and messages to other sessions.
+
+The authoritative check is in the bitstream itself: put a constant identity word on the probe bus
+(a core tag and the build's commit, written into a header by the build) and compare it with the
+prefix. The device and the log can disagree with what is actually in the FPGA; the bitstream
+cannot.
+
 ## 6. Counters and the trace ring
 
 `rtl/debug/debug_counter.sv` and `rtl/debug/debug_tracer.sv`, carried over with their design

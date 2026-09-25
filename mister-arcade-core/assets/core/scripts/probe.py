@@ -8,7 +8,9 @@
 
 Wraps `quartus_stp -t scripts/read_issp.tcl`: refuses to run beside Quartus
 (scripts/hwlock.py) and prints one line per read, so a sequence of samples is
-readable rather than four screens of Quartus banner.
+readable rather than four screens of Quartus banner. Each line starts
+`<core>|<build>|<set>|` from the device (scripts/identity.py): with several sessions
+sharing the board, the core answering may not be this repository's.
 """
 import argparse
 import subprocess
@@ -18,6 +20,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from coretools import core_root, quartus_stp   # noqa: E402
 from hwlock import jtag_session                # noqa: E402
+from identity import prefix                     # noqa: E402
 
 REPO = core_root()
 TCL = Path(__file__).resolve().parent / "read_issp.tcl"
@@ -67,7 +70,8 @@ def main():
     if not v:
         sys.exit("no fields decoded -- does read_issp.tcl match the build?")
     keys = a.fields if a.fields else list(v)
-    print(" ".join("%s=%s" % (k, v.get(k, "?")) for k in keys))
+    # core|build|set| from the device, after the lock is released
+    print(prefix() + " ".join("%s=%s" % (k, v.get(k, "?")) for k in keys))
     return 0
 
 

@@ -161,7 +161,9 @@ Per roadmap phase, typically CPU + ROM path, then video, then sound, then integr
   tree, gates on slack). Never compile in the tree.
 - `scripts/deploy.py` to the MiSTer; `scripts/hw.py` to launch a game, screenshot, reset.
 - ISSP probes only in the `_stp` revision, read through `scripts/read_issp.py`, always
-  under `hwlock.py`: JTAG during a Quartus compile has bugchecked the machine.
+  under `hwlock.py`: JTAG during a Quartus compile has bugchecked the machine. Every reading is
+  prefixed `<core>|<build>|<set>|` from the device and the deploy log (`scripts/identity.py`),
+  because the core answering may be another session's; quote readings with that prefix.
 - Simulation passes and hardware fails: `LESSONS_LEARNED.md`, "When simulation passes and
   hardware fails", before touching the RTL.
 

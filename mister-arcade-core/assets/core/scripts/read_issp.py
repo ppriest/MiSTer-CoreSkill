@@ -11,7 +11,8 @@ scripts/read_issp.tcl does the reading; run it through this. quartus_stp
 started bare takes no marker, so a build or a simulation -- from this repo or
 another core's -- could start underneath it, which is the combination
 scripts/hwlock.py exists to prevent. scripts/probe.py is the one-line-per-read
-form of the same thing.
+form of the same thing. Every output line starts `<core>|<build>|<set>|`, from the
+device (scripts/identity.py), so readings from competing sessions cannot be confused.
 """
 import subprocess
 import sys
@@ -20,6 +21,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from coretools import core_root, quartus_stp   # noqa: E402
 from hwlock import jtag_session                # noqa: E402
+from identity import prefix                     # noqa: E402
 
 REPO = core_root()
 TCL = Path(__file__).resolve().parent / "read_issp.tcl"
@@ -33,4 +35,9 @@ def read(*args, capture=False):
 
 
 if __name__ == "__main__":
-    sys.exit(read(*sys.argv[1:]).returncode)
+    r = read(*sys.argv[1:], capture=True)
+    tag = prefix()                      # core|build|set|, after the lock is released
+    for ln in (r.stdout + r.stderr).splitlines():
+        if ln.strip():
+            print(tag + ln)
+    sys.exit(r.returncode)

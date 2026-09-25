@@ -247,6 +247,9 @@ def main():
         m.run(f"mkdir -p {REMOTE_CORES}")
         name = a.name or next_rbf_name(m)
         m.put(rbf, f"{REMOTE_CORES}/{name}")
+        # machine-wide: which commit this numbered file is, for identity.py
+        from identity import record_deploy
+        record_deploy(name, REPO)
 
     # ---- .mra files ----
     if not a.rbf_only:
