@@ -192,9 +192,9 @@ set of scenes, silent, in simulation.
 **Phase 2 — Hardware bring-up and the first games.**
 
 SDRAM backend with all clients, the ROM download path, `.mra` generation, inputs, DIPs, NVRAM,
-the ISSP probe and the OSD debug page. The standard feature set: CRT offset (and v-size if BRAM
+the ISSP probe and the OSD debug page. The standard feature set: CRT Adjust (and v-size if BRAM
 allows), hiscore, fast DDR ROM loading, HDMI scaling and crop, HDMI rotation, audio mix, HDMI-only
-options hidden under direct video, CRT offset parameters hidden until enabled, peripheral menus
+options hidden under direct video, CRT Adjust parameters hidden until enabled, peripheral menus
 only for games that use them (rotary: Ikari Warriors controls; guns: mouse and synthetic
 crosshair), and flip screen from the OSD or the DIP (fake DIP where the
 game has none) through one path, worked out per layer for this board. Exit criteria: {{PHASE2_SETS}} boot and play on a

@@ -1,4 +1,4 @@
-# CRT offset / size across the five cores
+# CRT Adjust (rmonic79's `crt_adjust.sv`) across the five cores
 
 Survey of the top-level trees (build/ ignored) of Arcade-KonamiGX, -JalecoMS32,
 -Seta, -Fuuki, -Psikyo. Read-only. "Unverified" = not checked against a fit
@@ -6,7 +6,7 @@ report or hardware; only the source was read.
 
 ## 1. Summary
 
-**Standard:** a single always-visible `CRT adjust,Off,On` toggle; every size and position
+**Standard:** a single always-visible `CRT Adjust,Off,On` toggle; every size and position
 parameter is behind an `H` group masked by `~toggle`, and Off bypasses the logic. All four
 cores below do this. See `osd_and_peripherals.md` for the full mask layout.
 
@@ -179,24 +179,14 @@ KonamiGX b9413cd (2026-09-17), Fuuki d82fc2b (2026-09-04). Nothing in `sys/`
 was edited for this feature; the "sys-side variant" the module header mentions
 (`crt_adjust_sys.sv`, edit sys_top.v) is not used by any core.
 
-### 3.8 The name "CRT_Offset"
+### 3.8 The name
 
-No code identifier `CRT_Offset`/`CRT_OFFSET` exists in any of the five trees.
-It appears only as prose:
-- the Psikyo core's `docs/ROADMAP.md:150` "CRT_Offset module -- standard
-  MiSTer-devel helper" and `:239-240` "matches the framework's usual
-  `CRT_OFFSET` convention" -- written before the feature was built; there is
-  no such helper in `sys/`. `Psikyo.sv:708` and `rtl/psikyo_top.sv:14`,
-  `rtl/psikyo_core.sv:14` use "CRT Offset"/"CRT_Offset" as the feature name.
-- the JalecoMS32 core's `Readme.md:126` "CRT Offset: OSD CRT adjust ...".
-- the Fuuki core's `README.md:62` "CRT offset"; `:120` "CRT Adjust".
-- the Seta core's `docs/ROADMAP.md:992` "CRT offset is a per-game H/V
-  shift ... applied at the video output, not in the core's timing".
-- `E:\MiSTer-CoreSkill\mister-arcade-core\SKILL.md:76,120` references a
-  `references/crt_offset.md` that does not exist (only
-  `pcb_video_reference.md` is in that directory).
+The feature is **CRT Adjust**, after the module every core uses, rmonic79's `crt_adjust.sv`, and
+that is the OSD label (`"O[94],CRT Adjust,Off,On;"`). Older roadmaps and READMEs call it
+"CRT Offset" or a `CRT_OFFSET` helper; no module of that name exists, in `sys/` or anywhere else.
+Say "CRT Adjust" in new cores' OSD, README and roadmap.
 
-OSD label: "CRT adjust" (MS32, Seta) vs "CRT Adjust" (Fuuki, Psikyo).
+Existing OSD labels: "CRT adjust" (MS32, Seta), "CRT Adjust" (Fuuki, Psikyo).
 
 ## 4. V-Size
 
@@ -316,8 +306,7 @@ total, 288 x 224 visible, 6 MHz dot = 8 clk at clk_vid 48 MHz.
    262/456 (Fuuki, Psikyo). HTOTAL only sizes the SYNCSHIFT HSync shift
    register, unused in HPOS_MODE 1; VTOTAL sizes the V-Shift line shift
    register and must cover the real line count.
-7. **Naming**: "CRT adjust" vs "CRT Adjust" in the OSD; "CRT Offset" in prose
-   and roadmaps; Psikyo's ROADMAP presumes a framework `CRT_OFFSET` helper
-   that does not exist.
+7. **Naming**: the cores differ in capitalisation of the OSD label and some
+   docs say "CRT Offset". The standard is "CRT Adjust" (section 3.8).
 8. **Line-buffer cost**: the module header says ~1 M10K; 1024 x 24 bit needs
    >= 3 by capacity. No repo has a fit-report figure for either module.

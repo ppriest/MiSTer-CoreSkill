@@ -68,7 +68,7 @@ commit and local changes; read the one for a module before copying it.
 | DDR3 backend | Psikyo `ddram_phy` / `ddram_arbiter` / `ddram_download` | project's |
 | Screen rotation | Sorgelig `screen_rotate_two.sv` (a DDR3 tap, not a filter) | GPL-2.0 |
 | Video out | `sys/arcade_video.v`; `sys/video_freak.sv` instantiated explicitly for crop/scale | GPL-2.0-or-later |
-| CRT offset | rmonic79 `crt_adjust.sv` | GPL-3.0-or-later |
+| CRT Adjust | rmonic79 `crt_adjust.sv` | GPL-3.0-or-later |
 | High scores | JimmyStones/Hiscores_MiSTer `hiscore.v` | GPLv3 |
 | Pause | Fuuki `pause_control.sv` | project's |
 | Debug probe, tracer, counters | Seta `rtl/debug/` (`issp_probe.sv`, `debug_tracer.sv`, `debug_counter.sv`), header comments intact | project's |

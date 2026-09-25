@@ -1,6 +1,6 @@
 ---
 name: mister-arcade-core
-description: Build a new MiSTer FPGA arcade core (DE10-nano, Quartus 17.0) from the MiSTer-devel Template, reusing tested open-source cores and using MAME as the reference for set names, memory maps, graphics chips and CPUs. Use this whenever the user wants to start, port, bring up, debug or finish an arcade core for MiSTer, mentions a Quartus .qpf/.sv core, an .mra, JT* or TG68K/T80 cores, ISSP probes, MAME Lua tracing against an FPGA core, or asks to add the standard feature set (DIPs, inputs, CRT offset, hiscore, DDR ROM loading, HDMI scaling and rotation, flip screen, audio mix) to an Arcade-*_MiSTer repository, even if they do not say "skill".
+description: Build a new MiSTer FPGA arcade core (DE10-nano, Quartus 17.0) from the MiSTer-devel Template, reusing tested open-source cores and using MAME as the reference for set names, memory maps, graphics chips and CPUs. Use this whenever the user wants to start, port, bring up, debug or finish an arcade core for MiSTer, mentions a Quartus .qpf/.sv core, an .mra, JT* or TG68K/T80 cores, ISSP probes, MAME Lua tracing against an FPGA core, or asks to add the standard feature set (DIPs, inputs, CRT Adjust, hiscore, DDR ROM loading, HDMI scaling and rotation, flip screen, audio mix) to an Arcade-*_MiSTer repository, even if they do not say "skill".
 ---
 
 # MiSTer arcade core
@@ -132,7 +132,7 @@ Per roadmap phase, typically CPU + ROM path, then video, then sound, then integr
 - Read the routing table at the top of `references/LESSONS_LEARNED.md` before starting each
   subsystem, not after it misbehaves.
 - Standard features, each with its guide in `references/`: DIPs and inputs
-  (`dips_inputs.md`), CRT H/V offset and v-size if BRAM allows (`crt_offset.md`),
+  (`dips_inputs.md`), CRT Adjust, rmonic79's `crt_adjust.sv`: H/V position and size, with v-size if BRAM allows (`crt_adjust.md`),
   `Hiscore.v` (`hiscore.md`), fast DDR ROM loading (`ddr_rom_loading.md`), HDMI scaling
   and crop, HDMI rotation, flip screen, mono/stereo mix (`video_audio_options.md`). HDMI-only
   options are hidden under direct video. Memory maps are documented per `sdram_ddr_maps.md`.
@@ -147,7 +147,7 @@ Per roadmap phase, typically CPU + ROM path, then video, then sound, then integr
   fails both (`dips_inputs.md`, section 5).
 - Controls include a fake **Pause** input (a `J1` slot) that suspends the main CPU by clock
   enable, shared with the OSD pause and hiscore's pause (`dips_inputs.md`, checklist).
-- The OSD shows only what applies: CRT offset parameters hidden until "CRT adjust" is on,
+- The OSD shows only what applies: CRT Adjust parameters hidden until "CRT Adjust" is on,
   HDMI-only options hidden under direct video, and every peripheral group (light gun, rotary,
   trackball) hidden unless the running set has it, from the `.mra` mod byte. Rotary games
   clone the Ikari Warriors core's controls and settings; light-gun games support the mouse and
@@ -216,7 +216,7 @@ Per roadmap phase, typically CPU + ROM path, then video, then sound, then integr
 | `references/tools.md` | MAME Lua, ISSP, MiSTer API, Verilator, ModelSim invocations |
 | `references/video_write_sweep.md` | before any video buffering decision |
 | `references/cpus_and_vendored.md` | before vendoring or porting a CPU/sound/video module |
-| `references/dips_inputs.md`, `crt_offset.md`, `hiscore.md`, `ddr_rom_loading.md`, `video_audio_options.md`, `osd_and_peripherals.md`, `sdram_ddr_maps.md` | the matching feature |
+| `references/dips_inputs.md`, `crt_adjust.md`, `hiscore.md`, `ddr_rom_loading.md`, `video_audio_options.md`, `osd_and_peripherals.md`, `sdram_ddr_maps.md` | the matching feature |
 | `references/clocks.md` | before the first RTL: the clock plan |
 | `references/savestates.md` | before the first RAM is written, and again when savestates are planned |
 | `references/pcb_video_reference.md` | when a PCB comparison is wanted |

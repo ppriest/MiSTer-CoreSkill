@@ -14,7 +14,7 @@ direct-video group from `video_audio_options.md` added:
 |---|---|---|
 | H1 | Debug page | release build (`debug_menu_hide`) |
 | H2 | Light gun: crosshair, stick mode, mouse | `~gun_game` (from the `.mra` mod byte) |
-| H3 | CRT H-Size, H-Position, V-Shift (V-Size) | `~status[94]`, the "CRT adjust" toggle is off |
+| H3 | CRT H-Size, H-Position, V-Shift (V-Size) | `~status[94]`, the "CRT Adjust" toggle is off |
 | H4 | Rotary speed, GRS keystroke mode | `rot_menu_hide` (mod byte: not a rotary game) |
 | H5 | Aspect, orientation, scale, crop, scandoubler fx | `direct_video` |
 
@@ -22,7 +22,7 @@ direct-video group from `video_audio_options.md` added:
 .status_menumask({10'd0, direct_video, rot_menu_hide, ~status[94], ~gun_game, debug_menu_hide, 1'b0}),
 ```
 
-- **CRT offset parameters are hidden until enabled**: `"O[94],CRT adjust,Off,On;"` is always
+- **CRT Adjust parameters are hidden until enabled**: `"O[94],CRT Adjust,Off,On;"` is always
   shown; the size and position lines are `H3` (`Seta.sv:105-108`). Off also means the offset
   logic is bypassed, not merely hidden.
 - **Every peripheral group is per game**: the mod byte (or a board-type field in it) says whether

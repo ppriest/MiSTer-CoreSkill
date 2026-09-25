@@ -29,7 +29,7 @@ hps_io #(...) hps_io (..., .direct_video(direct_video),
 
 Pick a free `H` bit if the core already uses 5. Crop line counts are per core: pick ones that
 divide the target HDMI height for the core's visible height (Fuuki: 216 of 240 is exactly 5x on
-1080). CRT offset/size options are the opposite case: analog only (Seta hides them with `H3`).
+1080). CRT Adjust's position and size options are the opposite case: analog only (Seta hides them with `H3`).
 
 ## Aspect and rotation
 
