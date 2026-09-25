@@ -52,8 +52,12 @@ value from a datasheet, a schematic or a PCB measurement says so.
 ### Clocks
 
 {{CLOCKS}}
-<!-- Master crystal, each derived clock, the dot clock, and which of them divide exactly from the
-     planned clk_sys. A ratio that needs a Bresenham enable is named here. -->
+<!-- The plan, before any RTL (the skill's clocks.md). Every board clock with its source line
+     and the pixel clock; the chosen clk_sys, which is also the video clock, with the candidates
+     considered and the arithmetic: an integer multiple (>= 4x) of the pixel clock, >= every
+     board clock, and a base for an integer SDRAM multiple. The SDRAM multiple. Every fractional
+     clock enable with its exact ratio. How far the main CPU runs ahead to catch up SDRAM stalls.
+     Any clock that does not divide exactly, in ppm, also goes in HACKS.md. -->
 
 ### Interrupts
 

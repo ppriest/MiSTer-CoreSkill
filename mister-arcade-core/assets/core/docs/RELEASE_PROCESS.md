@@ -63,6 +63,8 @@ From the contribution guidelines (https://github.com/MiSTer-devel/Wiki_MiSTer/wi
   to drop it.
 - `validate_mra.py` passes without `--allow-generic-buttons`: button names from the manual, and
   every DIP line within the OSD's 28 columns.
+- Video output checked over direct video into a scaler where one is available, else the
+  scandoubler over HDMI and the analog output: steady pixel width, line and frame rate.
 - Every supported game fully playable; anything not playable is out of the supported list, in the
   README's "Not yet" table, not shipped as broken.
 - AI-assisted work: the guidelines expect readable code, testing and accuracy verification. The

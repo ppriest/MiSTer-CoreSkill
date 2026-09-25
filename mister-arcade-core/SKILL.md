@@ -87,6 +87,11 @@ Output: `docs/HARDWARE_NOTES.md` and the component reuse map in the roadmap.
   before the roadmap. Name each blocking unknown and the measurement that closes it, compare
   against an existing MiSTer core of similar size where one exists, and take it to the user.
   A roadmap for a board that may not fit is scoped by the user, not by default.
+- **Plan the clocks before any RTL** (`references/clocks.md`): `clk_sys` is the video clock, an
+  integer multiple (4x or more) of the pixel clock, at least as fast as every board clock, with
+  the SDRAM clock an integer multiple of it and every component driven by fractional clock
+  enables. A pixel clock that is not an exact, steady division breaks direct video into a
+  scaler, and more subtly the analog output. Record the plan in the roadmap's Clocks section.
 - Fill in `scripts/mame/regions.json` from the driver's address map: the MAME scripts need
   it before the first capture or trace.
 - Optional: `references/pcb_video_reference.md` for original-PCB footage.
@@ -212,6 +217,7 @@ Per roadmap phase, typically CPU + ROM path, then video, then sound, then integr
 | `references/video_write_sweep.md` | before any video buffering decision |
 | `references/cpus_and_vendored.md` | before vendoring or porting a CPU/sound/video module |
 | `references/dips_inputs.md`, `crt_offset.md`, `hiscore.md`, `ddr_rom_loading.md`, `video_audio_options.md`, `osd_and_peripherals.md`, `sdram_ddr_maps.md` | the matching feature |
+| `references/clocks.md` | before the first RTL: the clock plan |
 | `references/savestates.md` | before the first RAM is written, and again when savestates are planned |
 | `references/pcb_video_reference.md` | when a PCB comparison is wanted |
 | `references/SCRIPTS_NOTES.md` | what each `scripts/` tool does and which constants are per-core |
