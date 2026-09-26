@@ -33,6 +33,15 @@ divide the target HDMI height for the core's visible height (Fuuki: 216 of 240 i
 
 ## Aspect and rotation
 
+**The display aspect is 4:3, or 3:4 rotated, whatever the pixel dimensions.** Arcade monitors were
+4:3 tubes and the pixels were not square: 320x224, 384x240 and 512x448 all filled the same 4:3
+screen. Never derive the aspect from the active width and height (384x240 would give 1.6:1, a
+stretched picture). All five prior cores use 4:3.
+
+The exception needs evidence from the driver: a different physical aspect set on the screen
+(`set_physical_aspect`), or a multi-monitor or unusual cabinet layout. Record it in the roadmap's
+Video section with the source line; otherwise 4:3 is not a decision to make per game.
+
 `Seta.sv:58-72`. "Auto" follows the set's orientation, carried in the `.mra` mod byte
 (`game_rot`: 0 none, 1 CW, 2 CCW) so one `.rbf` serves horizontal and vertical games.
 

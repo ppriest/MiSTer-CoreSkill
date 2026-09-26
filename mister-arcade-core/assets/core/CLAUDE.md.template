@@ -30,6 +30,8 @@ MiSTer arcade core for {{NAME}}. Built with the `mister-arcade-core` skill.
 - Run the video-write sweep before choosing any sprite or tile buffering scheme.
 - `clk_sys` is the video clock and an integer multiple (4x or more) of the pixel clock; every
   component runs on a fractional clock enable from it. Check direct video through a scaler.
+- Display aspect is 4:3 (3:4 rotated), never derived from the pixel resolution; an exception
+  needs a driver source line.
 - Render per scanline from buffered sprite RAM. A frame buffer needs evidence that the board had
   one; a tight per-line budget is a conversation with the user, not a change of shape.
 - The standard feature set (README "Features") is part of done, not polish. Flip screen is one

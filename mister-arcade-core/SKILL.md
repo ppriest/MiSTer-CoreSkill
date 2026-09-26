@@ -136,6 +136,9 @@ Per roadmap phase, typically CPU + ROM path, then video, then sound, then integr
   `Hiscore.v` (`hiscore.md`), fast DDR ROM loading (`ddr_rom_loading.md`), HDMI scaling
   and crop, HDMI rotation, flip screen, mono/stereo mix (`video_audio_options.md`). HDMI-only
   options are hidden under direct video. Memory maps are documented per `sdram_ddr_maps.md`.
+- **Display aspect is 4:3 (3:4 rotated) regardless of the pixel resolution**: the monitors were
+  4:3 and the pixels non-square. A different aspect needs evidence from the driver
+  (`video_audio_options.md`, "Aspect and rotation").
 - Flip screen is one implementation in the core's video logic, serving HDMI and analog, driven
   by the main-OSD option or the game's DIP (a fake DIP where the game has none). What each
   layer needs flipped or offset is a per-core exercise, verified against the unflipped frame
