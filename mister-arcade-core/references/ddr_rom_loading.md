@@ -337,6 +337,10 @@ Region tables (as the RTL declares them):
 
 ## 7. Checklist for a new core
 
+0. **Every `.mra` carries `<mameversion>`**, four digits, written by the generator from the
+   MAME it ran against (`coretools.mame_version()`: `0.289 (mame0289)` gives `0289`), so a reader
+   knows which MAME's set definitions and CRCs the file encodes. `validate_mra.py` fails a missing
+   or malformed tag and one newer than the installed MAME, and notes one that is older.
 0. **Every `<part>` carries its `crc`**, taken from the driver's `ROM_START`, and every zip
    attribute lists the cascade: the set's own zip, then the parent or merged zip, then a BIOS zip
    (`zip="set.zip|parent.zip|bios.zip"`). The CRC is what identifies a dump; a name is only one

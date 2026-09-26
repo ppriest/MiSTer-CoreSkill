@@ -141,6 +141,9 @@ Per roadmap phase, typically CPU + ROM path, then video, then sound, then integr
   layer needs flipped or offset is a per-core exercise, verified against the unflipped frame
   rotated 180 degrees (`video_audio_options.md`, last section). If it cannot be made right,
   say so in `docs/HACKS.md` and the README.
+- **Every `.mra` carries `<mameversion>`** (e.g. `0289`), written by the generator from the MAME
+  it ran against, never typed; the validator fails a missing tag or one newer than the installed
+  MAME.
 - **Button names in the `.mra` are the game's own**, from the manual or other sources ("Shot",
   "Bomb"), per game, never "Button 1". **Every DIP line fits the OSD's 28 columns** (name plus
   the longest setting plus two); a longer line wraps and the value disappears. `validate_mra.py`

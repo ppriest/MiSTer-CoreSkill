@@ -28,7 +28,10 @@ Checks:
      (menu.cpp, MENU_ARCADE_DIP1), so a line that does not fit wraps and the
      value is pushed off screen: the switch still cycles, invisibly (the Seta
      core's issue #6, Arbalester's coin switch showing only "1C/1C").
-  6. <buttons names> are the game's own control names, from the manual or
+  6. <mameversion> is present, four digits, and no newer than the installed MAME
+     (a newer one is a typo). Older than the installed MAME is reported, not failed:
+     the set definitions may have changed, so regenerate and re-verify the CRCs.
+  7. <buttons names> are the game's own control names, from the manual or
      another source, not "Button 1". Start, Coin, Pause, Service, Test and "-"
      are exempt. --allow-generic-buttons lets early bring-up through.
 
@@ -45,7 +48,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from coretools import setting   # noqa: E402
+from coretools import mame_version, setting   # noqa: E402
 
 # --- core-specific: edit for this core -------------------------------------
 # Orientation per set, as the .mra <rotation> tag, for sets whose GAME() line
@@ -100,7 +103,7 @@ def generic_buttons(root):
     return [n for n in names if n.lower() not in BUTTON_EXEMPT and GENERIC_BUTTON.match(n)]
 
 
-def check(path, rotations, allow_generic_buttons=False):
+def check(path, rotations, allow_generic_buttons=False, installed=None):
     problems = []
     try:
         tree = ET.parse(path)
@@ -143,6 +146,19 @@ def check(path, rotations, allow_generic_buttons=False):
             problems.append(
                 'switches default has %d bytes but a <dip> uses bit %d, which '
                 'is outside the range those bytes can cover' % (nbytes, max(bits)))
+    mv = (root.findtext('mameversion') or '').strip()
+    if not mv:
+        problems.append('no <mameversion>: say which MAME the ROM definitions came from '
+                        '(the generator writes it from `mame -version`)')
+    elif not re.fullmatch(r'\d{4}', mv):
+        problems.append('<mameversion> %r is not four digits, e.g. 0289' % mv)
+    elif installed and mv > installed:
+        problems.append('<mameversion> %s is newer than the installed MAME %s: a typo, or '
+                        'the file came from somewhere else' % (mv, installed))
+    elif installed and mv < installed:
+        print('NOTE  %s: <mameversion> %s, installed MAME is %s; regenerate and re-verify '
+              'the CRCs when convenient' % (path, mv, installed))
+
     if sw is not None:
         for name, widest, cols in dip_overflows(sw):
             problems.append(
@@ -169,12 +185,13 @@ def main(argv):
         print('no .mra files matched'); return 1
 
     rotations = driver_rotations()
+    installed = mame_version()
     if rotations is None:
         print('NOTE  MAME_SRC not set or missing; <rotation> not checked')
 
     bad = 0
     for f in files:
-        problems = check(f, rotations, allow)
+        problems = check(f, rotations, allow, installed)
         if problems:
             bad += 1
             print('FAIL  %s' % f)

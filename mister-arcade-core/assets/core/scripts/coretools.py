@@ -151,6 +151,20 @@ def mame_exe(root=None):
     return mame_dir(root) / setting("MAME_EXE", "mame.exe", root)
 
 
+def mame_version(root=None):
+    """The installed MAME as an .mra <mameversion> string ("0.289 (mame0289)" -> "0289"),
+    or None when MAME is not configured or does not answer."""
+    import re
+    try:
+        exe = mame_exe(root)
+        r = subprocess.run([str(exe), "-version"], capture_output=True, text=True,
+                           timeout=30, **NO_WINDOW)
+    except (Exception, SystemExit):
+        return None
+    m = re.match(r"\s*0\.(\d+)", r.stdout)
+    return "%04d" % int(m.group(1)) if m else None
+
+
 def mame_src(root=None):
     v = setting("MAME_SRC", None, root)
     if not v:

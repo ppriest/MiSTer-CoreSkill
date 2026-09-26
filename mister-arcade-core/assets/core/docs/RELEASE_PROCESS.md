@@ -61,6 +61,8 @@ From the contribution guidelines (https://github.com/MiSTer-devel/Wiki_MiSTer/wi
 - The `<rbf>` tag names the core without the `Arcade-` prefix (`<rbf><Name></rbf>`), matching the
   name `deploy.py` installs; the released file keeps the prefix, and the README's install step says
   to drop it.
+- Every `.mra` regenerated against the current MAME, so `<mameversion>` matches it and the
+  CRCs were re-verified against that release's set definitions.
 - `validate_mra.py` passes without `--allow-generic-buttons`: button names from the manual, and
   every DIP line within the OSD's 28 columns.
 - Video output checked over direct video into a scaler where one is available, else the
