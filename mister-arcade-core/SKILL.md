@@ -87,9 +87,11 @@ Output: `docs/HARDWARE_NOTES.md` (from its template) and the component reuse map
   before the roadmap. Name each blocking unknown and the measurement that closes it, compare
   against an existing MiSTer core of similar size where one exists, and take it to the user.
   A roadmap for a board that may not fit is scoped by the user, not by default.
-- **Plan the clocks before any RTL** (`references/clocks.md`): `clk_sys` is the video clock, an
-  integer multiple (4x or more) of the pixel clock, at least as fast as every board clock, with
-  the SDRAM clock an integer multiple of it and every component driven by fractional clock
+- **Plan the clocks before any RTL** (`references/clocks.md`). **Default to ~48 MHz** for
+  `clk_sys` and the SDRAM, not doubled (the nearest value giving an exact pixel clock); higher
+  only for a measured shortfall, taken to the user. `clk_sys` is the video clock, an integer
+  multiple (4x or more) of the pixel clock, at least as fast as every board clock, with the
+  SDRAM clock an integer multiple of it (1 by default) and every component driven by fractional clock
   enables. A pixel clock that is not an exact, steady division breaks direct video into a
   scaler, and more subtly the analog output. Record the plan in the roadmap's Clocks section.
 - Fill in `scripts/mame/regions.json` from the driver's address map: the MAME scripts need

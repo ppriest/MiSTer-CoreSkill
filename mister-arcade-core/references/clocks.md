@@ -6,6 +6,26 @@ scaler. From wickerwaka's practice, as he describes starting a core, and TheJesu
 of two cores (Street Fighter: The Movie, FixEight) whose DV1 problems only showed through an
 external scaler.
 
+## Default: 48 MHz, SDRAM not doubled
+
+**Start from `clk_sys` around 48 MHz, with the SDRAM on that same clock**, and move off it only
+for a reason written in the roadmap. "Around" means the nearest value that gives an exact pixel
+clock: ZAP (Andrea Bogazzi) runs all his cores at 48, 49.152 or 52.3 MHz, without a doubled SDRAM
+clock and without DDR3.
+
+- **Higher is not free.** 96 MHz is not harmful in itself, but the clock is a multiple of the
+  pixel clock, and when a board's pixel clock forces a higher PLL (a 7.159 MHz video clock), the
+  equivalent of 96 MHz becomes 114 MHz and timing gets hard.
+- **Fitting at 48 MHz is how the right optimisations are found**: fetch scheduling, sharing a
+  memory port, what really has to be read per line. A faster clock hides the design that should
+  have been done.
+- **For 8- and 16-bit-era boards** (Seta, DownTown class), 96 MHz SDRAM plus DDR3 is a sign
+  something is wrong. Our five prior cores all run at 85.9 or 96 MHz; they work, but they are not
+  the model for this.
+- **Going higher** is for a measured shortfall: the per-line fetch arithmetic in the memory plan
+  shows 48 MHz cannot serve every client in a line period, or a CPU cannot catch up its SDRAM
+  stalls. Bring those numbers to the user before changing the clock.
+
 ## The rules
 
 1. **Work out the clocks first.** From the MAME driver and the PCB notes: the master crystals,
@@ -20,14 +40,16 @@ external scaler.
 5. **Run the main CPU faster than the board did, where it has to stall.** When the CPU waits on
    SDRAM, a faster enable lets it catch up on the cycles it lost, so the game's own timing holds.
    Measure the catch-up; do not assume it.
-6. **The SDRAM clock is an integer multiple of `clk_sys`.**
+6. **The SDRAM clock is an integer multiple of `clk_sys`**, and by default that multiple is 1:
+   the SDRAM runs on `clk_sys`. Doubling it is a measured decision, not a starting point.
 7. **Every component runs at its real clock through fractional clock enables** from `clk_sys`:
    a Bresenham accumulator hits an exact rational rate (Seta: a 68EC020 at 176/945 of
    `clk_sys`, where /5 was 7.4% fast and /6 10.5% slow).
 
-So the search is for one `clk_sys` that is simultaneously an integer multiple (4x or more) of the
-pixel clock, at least as fast as every board clock, and a good base for an integer SDRAM
-multiple. Write the candidates down with the arithmetic, and the one chosen with why.
+So the search is for the **lowest** `clk_sys` near 48 MHz that is an integer multiple (4x or
+more) of the pixel clock and at least as fast as every board clock, with the SDRAM on it. Write
+the candidates down with the arithmetic, and the one chosen with why; a choice above ~52 MHz
+carries the measurement that forced it.
 
 ## Why it matters for CRTs
 
