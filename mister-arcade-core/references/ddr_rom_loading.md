@@ -6,6 +6,15 @@ trees; `build/` ignored). Line numbers are from the working trees as read.
 
 ## 1. Summary
 
+**The rule.** DDR3 at **load time** is standard: the HPS writes the ROM image into the DDR3
+window and the core copies it into SDRAM before the game leaves reset, which is what makes
+loading fast. DDR3 at **run time**, a core reading ROM, graphics or a frame buffer from DDR3
+while the game plays, needs a reason written in the roadmap's memory plan: the ROMs exceed the
+SDRAM module (HyperNG64: up to 175 MB against 128 MB), or per-line fetch arithmetic that
+SDRAM at `clk_sys` measurably cannot serve. For 8- and 16-bit-era boards it is a sign the memory
+design needs another look (ZAP: his cores never used DDR3). The HDMI rotator's DDR3 traffic is
+part of the standard feature set and needs no reason.
+
 Four of the five cores (Psikyo, Fuuki, Seta, MS32) do fast loading; KonamiGX does not
 (the KonamiGX core's `KonamiGX.sv:32` ties every DDRAM output to 0).
 

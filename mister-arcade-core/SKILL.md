@@ -135,7 +135,8 @@ Per roadmap phase, typically CPU + ROM path, then video, then sound, then integr
   subsystem, not after it misbehaves.
 - Standard features, each with its guide in `references/`: DIPs and inputs
   (`dips_inputs.md`), CRT Adjust, rmonic79's `crt_adjust.sv`: H/V position and size, with v-size if BRAM allows (`crt_adjust.md`),
-  `Hiscore.v` (`hiscore.md`), fast DDR ROM loading (`ddr_rom_loading.md`), HDMI scaling
+  `Hiscore.v` (`hiscore.md`), fast DDR ROM loading, at load time only (`ddr_rom_loading.md`; DDR3 during play needs a
+  stated reason in the memory plan), HDMI scaling
   and crop, HDMI rotation, flip screen, mono/stereo mix (`video_audio_options.md`). HDMI-only
   options are hidden under direct video. Memory maps are documented per `sdram_ddr_maps.md`.
 - **Display aspect is 4:3 (3:4 rotated) regardless of the pixel resolution**: the monitors were

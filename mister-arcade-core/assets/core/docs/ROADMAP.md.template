@@ -111,7 +111,9 @@ Every row's "source" is a file that was located and whose header was read.
 
 {{MEMORY_PLAN}}
 <!-- SDRAM region layout (the RTL's localparams are the source of truth; the .mra generator reads
-     them), DDR use if any, the clients of each and the per-scanline fetch budget. -->
+     them), DDR use if any, the clients of each and the per-scanline fetch budget. DDR3 at load
+     time is standard; any DDR3 client during play (ROM, graphics, frame buffer) states its
+     reason here: ROMs larger than the SDRAM, or fetch arithmetic SDRAM cannot serve. -->
 
 ## Design decisions
 

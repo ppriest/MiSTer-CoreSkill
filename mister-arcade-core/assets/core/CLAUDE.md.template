@@ -32,6 +32,7 @@ MiSTer arcade core for {{NAME}}. Built with the `mister-arcade-core` skill.
   shortfall, agreed with the user. It is the video clock and an integer multiple (4x or more)
   of the pixel clock; every component runs on a fractional clock enable from it. Check direct
   video through a scaler.
+- DDR3 at load time is standard; DDR3 during play needs a reason in the roadmap's memory plan.
 - Display aspect is 4:3 (3:4 rotated), never derived from the pixel resolution; an exception
   needs a driver source line.
 - Render per scanline from buffered sprite RAM. A frame buffer needs evidence that the board had
