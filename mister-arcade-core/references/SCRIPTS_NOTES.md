@@ -10,7 +10,7 @@ project name and revision from the `.qpf` (`coretools.py`). Per-core constants s
 
 | Script | Does | Source | Per core |
 |---|---|---|---|
-| `build_staged.py` | Quartus build of HEAD in a worktree at `build/`; refuses a dirty tree, gates on slack, writes `build/BUILT_COMMIT` | KonamiGX | block names that must survive to the fit report |
+| `build_staged.py` | Quartus build of HEAD in a worktree at `build/`; refuses a dirty tree, gates on slack, writes `build/BUILT_COMMIT` | KonamiGX | block names that must survive to the fit report; `STAGE_COPIES`, files the compile reads from the project directory rather than beside the RTL (fx68k's `microrom.mem` and `nanorom.mem`, which its `$readmemb` looks for where Quartus runs) |
 | `build.sh` | in-tree compile, `--map`, `--report` | KonamiGX | none |
 | `report_worst_paths.tcl`, `sta_failing_paths.tcl`, `sta_all_fail.tcl` | worst setup paths on the main clock | Psikyo | clock name, if the core's main clock is not the framework PLL output 0 |
 | `coretools.py` | resolves core root, project, revision, tool paths | MiSTer-CoreTools | none |
