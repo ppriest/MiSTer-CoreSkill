@@ -67,7 +67,7 @@ belong in `~/.mister-core.env`. Move the session into the new repo.
 
 ### 1. Research
 
-Output: `docs/HARDWARE_NOTES.md` and the component reuse map in the roadmap.
+Output: `docs/HARDWARE_NOTES.md` (from its template) and the component reuse map in the roadmap.
 
 - MAME driver (`src/mame/<maker>/<driver>.cpp`, `_v.cpp`, device files): CPUs and clocks,
   memory map, video chips and their register maps, sound chips, `screen.set_raw()`

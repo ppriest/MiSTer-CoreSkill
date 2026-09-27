@@ -3,6 +3,9 @@
 Survey of the Seta core (primary), cross-checked against Fuuki, Psikyo,
 JalecoMS32 and KonamiGX. `build/` ignored. All pointers absolute `file:line`.
 
+Paths without a core name in this document are the Seta core's; the skill ships
+`write_timing.py` and `mame/wtiming.lua` (section 5), not the rest.
+
 Scope note: `scripts/mame_subtrace.py`, `scripts/flip_shots.py` and
 `scripts/phase_sweep.py` were read as asked but are not part of this topic
 (6502 trace census, MiSTer flip screenshots, SDRAM phase eye). `flip_sweep.py`

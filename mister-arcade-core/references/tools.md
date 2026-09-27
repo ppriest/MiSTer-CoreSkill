@@ -64,7 +64,9 @@ python scripts/probe.py --fields frames cpu_accesses
 ```
 
 SignalTap acquisition is GUI-only in Quartus Lite 17.0; ISSP is the headless path.
-`hwlock.py` refuses JTAG during a Quartus compile and the reverse; the combination has
+`hwlock.py` refuses JTAG during a Quartus compile and the reverse, and gives JTAG priority: a
+probe read that has to wait reserves the Blaster, and no new build starts until it has run
+(`python scripts/hwlock.py --status`). The combination has
 bugchecked the PC.
 
 ## ModelSim

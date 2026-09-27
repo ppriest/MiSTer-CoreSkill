@@ -196,7 +196,7 @@ State the rule used to assign ports (deadline, not convenience) and any partitio
 and measured worse.
 
 ## Sync
-- The RTL localparams are the authority. scripts/build_mra.py parses `localparam ... <PREFIX>BASE_\w+`
+- The RTL localparams are the authority. The cores' `scripts/build_mra.py` generators parse `localparam ... <PREFIX>BASE_\w+`
   and refuses to run if a name the region order needs is missing; it re-reads the written .mra and
   compares the image byte for byte.
 - Every .mra header comment cites the RTL file and says it is generated.

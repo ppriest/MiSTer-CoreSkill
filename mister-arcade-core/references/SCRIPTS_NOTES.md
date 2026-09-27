@@ -14,7 +14,7 @@ project name and revision from the `.qpf` (`coretools.py`). Per-core constants s
 | `build.sh` | in-tree compile, `--map`, `--report` | KonamiGX | none |
 | `report_worst_paths.tcl`, `sta_failing_paths.tcl`, `sta_all_fail.tcl` | worst setup paths on the main clock | Psikyo | clock name, if the core's main clock is not the framework PLL output 0 |
 | `coretools.py` | resolves core root, project, revision, tool paths | MiSTer-CoreTools | none |
-| `hwlock.py` | refuses JTAG during a Quartus or ModelSim run and the reverse | KonamiGX | none |
+| `hwlock.py` | refuses JTAG during a Quartus or ModelSim run and the reverse; JTAG has priority, so a waiting probe's reservation blocks new builds; `--status` shows the holder, the queue and what is compiling | KonamiGX | none |
 
 ## Hardware
 

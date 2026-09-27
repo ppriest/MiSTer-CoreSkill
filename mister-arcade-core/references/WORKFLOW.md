@@ -9,6 +9,9 @@ unported; the bill was serialised work, a build killed mid-Fitter by an edit in 
 
 ---
 
+Not every script named below ships with the skill: the Script inventory at the end marks
+each one `skill` or names the sibling core to port it from.
+
 ## 1. Build out of a snapshot, never in the tree
 
 `scripts/build_staged.py` snapshots HEAD into a **git worktree at `build/`** (gitignored) and runs

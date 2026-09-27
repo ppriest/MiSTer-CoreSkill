@@ -5,7 +5,7 @@ The core root is the parent of this scripts/ directory (or CORE_ROOT). From it:
 
     project()    the Quartus project name: the stem of the one .qpf there
                  (Fuuki.qpf -> "Fuuki"). Names the MiSTer artefacts too:
-                 Arcade-<project>_NNNNNNNN.rbf, /media/fat/_Arcade/_<project>.
+                 <project>_NNNNNNNN.rbf (from 30000001), /media/fat/_Arcade/_<project>.
     revision()   the Quartus revision to build: CORE_REV, else the one .qsf,
                  else the last PROJECT_REVISION the .qpf lists. A core with
                  several revisions (X and X_stp) picks with CORE_REV or --rev.

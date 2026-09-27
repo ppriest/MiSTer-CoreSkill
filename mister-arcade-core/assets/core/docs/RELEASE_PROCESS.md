@@ -29,7 +29,7 @@ Steps for a release:
 
 1. `python scripts/build_staged.py --rev <Name>` — must pass the timing gate, the presence gate and
    the macro gate.
-2. Smoketest every parent set (`scripts/smoketest.py` or `scripts/sweep.py`): load each, capture a
+2. Smoketest every parent set (a smoke-test or sweep script: Seta's and Fuuki's `scripts/sweep.py` are the ones to port): load each, capture a
    screenshot, compare against the reference crop.
 3. Deploy and play-test; the debug revision is the one to reach for if anything needs diagnosing.
 4. Run the `THIRD-PARTY.md` release checklist: every vendored directory has a current
