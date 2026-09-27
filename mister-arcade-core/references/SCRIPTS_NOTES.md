@@ -20,7 +20,7 @@ project name and revision from the `.qpf` (`coretools.py`). Per-core constants s
 
 | Script | Does | Source | Per core |
 |---|---|---|---|
-| `deploy.py` | copy `.rbf` (numbered) and `.mra` files to the MiSTer, only for a build that met timing | KonamiGX | `REMOTE_ARCADE`, `HELD_BACK_SETS` |
+| `deploy.py` | copy `.rbf` (as `<Name>_NNNNNNNN.rbf`, numbered from 30000001 so it outranks dated files) and `.mra` files to the MiSTer, only for a build that met timing | KonamiGX | `REMOTE_ARCADE`, `HELD_BACK_SETS` |
 | `hw.py` | MiSTer Remote: launch via `menu.rbf`, native or scaled screenshot, what is playing | Seta, MS32 | `REMOTE_ARCADE_DIR` |
 | `read_issp.py`, `read_issp.tcl` | ISSP probe readout under `hwlock` | KonamiGX | field table per instance, matching the RTL's probe bus bit for bit |
 | `probe.py` | probe readout, one line per sample, prefixed `<core>\|<build>\|<set>\|` | MiSTer-CoreTools | `DEFAULT_INSTANCE` |

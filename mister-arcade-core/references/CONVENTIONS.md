@@ -14,8 +14,12 @@ What every core repository in this family shares. Terse by design; the reasons a
   a final commented block that adds `VERILOG_MACRO "DEBUG_ISSP=1"` to `_stp`. Both pin `SEED`.
 - The top-level module is `emu`, in `<Name>.sv`, `` `include "sys/emu_ports.vh" ``. CONF_STR
   starts `"<Name>;;"`.
-- Deployed cores on the device: `<Name>_NNNNNNNN.rbf` in `/media/fat/_Arcade/cores/`, number
-  incrementing per deploy (`scripts/deploy.py`). Released cores: `releases/Arcade-<Name>_YYYYMMDD.rbf`.
+- Deployed cores on the device: `<Name>_NNNNNNNN.rbf` in `/media/fat/_Arcade/cores/`, numbered
+  from **30000001** and incrementing per deploy (`scripts/deploy.py`). MiSTer launches the
+  highest-sorting `<Name>_*.rbf`, and releases and other sources put a date there
+  (`<Name>_20260927.rbf`), so a number below the date loses to it silently: the `.mra` launches
+  someone else's build. 30000001 is above any date. Released cores:
+  `releases/Arcade-<Name>_YYYYMMDD.rbf`.
 - Every `.mra` carries `<mameversion>NNNN</mameversion>`: the MAME release its set definitions
   and CRCs came from, written by the generator from `mame -version`, never typed.
 - `.mra` files are named by MAME's description, one primary per game in `releases/`, the rest in
