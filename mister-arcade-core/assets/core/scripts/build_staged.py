@@ -72,6 +72,15 @@ REQUIRED_INSTANCES = (
 REQUIRED_MACROS = {
     # "MISTER_FB": "HDMI rotation and 180 flip need the FB_* ports",
 }
+
+# Files the compile expects in the project directory that the repo keeps
+# elsewhere, copied inside the stage before Quartus runs: (source, destination),
+# both relative to the repo root. fx68k's $readmemb looks for its microcode in
+# the directory Quartus runs from, not beside the RTL.
+STAGE_COPIES = (
+    # ("rtl/cpu/fx68k/microrom.mem", "microrom.mem"),
+    # ("rtl/cpu/fx68k/nanorom.mem", "nanorom.mem"),
+)
 # ---------------------------------------------------------------------------
 
 
@@ -237,6 +246,12 @@ def main():
     if dirty and args.allow_dirty:
         print("NOTE:   the tree has uncommitted changes and they are NOT in "
               "this build")
+
+    for src, dst in STAGE_COPIES:
+        with open(os.path.join(stage, src), "rb") as f_in, \
+                open(os.path.join(stage, dst), "wb") as f_out:
+            f_out.write(f_in.read())
+        print("copied: %s -> %s (stage only)" % (src, dst))
 
     quartus = os.path.join(QUARTUS_BIN, "quartus_sh.exe")
     log_path = os.path.join(stage, "q_staged.log")
