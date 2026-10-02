@@ -127,7 +127,7 @@ a Keyboard table. Example: KonamiGX `rtl/gx_keyboard.sv`.
 ## 4. Checklist for a new core
 
 1. Copy `scripts/extract_dips.py` from KonamiGX (latest copy); set `MAME_SRC` default to the new driver; extend `DEF_STR`; run `--selftest`.
-2. In `build_mra.py`, copy Seta's `dip_xml` (contiguity check, default 0xFF, LSB-first ids, no commas) and `osd_fit`/`OSD_COLS = 28`; define the byte order of `<switches default>` to match the register the CPU reads, and write that order as a comment at the latch in the .sv (as KonamiGX.sv:222-223 and Fuuki.sv:371-373 do).
+2. In `build_mra.py`, copy Seta's `dip_xml` (contiguity check, default 0xFF, LSB-first ids, no commas, every bit below 32: Main_MiSTer sign-extends byte 3 of the default over bits 32-63 and drops byte 4, LESSONS_LEARNED ".mra") and `osd_fit`/`OSD_COLS = 28`; define the byte order of `<switches default>` to match the register the CPU reads, and write that order as a comment at the latch in the .sv (as KonamiGX.sv:222-223 and Fuuki.sv:371-373 do).
 3. In the .sv: `"DIP;"` in CONF_STR; index-254 latch (`!ioctl_addr[24:N]` guard); `initial` defaults if the board is reset before the .mra arrives.
 4. `J1` line with padded "-" slots so Start/Coin/Pause/Service sit at fixed bits; `buttons_xml` in build_mra.py padding to the same layout; `jn` line for the default pad map; `V,v` + `BUILD_DATE.
 5. **Add a Pause input** even though the board has none: a `Pause` slot in `J1` that toggles a
