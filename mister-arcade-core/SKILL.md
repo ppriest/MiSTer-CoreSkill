@@ -69,6 +69,8 @@ belong in `~/.mister-core.env`. Move the session into the new repo.
 
 Output: `docs/HARDWARE_NOTES.md` (from its template) and the component reuse map in the roadmap.
 The whole order of work, from these inputs to release, is `references/core_roadmap.md`.
+The decisions that shape the design, and the evidence each is made on, are
+`references/core_design.md`.
 
 - **Ask the user, don't guess:** which MAME files describe the board (the driver `.cpp`, `_v.cpp`,
   `.h`, and every device file it uses), and whether the game must fit a 32 MB SDRAM module or may
@@ -240,6 +242,7 @@ Per roadmap phase, typically CPU + ROM path, then video, then sound, then integr
 | `references/cpus_and_vendored.md` | before vendoring or porting a CPU/sound/video module |
 | `references/dips_inputs.md`, `crt_adjust.md`, `hiscore.md`, `ddr_rom_loading.md`, `video_audio_options.md`, `osd_and_peripherals.md`, `sdram_ddr_maps.md` | the matching feature |
 | `references/core_roadmap.md` | the order of work from inputs to release, as one diagram |
+| `references/core_design.md` | the design decisions: BRAM / SDRAM / DDR3, clock, snapshot, aids, timing against features |
 | `references/rbf_pipeline.md` | the build, deploy and release flow as one diagram |
 | `references/clocks.md` | before the first RTL: the clock plan |
 | `references/savestates.md` | before the first RAM is written, and again when savestates are planned |
