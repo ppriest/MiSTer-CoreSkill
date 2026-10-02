@@ -282,6 +282,12 @@ a set the hardware refuses.
 - **Ignore any directory structure inside the zip**: match the basename.
 - **Name the zips as a cascade**, `zip="set.zip|parent.zip|bios.zip"`: the set's own zip, then the
   parent or merged zip, then a BIOS zip, first hit wins. Split, merged and renamed sets all load.
+- **[BallySente] A `<switches default>` is only reliable in its first four bytes.** Main_MiSTer
+  builds it with `dip_def |= binary[i] << (i * 8)` (`support/arcade/mra_loader.cpp`), an `int`
+  shift: a byte 3 of 0x80 or more sign-extends over bits 32-63, and a fifth byte is shifted out.
+  BallySente's fake Flip Screen DIP at bit 32 with `default="...,FF,FE"` therefore started On in
+  all 40 sets. Keep every DIP, real or fake, in bits 0-31; check a generated default by applying
+  that arithmetic, not by reading the hex.
 
 ## ROM formats
 
