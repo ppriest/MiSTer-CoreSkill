@@ -251,5 +251,6 @@ Per roadmap phase, typically CPU + ROM path, then video, then sound, then integr
 | `references/rbf_pipeline.md` | the build, deploy and release flow as one diagram |
 | `references/clocks.md` | before the first RTL: the clock plan |
 | `references/savestates.md` | before the first RAM is written, and again when savestates are planned |
+| `references/cheats.md` | the cheat engine, its wiring, and converting MAME's cheats |
 | `references/pcb_video_reference.md` | when a PCB comparison is wanted |
 | `references/SCRIPTS_NOTES.md` | what each `scripts/` tool does and which constants are per-core |

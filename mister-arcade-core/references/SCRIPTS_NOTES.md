@@ -35,6 +35,7 @@ project name and revision from the `.qpf` (`coretools.py`). Per-core constants s
 | `extract_dips.py` | DIP switches from `INPUT_PORTS_START` | KonamiGX | `SETS`, `DSW_PORT` |
 | `mra.py` | build the image an `.mra` describes, as mra-tools-c would; parts found by CRC first, then basename, across the zip cascade | Fuuki | none |
 | `validate_mra.py` | XML and content checks before deploy; DIP lines within the OSD's 28 columns; no generic button names (`--allow-generic-buttons` for bring-up); `<mameversion>` present and no newer than the installed MAME | Psikyo | `ROTATION_OVERRIDE` |
+| `mame_cheats.py` | Pugsy's MAME cheat XML (`cheat.7z`, read with py7zr or libarchive's `tar`) to the `.mra`'s `<cheats>` codes; lists what does not convert and why; `cheats()` and `mra_block()` for the `.mra` generator (`references/cheats.md`) | KonamiGX | `CHEAT_CPU`, `CHEAT_RAM`, `CHEAT_MAX` |
 
 No generic `build_mra.py`: each core's generator encodes its ROM layout. Start from the
 nearest sibling's.
