@@ -1,6 +1,8 @@
 // MAME's default keys (src/emu/inpttype.ipp) in hps_io's joystick layout, to
 // OR into joystick_0/1: right, left, down, up at bits 0-3, buttons 1-6 at 4-9,
 // Start, Coin, Pause, Service at the J1 line's own positions (parameters).
+// BUTTONS limits the button keys decoded, so a J1 line with fewer than six
+// buttons keeps its Start and Coin bits free of them.
 //
 //   P1  arrows, LCtrl LAlt Space LShift Z X, 1 start, 5 coin
 //   P2  R F D G, A S Q W E (MAME gives P2 no sixth key), 2 start, 6 coin
@@ -9,6 +11,7 @@
 // Key state is per key, so a pad and the keyboard can both be held. hps_io
 // only passes keys while the OSD is closed.
 module mame_keys #(
+	parameter BUTTONS = 6,
 	parameter START   = 10,
 	parameter COIN    = 11,
 	parameter PAUSE   = 12,
@@ -36,8 +39,8 @@ always @(posedge clk) begin
 			9'h011: key0[5]       <= p; // left alt
 			9'h029: key0[6]       <= p; // space
 			9'h012: key0[7]       <= p; // left shift
-			9'h01A: key0[8]       <= p; // Z
-			9'h022: key0[9]       <= p; // X
+			9'h01A: if (BUTTONS >= 5) key0[8] <= p; // Z
+			9'h022: if (BUTTONS >= 6) key0[9] <= p; // X
 			9'h016: key0[START]   <= p; // 1
 			9'h02E: key0[COIN]    <= p; // 5
 			9'h04D: key0[PAUSE]   <= p; // P
@@ -51,7 +54,7 @@ always @(posedge clk) begin
 			9'h01B: key1[5]       <= p; // S
 			9'h015: key1[6]       <= p; // Q
 			9'h01D: key1[7]       <= p; // W
-			9'h024: key1[8]       <= p; // E
+			9'h024: if (BUTTONS >= 5) key1[8] <= p; // E
 			9'h01E: key1[START]   <= p; // 2
 			9'h036: key1[COIN]    <= p; // 6
 
