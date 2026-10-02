@@ -226,6 +226,7 @@ Per roadmap phase, typically CPU + ROM path, then video, then sound, then integr
 | `references/video_write_sweep.md` | before any video buffering decision |
 | `references/cpus_and_vendored.md` | before vendoring or porting a CPU/sound/video module |
 | `references/dips_inputs.md`, `crt_adjust.md`, `hiscore.md`, `ddr_rom_loading.md`, `video_audio_options.md`, `osd_and_peripherals.md`, `sdram_ddr_maps.md` | the matching feature |
+| `references/rbf_pipeline.md` | the build, deploy and release flow as one diagram |
 | `references/clocks.md` | before the first RTL: the clock plan |
 | `references/savestates.md` | before the first RAM is written, and again when savestates are planned |
 | `references/pcb_video_reference.md` | when a PCB comparison is wanted |
