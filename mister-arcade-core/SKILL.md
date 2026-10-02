@@ -68,6 +68,14 @@ belong in `~/.mister-core.env`. Move the session into the new repo.
 ### 1. Research
 
 Output: `docs/HARDWARE_NOTES.md` (from its template) and the component reuse map in the roadmap.
+The whole order of work, from these inputs to release, is `references/core_roadmap.md`.
+
+- **Ask the user, don't guess:** which MAME files describe the board (the driver `.cpp`, `_v.cpp`,
+  `.h`, and every device file it uses), and whether the game must fit a 32 MB SDRAM module or may
+  use more SDRAM or DDR3 during play. Both shape everything after.
+- **MAME gives the certain facts**: CPUs and clocks, the memory map, how many layers, the RAM
+  areas, the registers. It does not say how the chips fetched or what bandwidth they had; that
+  comes from schematics, decaps, PCB footage, or a generic design.
 
 - MAME driver (`src/mame/<maker>/<driver>.cpp`, `_v.cpp`, device files): CPUs and clocks,
   memory map, video chips and their register maps, sound chips, `screen.set_raw()`
@@ -122,6 +130,11 @@ Per roadmap phase, typically CPU + ROM path, then video, then sound, then integr
   per-line budget looks tight is a rewrite later: Psikyo built one, found it tore mid-scanout,
   and went back to the line path. If the arithmetic says per-line does not fit, bring the numbers
   to the user rather than changing the shape.
+- **Tiles and sprites start from a standard engine, not from MAME's drawing loop.** Unless
+  certified hardware RTL exists for the chip (a decap, a netlist), use a tile scroller and
+  jotego's sprite drawing (`jtframe_objdraw`, `jtframe_obj_buffer`, vendored in KonamiGX) with
+  the board's features added. The usual failure is transcribing MAME's serial sprite routine into
+  a state machine, then finding it cannot wait for SDRAM and rewriting it as a pipeline.
 - Before wiring line buffers, double buffers or vblank-latched copies, run the video-write
   sweep (`references/video_write_sweep.md`): a per-scanline histogram, relative to vblank, of
   every write to sprite RAM (by field), tilemap VRAM, scroll and zoom RAM, and the video
@@ -226,6 +239,7 @@ Per roadmap phase, typically CPU + ROM path, then video, then sound, then integr
 | `references/video_write_sweep.md` | before any video buffering decision |
 | `references/cpus_and_vendored.md` | before vendoring or porting a CPU/sound/video module |
 | `references/dips_inputs.md`, `crt_adjust.md`, `hiscore.md`, `ddr_rom_loading.md`, `video_audio_options.md`, `osd_and_peripherals.md`, `sdram_ddr_maps.md` | the matching feature |
+| `references/core_roadmap.md` | the order of work from inputs to release, as one diagram |
 | `references/rbf_pipeline.md` | the build, deploy and release flow as one diagram |
 | `references/clocks.md` | before the first RTL: the clock plan |
 | `references/savestates.md` | before the first RAM is written, and again when savestates are planned |
