@@ -164,6 +164,16 @@ class of wrong-looking frames behind it.
 A core reported as clocking at 96 MHz on a board whose CPU runs at 16 MHz is a wrong number, not a
 fast core. Compare every derived clock with the driver's crystal before believing a timing report.
 
+### [BallySente] Ask the simulation what the hardware symptom would look like
+
+Shrike Avenger was black and silent on the board. The suspect was the 68000 second board, which the
+6809 talks to through shared RAM. Zeroing the 68000's ROM in the bench image and running 120 frames
+gave the same frame as the normal run (804 non-zero pixel bytes each, same write counts): a dead
+68000 cannot black the screen, so the 6809 itself was not running. That cost two minutes and moved
+the search to the load path, where the cause was (a release `.rbf` the MiSTer ran instead of the new
+build). Before instrumenting hardware, break the suspect in simulation and see whether the symptom
+matches.
+
 ## ROM loading: .mra, byte order, deployment
 
 ### [Seta] A `<dip>`'s `bits` is a range, "first,last", not a list
@@ -668,6 +678,14 @@ in both layers; the screen said OK anyway. Pinned without probes: every backgrou
 screenshot was MAME's palette entry `0xAAAA & 0x1f`. Where real storage does not fit (~90 M10K), a
 mirror passes a fill-then-verify test if a write tap shows nothing else writes there.
 
+### [BallySente] A vendored CPU may be simulated from a different source than Quartus builds
+
+FX68K's upstream source does not build under Verilator, so the bench runs the Verilator port (from
+another MiSTer core) while Quartus synthesises Jorge Cwik's upstream files; the two differ
+throughout. A bench pass then says nothing about the CPU that is on the board. Record which source
+each tool uses (`PROVENANCE.md`), and when only that CPU's behaviour differs on hardware, suspect the
+pair before the RTL around it.
+
 ## Testbench discipline
 
 - **[BallySente] A vendored module's compile WARNING can be a latent fatal.** T80 has carried a
@@ -791,6 +809,11 @@ mirror passes a fill-then-verify test if a write tap shows nothing else writes t
   output not yet computed -- apply it to the files that need it (jotego pipelines), not everything.
   `always_comb` evaluates at time zero by IEEE 1800; `always @*` does not. A combinational signal
   holding a value its equation cannot produce from its inputs is the tell.
+- **[BallySente] A bench comparison is valid only against a capture made with the same inputs.**
+  A Chicken Shift run with a coin at frame 300 compared against a capture taken without one reported
+  449 VRAM bytes and 607 pixels different; the earlier clean result had used matching arguments.
+  Write the bench arguments (coin schedule, DIPs, start presses) into the capture's manifest and make
+  the comparison script refuse a mismatch.
 
 ## Timing closure
 
