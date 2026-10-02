@@ -53,6 +53,7 @@ anything ("Timing closure").
 | One byte lane wrong, different per build | a bidirectional bus captured into several lane registers | one I/O register per pin ("[Seta] A bidirectional bus...") |
 | A sound chip drops ticks | its port shared with the sprite fetch | its own port or priority (MS32, `sdram_ddr_maps.md`) |
 | A fetch that passed every bench fails on the board | the bench's short-latency model | re-run with the production transport ("When simulation passes") |
+| Only the CPU's behaviour differs on the board | the bench simulates a different CPU source than Quartus builds (FX68K Verilator port vs upstream) | `PROVENANCE.md` names each tool's source; suspect the pair first ("[BallySente] A vendored CPU may be simulated...") |
 | Hard real-time fetch misses under DDR3 | DDR3 latency is not bounded | SDRAM for per-line budgets ("Choose SDRAM over DDRAM...") |
 
 ## CPU and sound
@@ -76,6 +77,8 @@ anything ("Timing closure").
 | Every dump is zeros after a load-path change | the debug gate keyed off the old path (`dl_done`) | grep every flag derived from the replaced transport |
 | `write_source_data` has no effect | `-value` takes binary | `-value_in_hex`; read every source back |
 | A screenshot mismatch | the grab is one frame off; a stale `.rbf` reused by launching an `.mra` over a running core | check the grab time on each side; launch through `menu.rbf` (`tools.md`) |
+| A bench differs from a capture that matched before | the capture was taken with different inputs (coin, DIPs, start) | the manifest records the inputs; the comparison refuses a mismatch ("[BallySente] A bench comparison is valid only...") |
+| Black and silent on the board, suspect a subsystem | the suspect cannot produce that symptom; the board ran a release `.rbf` instead of the build | break the suspect in simulation first and see whether the symptom matches ("[BallySente] Ask the simulation...") |
 | The probe answers for the wrong core | another session's build is loaded | the `core|build|set|` prefix on every line (`identity.py`) |
 
 ## Build and tooling
