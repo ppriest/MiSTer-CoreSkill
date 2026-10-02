@@ -7,6 +7,8 @@ expensive. Two deliverables, and the second is worth more during development tha
 2. **A state dump to a file on disk**, in a format the simulators can load, so a bug seen on
    hardware is reproduced in a bench at the exact frame it went wrong.
 
+A shipped design to copy is Irem M72's section bus (`wickerwaka_irem.md`, Savestates): every block
+a numbered section, a DDR3 stream, generated adaptors for vendored chips, a parsable state file.
 The worked study behind this is the Psikyo core's `docs/savestates.md` (302 lines): a per-core
 feasibility analysis with a verdict, tiers and a phasing table. Write the same document for a new
 core before starting, and keep the verdict honest.

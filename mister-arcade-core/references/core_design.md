@@ -40,7 +40,7 @@ flowchart TD
         C3["Stay at ~48 MHz"]
         C4["First the design: fetch only visible tiles,<br/>cull the sprite list, prefetch into BRAM,<br/>share a port, widen a burst"]
         C5{"Still short,<br/>with numbers?"}
-        C6["To the user: 96 MHz, or DDR3,<br/>as a measured decision"]
+        C6["To the user: SDRAM at 3x clk_sys with a fixed fetch schedule<br/>(wickerwaka: 32/96, 40/120 MHz), or DDR3, as a measured decision"]
         C1 --> C2
         C2 -- "yes" --> C3
         C2 -- "no" --> C4 --> C5
@@ -51,9 +51,9 @@ flowchart TD
     subgraph VID["Shape the video"]
         V1["Write sweep in MAME, attract and play:<br/>when the CPU writes the sprite list, scroll, palette"]
         V2{"Writes land<br/>mid-frame?"}
-        V3["Snapshot the list at the swept point<br/>(vblank copy, or the register the game uses)"]
+        V3["Snapshot the list at the swept point<br/>(the board's own DMA where it has one, else a vblank copy)"]
         V4["Plain latch at vblank; no copy"]
-        V5["Per-scanline engine from the buffered list:<br/>tile scroller plus jtframe objdraw and obj_buffer,<br/>double line buffer, fetch and draw pipelined"]
+        V5["Per-scanline engine on the chip's own slot cadence,<br/>from the buffered list: tile scroller plus jtframe objdraw<br/>and obj_buffer, double line buffer, fetch issued one slot ahead"]
         V6{"Sprites per line x cycles per sprite<br/>fits the line?"}
         V7["Overrun counter on the debug page;<br/>drop the sprites the chip drew last"]
         V1 --> V2
@@ -65,7 +65,7 @@ flowchart TD
 
     subgraph AIDS["Build the development aids early"]
         D1["First build: _stp revision with ISSP probes,<br/>debug OSD page, hwlock, prefixed probe output"]
-        D2["With the first inputs: Pause that suspends the CPU.<br/>A glitch seen only while running is a buffering fault;<br/>probes and screenshots are read with the CPU stopped"]
+        D2["With the first inputs: Pause that suspends the CPU,<br/>replaying per-line video registers if the game writes them mid-frame.<br/>A glitch seen only while running is a buffering fault"]
         D3["With the first video: HDMI integer scaling and rotation,<br/>so native screenshots compare pixel for pixel with MAME"]
         D4["When the CPU runs: state dump to a file the benches load.<br/>Every hardware bug then has a bench"]
         D5["Runtime A/B switches when the alternative<br/>is a rebuild per bisection step"]
@@ -105,10 +105,10 @@ flowchart TD
 | What stays in BRAM | whether a reader has a per-clock deadline | VRAM in SDRAM without a cache stalls the renderer; a line buffer in logic instead of M10K is ~24K ALMs (`LESSONS_LEARNED.md`, "Memory inference") |
 | Port assignment | the deadline of each client | MS32: the YMF271 missed ~5% of ticks sharing a port with sprites (`sdram_ddr_maps.md`) |
 | Frame buffer | driver or PCB evidence | the standing rule: per scanline from a buffered list unless the board had one |
-| Clock | fetch arithmetic at ~48 MHz, then the user | our five cores run 85.9 or 96 MHz with DDR3 on 16-bit boards; ZAP's run at 48 to 52 MHz with neither (`clocks.md`) |
+| Clock | fetch arithmetic at ~48 MHz, then the user | our five cores run 85.9 or 96 MHz with DDR3 on 16-bit boards; ZAP's run at 48 to 52 MHz with neither (`clocks.md`); wickerwaka's run 32 or 40 MHz with SDRAM at 3x and a fixed fetch schedule (`wickerwaka_irem.md`) |
 | Snapshot vs latch | the write sweep, attract and play | Seta: a ping-pong copy that was argued equal to MAME's and was not (`LESSONS_LEARNED.md`, "Sprite lists, line buffers and snapshots") |
-| Line budget | sprites per line times cycles per sprite | Seta: a back-to-front line buffer cannot drop the right sprites |
-| Pause early | needed to read probes and compare screenshots | KonamiGX declares Pause and never reads it (`dips_inputs.md`) |
+| Line budget | sprites per line times cycles per sprite | Seta: a back-to-front line buffer cannot drop the right sprites; M92's GA22 draws one object per four 13.33 MHz ticks, 212 a line, as the chip did (`wickerwaka_irem.md`) |
+| Pause early | needed to read probes and compare screenshots | KonamiGX declares Pause and never reads it (`dips_inputs.md`); M92 replays per-line scroll registers while paused or the frame is wrong (`wickerwaka_irem.md`) |
 | Scaling early | native screenshots are the comparison against MAME | MS32: a ROT270 native snapshot is landscape and turned 180 degrees |
 | State dump early | a hardware bug needs a bench | retrofitting state capture is the expensive path (`savestates.md`) |
 | Feature or timing | slack on every clock, from the build gate | a shipped build at -8.879 ns with every log line saying "successful"; measurements on it ruled the memory interface out, wrongly |

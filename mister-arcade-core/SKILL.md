@@ -136,7 +136,9 @@ Per roadmap phase, typically CPU + ROM path, then video, then sound, then integr
   certified hardware RTL exists for the chip (a decap, a netlist), use a tile scroller and
   jotego's sprite drawing (`jtframe_objdraw`, `jtframe_obj_buffer`, vendored in KonamiGX) with
   the board's features added. The usual failure is transcribing MAME's serial sprite routine into
-  a state machine, then finding it cannot wait for SDRAM and rewriting it as a pipeline.
+  a state machine, then finding it cannot wait for SDRAM and rewriting it as a pipeline. The
+  model is M92's GA22: the chip's measured object cadence is the schedule, the fetch is issued
+  one slot ahead, and the memory system is sized to meet it (`references/wickerwaka_irem.md`).
 - Before wiring line buffers, double buffers or vblank-latched copies, run the video-write
   sweep (`references/video_write_sweep.md`): a per-scanline histogram, relative to vblank, of
   every write to sprite RAM (by field), tilemap VRAM, scroll and zoom RAM, and the video
@@ -243,6 +245,7 @@ Per roadmap phase, typically CPU + ROM path, then video, then sound, then integr
 | `references/dips_inputs.md`, `crt_adjust.md`, `hiscore.md`, `ddr_rom_loading.md`, `video_audio_options.md`, `osd_and_peripherals.md`, `sdram_ddr_maps.md` | the matching feature |
 | `references/core_roadmap.md` | the order of work from inputs to release, as one diagram |
 | `references/core_design.md` | the design decisions: BRAM / SDRAM / DDR3, clock, snapshot, aids, timing against features |
+| `references/wickerwaka_irem.md` | the Irem M72/M92/M107 cores as the worked example: cadence-driven sprites, ROM cache, pause by replay, savestate bus, headless simulator |
 | `references/rbf_pipeline.md` | the build, deploy and release flow as one diagram |
 | `references/clocks.md` | before the first RTL: the clock plan |
 | `references/savestates.md` | before the first RAM is written, and again when savestates are planned |

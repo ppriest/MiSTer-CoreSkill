@@ -42,6 +42,9 @@ clock and without DDR3.
    Measure the catch-up; do not assume it.
 6. **The SDRAM clock is an integer multiple of `clk_sys`**, and by default that multiple is 1:
    the SDRAM runs on `clk_sys`. Doubling it is a measured decision, not a starting point.
+   The measured alternative is wickerwaka's: 32 or 40 MHz `clk_sys` with the SDRAM at 3x,
+   CAS 3, and the sprite fetch issued one object slot ahead on the chip's cadence
+   (`wickerwaka_irem.md`).
 7. **Every component runs at its real clock through fractional clock enables** from `clk_sys`:
    a Bresenham accumulator hits an exact rational rate (Seta: a 68EC020 at 176/945 of
    `clk_sys`, where /5 was 7.4% fast and /6 10.5% slow).

@@ -111,7 +111,10 @@ Coin: level from the joystick bit, no pulse shaping or coin counter in any of th
    latch suspending the main CPU (and every CPU that must stay in step with it), so the game
    freezes mid-play. OR in the OSD-open pause and hiscore's `pause_cpu`; feed the combined
    pause back to hiscore's `paused`. Pattern: `Seta.sv:407-418`, Fuuki `rtl/pause_control.sv`
-   (`ext_pause`). Suspend by clock-enable, never by holding reset or gating a clock.
+   (`ext_pause`). Suspend by clock-enable, never by holding reset or gating a clock. If the
+   game writes scroll or control registers mid-frame, record them per line and replay them
+   while paused, or the paused frame is drawn from the last values (M92 `ga23.sv`,
+   `wickerwaka_irem.md`).
 6. Assemble ports with inverted joystick bits and a per-board layout selector (mod byte / board cfg), TILT tied high.
 7. Copy Seta `check_dips.py` and `check_inputs.py` + `mame/ports.lua`; adapt the transcribed port tables.
 8. Copy Psikyo `validate_mra.py` into the deploy step.
