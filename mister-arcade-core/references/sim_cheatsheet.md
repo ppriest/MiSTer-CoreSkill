@@ -82,6 +82,12 @@ JSON server with `run_frames`, `run_until` on a signal or PC, `screenshot`, `sig
 
 ## State dumps
 
+Sim, MAME and the board are compared from a snapshot, a few frames per run: state at the
+frame of interest (MAME's Lua, or the board through the probe) into the bench, a few
+frames, compare. Not hundreds of frames from reset: 1,318 s wall time to frame 1500
+(BallySente `board_tb`). A bench that cannot load a snapshot gets that added
+(`WORKFLOW.md` section 10).
+
 `docs/STATE.md` lists every register and RAM; the dump is a file both simulators load
 (`savestates.md`). The M72 layout (8-byte slot header, per-chunk `{index, width, count}`
 header, packed data, FF terminator) is the model: parsable, so a hand-built sprite table can

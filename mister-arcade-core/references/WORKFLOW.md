@@ -351,6 +351,13 @@ and saves or restores the whole simulation. A restored run's trace must be byte-
 uninterrupted one's; check that once. A snapshot holds the ROM images and any scripted replies:
 remake it after either changes. Two runs at once need their own `--out` directories.
 
+Simulation, MAME and the board are compared from a memory snapshot, a few frames per run: take the
+state at the frame of interest (MAME's Lua, or the board through the probe), load it into the bench,
+run a few frames, compare. Do not simulate hundreds of frames from reset to reach a scene or to
+regression-check a build; a from-reset run to frame 1500 took 1,318 s of wall time (BallySente
+board_tb) and held up the build it was meant to clear. Audio is judged by ear on the board, not by a long run. Where a bench
+cannot load a snapshot yet, add that rather than falling back to long runs.
+
 The rest of testbench discipline is in LESSONS_LEARNED's "Testbench discipline" section — read it
 before writing a new bench rather than after one gives a confident wrong answer.
 
