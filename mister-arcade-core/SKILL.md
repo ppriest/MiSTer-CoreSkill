@@ -245,6 +245,8 @@ Per roadmap phase, typically CPU + ROM path, then video, then sound, then integr
 | `references/dips_inputs.md`, `crt_adjust.md`, `hiscore.md`, `ddr_rom_loading.md`, `video_audio_options.md`, `osd_and_peripherals.md`, `sdram_ddr_maps.md` | the matching feature |
 | `references/core_roadmap.md` | the order of work from inputs to release, as one diagram |
 | `references/core_design.md` | the design decisions: BRAM / SDRAM / DDR3, clock, snapshot, aids, timing against features |
+| `references/symptoms.md` | what is seen on the board or in a bench, the cause met before, the check |
+| `references/sim_cheatsheet.md` | the commands: MAME references, ModelSim, Verilator, STA, deploy, board, JTAG |
 | `references/wickerwaka_irem.md` | the Irem M72/M92/M107 cores as the worked example: cadence-driven sprites, ROM cache, pause by replay, savestate bus, headless simulator |
 | `references/rbf_pipeline.md` | the build, deploy and release flow as one diagram |
 | `references/clocks.md` | before the first RTL: the clock plan |

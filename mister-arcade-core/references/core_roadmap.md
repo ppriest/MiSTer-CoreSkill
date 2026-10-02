@@ -101,8 +101,8 @@ flowchart TD
 |---|---|
 | 1 | `cpus_and_vendored.md`, `clocks.md`, `video_write_sweep.md`, `pcb_video_reference.md` |
 | 2 | `sdram_ddr_maps.md`, `ddr_rom_loading.md` |
-| 3-4 | `tools.md`, `LESSONS_LEARNED.md` ("CPU cores", "Memory transport") |
+| 3-4 | `tools.md`, `sim_cheatsheet.md`, `LESSONS_LEARNED.md` ("CPU cores", "Memory transport") |
 | 5 | `video_write_sweep.md`, `LESSONS_LEARNED.md` ("Sprite lists, line buffers and snapshots") |
-| 7 | `rbf_pipeline.md`, `LESSONS_LEARNED.md` ("When simulation passes and hardware fails") |
+| 7 | `rbf_pipeline.md`, `symptoms.md`, `sim_cheatsheet.md`, `LESSONS_LEARNED.md` ("When simulation passes and hardware fails") |
 | 8 | `dips_inputs.md`, `crt_adjust.md`, `hiscore.md`, `video_audio_options.md`, `osd_and_peripherals.md` |
 | 9 | `savestates.md`, the core's `docs/RELEASE_PROCESS.md` |
