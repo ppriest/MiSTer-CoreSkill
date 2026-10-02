@@ -39,8 +39,11 @@ python scripts/write_timing.py <set> [--skip 600 --frames 1800 --extra name:lo:h
 
 CORE_SNAP_FRAME=N CORE_SNAP_OUT=dir mame <set> -autoboot_script scripts/mame/snap_at.lua
     MAME's screenshot at frame N
-python scripts/mame_capture.py <set> --dip "Field=Setting;..."
-    pass 1 runs scripts/mame/setdip.lua to seed cfg/<set>.cfg, applied at the next power-on
+CORE_DIPS="Field=Setting;..." CORE_OUT=dir mame <set> -autoboot_script scripts/mame/setdip.lua
+    seeds cfg/<set>.cfg and exits; MAME applies it at the next power-on, before any script,
+    which is what a game that reads its switches once at boot needs. Run the capture after.
+    (The skill's mame_capture.py does not drive this pass itself; the Lua header's "--dip"
+    refers to the source core's copy.)
 mame <set> -debug -log; parse with scripts/parse_mame_trace.py
     expands MAME's instruction-start trace into the fetches a bench records
 ```
