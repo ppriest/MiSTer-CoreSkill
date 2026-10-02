@@ -107,12 +107,14 @@ right after hps_io, so every later reader of `joystick_N` sees them:
 wire [31:0] joy_pad_0, joy_pad_1, key_0, key_1;   // hps_io's .joystick_0(joy_pad_0) ...
 wire [10:0] ps2_key;                               // hps_io's .ps2_key(ps2_key)
 wire  [1:0] svc_coin;
-mame_keys #(.START(10), .COIN(11), .PAUSE(12), .SERVICE(13)) u_keys
+mame_keys #(.BUTTONS(6), .START(10), .COIN(11), .PAUSE(12), .SERVICE(13)) u_keys
 	(.clk(clk_sys), .ps2_key, .key0(key_0), .key1(key_1), .svc_coin);
 wire [31:0] joystick_0 = joy_pad_0 | key_0, joystick_1 = joy_pad_1 | key_1;
 ```
 
-Set the parameters to the J1 line's positions. `svc_coin` goes to the driver's
+Set the parameters to the J1 line's positions, `BUTTONS` to the number of button slots
+before Start. With fewer than six and the default, Z/X/E decode onto bits 8/9, which are
+Start/Coin on a four-button line (BallySente). `svc_coin` goes to the driver's
 `IPT_SERVICE1/2` bits where the board has them (KonamiGX: coin port bits 12-13). README:
 a Keyboard table. Example: KonamiGX `rtl/gx_keyboard.sv`.
 
