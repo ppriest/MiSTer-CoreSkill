@@ -55,7 +55,7 @@ vector table, interrupt-mask field, ROM and RAM ranges), `inputs` (field names f
 | `write_timing.py` + `mame/wtiming.lua` | video writes by scanline relative to vblank; attract or play | Seta |
 | `mame/mark_time.lua` | emulated time at two marking writes, for CPI | KonamiGX |
 | `parse_mame_trace.py` | debugger trace to an expected-fetch list | Fuuki |
-| `mame/run.lua`, `mame/snap_at.lua`, `mame/ports.lua`, `mame/setdip.lua` | error-surfacing wrapper; snapshot at frame N; list input fields; seed DIPs | Fuuki, KonamiGX |
+| `mame/run.lua`, `mame/snap_at.lua`, `mame/ports.lua`, `mame/setdip.lua` | error-surfacing wrapper; snapshot at frame N; list input fields; seed DIPs (`mame_capture.py --dip`, from Seta) | Fuuki, KonamiGX, Seta |
 
 Checked on `thunderl` (Seta, 68000) with MAME 0.285: capture, boot trace, system trace and
 write sweep all ran; the sweep matched Seta's recorded result (sprite control 2.0 writes a
