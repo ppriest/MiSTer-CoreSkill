@@ -102,6 +102,9 @@ with a `mister.env` (see `scripts/deploy.py`).
 ## Controls
 
 {{CONTROLS}}
+
+Keyboard, MAME's defaults: arrows / R F D G, buttons LCtrl LAlt Space LShift Z X / A S Q W E,
+Start 1 / 2, Coin 5 / 6; F2 service switch, 9 / 0 service coins, P pause.
 <!-- The J1 line's button names in order, what Start/Coin/Pause/Service map to, and per-game
      exceptions. Must agree with the .mra <buttons> positions. Light gun / trackball / mouse
      options if any. -->

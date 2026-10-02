@@ -8,7 +8,7 @@ Creates <root>/Arcade-<Name>_MiSTer:
      (or, with --no-github, a plain clone with history dropped)
   2. renames Template.{qpf,qsf,sdc,srf,sv} -> <Name>.*, adds the <Name>_stp revision, GPL-3.0 licence
   3. deletes the Quartus 13 project files
-  4. copies this skill's assets/core/ tree (docs, scripts, .gitignore, CLAUDE.md, mister.env.example)
+  4. copies this skill's assets/core/ tree (docs, scripts, rtl/mame_keys.sv, .gitignore, CLAUDE.md, mister.env.example)
   5. commits
 sys/ is never touched.
 """

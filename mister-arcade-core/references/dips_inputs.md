@@ -89,11 +89,32 @@ Port assembly (file:line):
 - Fuuki.sv:343-369: `p1p2_in` ($810000) and `system_in` ($800000) with `sysport_alt` choosing between the gogomile and pbancho/asura bit layouts; SERVICE1 has no joystick slot (`service1 = 1'b0` :358), service mode is DSW bit 0.
 - Psikyo.sv:396-419: `p1p2_in[31:0]`; `p1p2_low` differs per board (gunbird/btlkroad fold coins/service/TILT/z80 NMI into the low half; sngkace has a separate COIN port). `coin_in` at :636 (`board_gunbird ? 2'b11 : {~joystick_1[11], ~joystick_0[11]}`).
 
-Pause: joystick bit toggles a latch, ORed with the Debug page "Pause CPU" — Seta.sv:407-418 `pause_core = pause_toggle | status[82] | dbg_rd_en`; Fuuki.sv:385ff `pause_control`; Psikyo.sv:496 `pause_btn = joystick_0[12] | joystick_1[12]`; MS32.sv:425 bit 11. KonamiGX: Pause is declared in J1 (bit 12) but nothing in KonamiGX.sv reads it (grep `joystick_0[12]` finds nothing) — unimplemented.
+Pause: joystick bit toggles a latch, ORed with the Debug page "Pause CPU" — Seta.sv:407-418 `pause_core = pause_toggle | status[82] | dbg_rd_en`; Fuuki.sv:385ff `pause_control`; Psikyo.sv:496 `pause_btn = joystick_0[12] | joystick_1[12]`; MS32.sv:425 bit 11. KonamiGX: `pause_btn = joystick_0[12] | joystick_1[12]` toggles `pause_cpu`.
 
 Service/test/tilt: Seta and KonamiGX expose Service on bit 13 and TILT is never asserted; MS32 has both Service (12) and Test (13); Fuuki and Psikyo have no service button (service mode via DIP; Psikyo ties SERVICE1/SERVICE/TILT high, :406-409).
 
 Coin: level from the joystick bit, no pulse shaping or coin counter in any of the five; MS32 additionally accepts PS/2 keys 5/6 (:238, :258).
+
+### 3d'. Keyboard: MAME's defaults
+
+Every core takes MAME's default keys alongside the pads: arrows / R F D G to move,
+LCtrl LAlt Space LShift Z X / A S Q W E for buttons 1-6, 1/2 start, 5/6 coin, F2 the service
+(test) switch, 9/0 the service coins, P pause. `rtl/mame_keys.sv` (copied by `new_core.py`;
+add it to `files.qip`) decodes `ps2_key` into the J1 layout; OR its outputs into the pads
+right after hps_io, so every later reader of `joystick_N` sees them:
+
+```systemverilog
+wire [31:0] joy_pad_0, joy_pad_1, key_0, key_1;   // hps_io's .joystick_0(joy_pad_0) ...
+wire [10:0] ps2_key;                               // hps_io's .ps2_key(ps2_key)
+wire  [1:0] svc_coin;
+mame_keys #(.START(10), .COIN(11), .PAUSE(12), .SERVICE(13)) u_keys
+	(.clk(clk_sys), .ps2_key, .key0(key_0), .key1(key_1), .svc_coin);
+wire [31:0] joystick_0 = joy_pad_0 | key_0, joystick_1 = joy_pad_1 | key_1;
+```
+
+Set the parameters to the J1 line's positions. `svc_coin` goes to the driver's
+`IPT_SERVICE1/2` bits where the board has them (KonamiGX: coin port bits 12-13). README:
+a Keyboard table. Example: KonamiGX `rtl/gx_keyboard.sv`.
 
 ### 3e. Checks
 
@@ -115,9 +136,10 @@ Coin: level from the joystick bit, no pulse shaping or coin counter in any of th
    game writes scroll or control registers mid-frame, record them per line and replay them
    while paused, or the paused frame is drawn from the last values (M92 `ga23.sv`,
    `wickerwaka_irem.md`).
-6. Assemble ports with inverted joystick bits and a per-board layout selector (mod byte / board cfg), TILT tied high.
-7. Copy Seta `check_dips.py` and `check_inputs.py` + `mame/ports.lua`; adapt the transcribed port tables.
-8. Copy Psikyo `validate_mra.py` into the deploy step.
+6. `rtl/mame_keys.sv` ORed into the pads (3d').
+7. Assemble ports with inverted joystick bits and a per-board layout selector (mod byte / board cfg), TILT tied high.
+8. Copy Seta `check_dips.py` and `check_inputs.py` + `mame/ports.lua`; adapt the transcribed port tables.
+9. Copy Psikyo `validate_mra.py` into the deploy step.
 
 ## 5. Defaults, .cfg and testing
 
@@ -164,6 +186,6 @@ Coin: level from the joystick bit, no pulse shaping or coin counter in any of th
 - **`bits=` encoding.** Seta (:677-681) and KonamiGX (:280-281) treat `bits` as a first,last range and reject gaps. MS32 `switches_xml` emits the full bit list (`",".join(map(str,pos))`, :136), so a 3-bit switch is written `bits="10,11,12"` (`Best Bout Boxing (ver 1.3).mra:20-21`). If mra_loader reads only the first two numbers (as Seta's comment states, citing "issue #6"), MS32's Coin A/B switches are 2-bit in the OSD. Unverified here; no MS32 doc records it.
 - **Button bit positions** differ per core (Start at 8, 9 or 10). Seta/KonamiGX/Psikyo share Start 10 / Coin 11 / Pause 12; MS32 and Fuuki do not.
 - **DIP source**: three cores parse the driver source; Fuuki hand-types; Psikyo hand-writes the .mra. Seta is the only core with a MAME-backed checker.
-- **Pause**: implemented in four cores; declared but unread in KonamiGX.
-- **Coin via keyboard**: MS32 only.
+- **Pause**: implemented in all five.
+- **Keyboard**: KonamiGX takes MAME's full default set (`mame_keys.sv`); MS32 only coins 5/6.
 - **Default before .mra**: KonamiGX pre-loads driver defaults; others use FF.
