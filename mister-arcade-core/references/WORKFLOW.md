@@ -473,6 +473,7 @@ each **done** as it lands.
 | `cfg.py` | read-modify-write of the per-core `.CFG` status word | Seta, Fuuki |
 | `read_issp.tcl`, `read_issp.py`, `probe.py` | read the probe / write the source bus over JTAG | skill |
 | `report_worst_paths.tcl`, `sta_*.tcl` | worst setup paths from the compiled database | skill |
+| `floorplan.py`, `floorplan.tcl` | PNG of placement on the die coloured by block, per-group resource table | skill |
 | `mame_capture.py` + `mame/*.lua`, `write_timing.py` | headless MAME reference capture; video-write sweep | skill |
 | `render_model.py` | the software model of the driver's video file | GX, MS32 (pattern only) |
 | `mame_boot_trace.py`, `mame_sys_trace.py`, `compare_boot_trace.py` | the CPU trace diff against MAME | skill |

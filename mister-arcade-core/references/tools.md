@@ -103,3 +103,18 @@ quartus_sta -t scripts/report_worst_paths.tcl <rev>
 
 `build_staged.py` compiles HEAD in a worktree at `build/`, refuses a dirty tree, fails on
 negative slack on any clock and writes `build/BUILT_COMMIT`.
+
+## Floorplan
+
+```
+python scripts/floorplan.py --list --depth 3   # instance tree with LUT/FF/MLAB/M10K/DSP counts
+python scripts/floorplan.py                    # debug/floorplan/<rev>.png and <rev>_groups.md
+```
+
+Reads `build/`'s post-fit netlist through `quartus_cdb` and the `atoms` Tcl package
+(read-only, seconds). Each LAB, M10K and DSP site is painted in the colour of the group
+owning most of its atoms, brighter when fuller. Groups are regexes on the instance path in
+`scripts/floorplan.json` (copy `floorplan.example.json`); unmatched logic is grouped by
+instance automatically, the MiSTer framework is one grey group (`--sys-detail` splits it).
+Use it to see whether a failing path's two ends were placed far apart, which block owns
+the M10K, and what moved between two builds.
