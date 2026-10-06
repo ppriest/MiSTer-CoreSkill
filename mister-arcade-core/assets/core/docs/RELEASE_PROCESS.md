@@ -43,7 +43,9 @@ Steps for a release:
 6. Record the commit **and the fitter seed** from `build/BUILT_COMMIT` in the release notes, with
    the worst slack per clock and the resource table. A commit alone does not identify a bitstream:
    two builds of one commit at different seeds have differed in which games ran.
-7. Update `README.md`: History, Supported table, Status, Resource usage.
+7. Update `README.md`: History, Supported table, Status, Resource usage, and the Hardware
+   section's floorplan: `python scripts/floorplan.py`, copy `debug/floorplan/<rev>.png` to
+   `docs/floorplan/`, once per release revision.
 
 **Current state:** <one line: what the latest build passes or fails, with the number>.
 

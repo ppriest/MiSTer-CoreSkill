@@ -39,9 +39,47 @@ import sys
 from collections import Counter, defaultdict
 from pathlib import Path
 
+# Standalone (copied into cores whose scripts/ predate coretools.py): the few settings
+# it needs are resolved here, the same way coretools.py does.
+import os
+NO_WINDOW = {"creationflags": 0x08000000} if os.name == "nt" else {}
+QUARTUS_DEFAULT = r"C:\intelFPGA_lite\17.0\quartus\bin64"
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from coretools import core_root, revision, quartus_bin, NO_WINDOW   # noqa: E402
-import hwlock                                                         # noqa: E402
+try:
+    import hwlock                                                     # noqa: E402
+except ImportError:
+    hwlock = None
+
+
+def core_root():
+    root = Path(os.environ.get("CORE_ROOT") or Path(__file__).resolve().parent.parent).resolve()
+    if not list(root.glob("*.qpf")):
+        sys.exit(f"not a core root (no .qpf): {root}")
+    return root
+
+
+def project(root):
+    return sorted(root.glob("*.qpf"), key=lambda p: len(p.stem))[0].stem
+
+
+def revision(root, override=None):
+    """--rev, CORE_REV, else the project's own revision (the release one, not _stp)."""
+    return override or os.environ.get("CORE_REV") or project(root)
+
+
+def _env_files(root):
+    out = {}
+    for f in (os.environ.get("MISTER_CORE_ENV") or Path.home() / ".mister-core.env", root / "mister.env"):
+        if Path(f).exists():
+            for ln in Path(f).read_text(encoding="utf-8", errors="replace").splitlines():
+                if "=" in ln and not ln.lstrip().startswith("#"):
+                    k, v = ln.split("=", 1)
+                    out[k.strip()] = v.strip().strip('"').strip("'")
+    return out
+
+
+def quartus_bin(root):
+    return Path(os.environ.get("QUARTUS_BIN") or _env_files(root).get("QUARTUS_BIN") or QUARTUS_DEFAULT)
 
 LOC_RE = re.compile(r"([A-Z0-9]+?)_X(\d+)_Y(\d+)_N(\d+)$")
 SITE_KIND = {"LABCELL": "LAB", "MLABCELL": "MLAB", "FF": None, "M10K": "M10K", "DSP": "DSP"}
@@ -49,6 +87,7 @@ SITE_KIND = {"LABCELL": "LAB", "MLABCELL": "MLAB", "FF": None, "M10K": "M10K", "
 LAB_CAP = 20 + 40
 DIM = {"LAB": (34, 36, 40), "MLAB": (40, 36, 46), "M10K": (30, 40, 58), "DSP": (58, 36, 30)}
 UNPLACED = (24, 24, 26)
+SMALL = 600          # LUT+FF below which an automatic group folds into "emu other"
 
 
 def strip_entities(name):
@@ -62,13 +101,14 @@ def inst_path(name):
     return "|".join(parts[:-1]) if len(parts) > 1 else "sys_top"
 
 
-def dump_atoms(db, rev, out_tsv):
-    hwlock.require_no_jtag("floorplan.tcl (a Quartus process)")
+def dump_atoms(root, db, prj, rev, out_tsv):
+    if hwlock:
+        hwlock.require_no_jtag("floorplan.tcl (a Quartus process)")
     tcl = Path(__file__).resolve().parent / "floorplan.tcl"
-    exe = Path(quartus_bin()) / "quartus_cdb.exe"
+    exe = quartus_bin(root) / "quartus_cdb.exe"
     if not exe.exists():
-        exe = Path(quartus_bin()) / "quartus_cdb"
-    r = subprocess.run([str(exe), "-t", str(tcl), rev, out_tsv.as_posix()],
+        exe = quartus_bin(root) / "quartus_cdb"
+    r = subprocess.run([str(exe), "-t", str(tcl), prj, rev, out_tsv.as_posix()],
                        cwd=db, capture_output=True, text=True, **NO_WINDOW)
     if "FLOORPLAN_OK" not in r.stdout:
         tail = "\n".join((r.stdout + r.stderr).strip().splitlines()[-15:])
@@ -182,6 +222,21 @@ def render(atoms, groups, depth, out_png, title, scale, sys_detail=False):
         bx = box.get(g, (x, y, x, y))
         box[g] = (min(bx[0], x), min(bx[1], y), max(bx[2], x), max(bx[3], y))
 
+    # Automatic groups too small to see on the die fold into one entry.
+    named = {n for n, _, _ in groups}
+    small = [g for g in stats if g not in named and not g.startswith("sys")
+             and stats[g]["LUT"] + stats[g]["FF"] < SMALL and not stats[g]["M10K"] and not stats[g]["DSP"]]
+    if len(small) > 1:
+        for g in small:
+            stats["emu other (small)"].update(stats.pop(g))
+            b, bo = box.pop(g), box.get("emu other (small)")
+            box["emu other (small)"] = b if bo is None else (min(b[0], bo[0]), min(b[1], bo[1]),
+                                                            max(b[2], bo[2]), max(b[3], bo[3]))
+        for site in per_site.values():
+            for g in small:
+                if g in site:
+                    site["emu other (small)"] += site.pop(g)
+
     order = sorted(stats, key=lambda g: (g.startswith("sys"),
                                          -(stats[g]["LUT"] + stats[g]["FF"] + 50 * stats[g]["M10K"])))
     fixed = {n: hex_rgb(c) for n, _, c in groups if c}
@@ -231,9 +286,30 @@ def render(atoms, groups, depth, out_png, title, scale, sys_detail=False):
     return order, stats, box
 
 
+def build_tag(db, rev):
+    """'fitted <date>', plus the commit when build/ last compiled this revision.
+
+    build/ holds every revision's database, but BUILT_COMMIT names only the last
+    compile, so the commit is shown only when q_staged.log says it was this one.
+    """
+    tag = ""
+    summ = db / "output_files" / f"{rev}.fit.summary"
+    if summ.exists():
+        first = summ.read_text(encoding="utf-8", errors="replace").splitlines()[0]
+        m = re.search(r"- \w+ (\w+ +\d+) [\d:]+ (\d{4})", first)
+        if m:
+            tag = f"fitted {m.group(1)} {m.group(2)}"
+    log, commit = db / "q_staged.log", db / "BUILT_COMMIT"
+    if log.exists() and commit.exists():
+        if re.search(rf"Revision Name = {re.escape(rev)}\s*$",
+                     log.read_text(encoding="utf-8", errors="replace"), re.M):
+            tag = (commit.read_text(encoding="utf-8").split()[0][:10] + " " + tag).strip()
+    return tag
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--rev", help="Quartus revision (default: CORE_REV, else the one .qsf)")
+    ap.add_argument("--rev", help="Quartus revision (default: CORE_REV, else the project's own)")
     ap.add_argument("--db", help="directory holding the compiled database (default: build/)")
     ap.add_argument("--groups", help="group file (default: scripts/floorplan.json)")
     ap.add_argument("--depth", type=int, default=2,
@@ -245,14 +321,14 @@ def main():
     ap.add_argument("--reuse", action="store_true", help="use the last atom dump, do not run Quartus")
     a = ap.parse_args()
 
-    root = core_root().resolve()
+    root = core_root()
     rev = revision(root, a.rev)
     db = Path(a.db).resolve() if a.db else root / "build"
     out = root / "debug" / "floorplan"
     out.mkdir(parents=True, exist_ok=True)
     tsv = out / f"{rev}_atoms.tsv"
     if not (a.reuse and tsv.exists()):
-        dump_atoms(db, rev, tsv)
+        dump_atoms(root, db, project(root), rev, tsv)
     atoms = read_atoms(tsv)
     if not atoms:
         sys.exit(f"no placed fabric atoms in {tsv}")
@@ -262,8 +338,7 @@ def main():
         return 0
 
     groups = load_groups(Path(a.groups) if a.groups else root / "scripts" / "floorplan.json")
-    commit = (db / "BUILT_COMMIT")
-    tag = commit.read_text(encoding="utf-8").split()[0][:10] if commit.exists() else ""
+    tag = build_tag(db, rev)
     png = out / f"{rev}.png"
     order, stats, box = render(atoms, groups, a.depth, png, f"{rev} {tag}".strip(), a.scale,
                                a.sys_detail)

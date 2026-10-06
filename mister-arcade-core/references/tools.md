@@ -117,4 +117,6 @@ owning most of its atoms, brighter when fuller. Groups are regexes on the instan
 `scripts/floorplan.json` (copy `floorplan.example.json`); unmatched logic is grouped by
 instance automatically, the MiSTer framework is one grey group (`--sys-detail` splits it).
 Use it to see whether a failing path's two ends were placed far apart, which block owns
-the M10K, and what moved between two builds.
+the M10K, and what moved between two builds. The README's Hardware section carries the
+release revision's image (`docs/floorplan/<rev>.png`). The script is standalone (no
+`coretools.py` needed), so it can be copied into older cores as is.
