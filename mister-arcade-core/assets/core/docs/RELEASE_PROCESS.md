@@ -44,8 +44,9 @@ Steps for a release:
    the worst slack per clock and the resource table. A commit alone does not identify a bitstream:
    two builds of one commit at different seeds have differed in which games ran.
 7. Update `README.md`: History, Supported table, Status, Resource usage, and the Hardware
-   section's floorplan: `python scripts/floorplan.py`, copy `debug/floorplan/<rev>.png` to
-   `docs/floorplan/`, once per release revision.
+   section's floorplan: `python scripts/floorplan.py --rev <rev>` for each release revision
+   (reads the build just made, no compile), copy `debug/floorplan/<rev>.png` and
+   `<rev>_groups.md` to `docs/floorplan/`, update the fit date under the image.
 
 **Current state:** <one line: what the latest build passes or fails, with the number>.
 

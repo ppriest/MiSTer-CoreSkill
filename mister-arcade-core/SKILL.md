@@ -208,6 +208,13 @@ Per roadmap phase, typically CPU + ROM path, then video, then sound, then integr
   what would make it correct. `docs/MAME_KLUDGES.md`: MAME's own kludges reproduced on
   purpose. Both are kept current, not written at the end.
 - Release per `docs/RELEASE_PROCESS.md`; `.mra` files in `releases/`.
+- **Floorplan, every release:** after the release build, `python scripts/floorplan.py --rev <rev>`
+  for each release revision (no compile: it reads `build/`'s post-fit database). Keep
+  `scripts/floorplan.json` naming the core's blocks (`--list --depth 3` shows the tree; start
+  from `floorplan.example.json`, same colours per kind of block as the other cores). Copy
+  `debug/floorplan/<rev>.png` and `<rev>_groups.md` to `docs/floorplan/`, and keep the README's
+  Hardware section's "Floorplan" subsection (after Video timing, in the template) showing one
+  image per release revision with its fit date. Commit them with the release.
 - Append genuinely new lessons to the core's `docs/LESSONS_LEARNED.md` tagged `[<Name>]`,
   and copy the general ones back into this skill's `references/LESSONS_LEARNED.md`.
 
