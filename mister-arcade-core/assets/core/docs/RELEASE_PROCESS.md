@@ -48,6 +48,11 @@ Steps for a release:
    (reads the build just made, no compile), copy `debug/floorplan/<rev>.png` and
    `<rev>_groups.md` to `docs/floorplan/`, update the fit date under the image.
 
+8. Update the Downloader database: after pushing the release, run the "Update database" workflow of
+   `ppriest/MiSTer_ppriest` (or let its daily run do it) and confirm `cores.md` on its `db` branch
+   shows this build's date and the right MRA count. Files in `unsupported/` and `_dev/` are not
+   published, so keep work in progress there.
+
 **Current state:** <one line: what the latest build passes or fails, with the number>.
 
 ## Submitting the core upstream
