@@ -236,6 +236,17 @@ the RTL, the only clue an on-screen "XML parse". `python scripts/validate_mra.py
 <copy>`; it also flags stray element text. MiSTer's parser is more lenient than a strict one, so "it
 loaded before" is not evidence of well-formedness.
 
+### Publish an .mra only with the core it needs, in the same push
+
+The Downloader database serves whatever is pushed in `releases/`, so a pushed .mra is live at once.
+Sets broke for users when an .mra gained a control byte (mod byte, board-config byte, padded button
+slot) that shifted what the released core reads, and when an .mra named an `<rbf>` that had not
+been released. Replaying the published history of eight cores through
+`scripts/check_release_mras.py` found both kinds: Fuuki's DDR `address=` and interleave changes and
+Bally Sente's Flip Screen moving from bit 32 to 24 without a new .rbf, Psikyo deleting its only
+release .rbf while .mra files still named it, and Vamphalf's Limenko sets committed for release
+before any Limenko core existed. The pre-push hook now refuses both.
+
 ### Force a genuine reload when testing an `.mra` change
 
 Re-launching an already-loaded game reuses the cached ROM; an `.mra` edit alone gives a

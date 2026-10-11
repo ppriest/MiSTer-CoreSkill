@@ -48,7 +48,11 @@ Steps for a release:
    (reads the build just made, no compile), copy `debug/floorplan/<rev>.png` and
    `<rev>_groups.md` to `docs/floorplan/`, update the fit date under the image.
 
-8. Update the Downloader database: after pushing the release, run the "Update database" workflow of
+8. Push. The pre-push hook (`scripts/check_release_mras.py`) refuses the push if a published .mra
+   names an unreleased core or changed its ROM layout, button slots or DIP bits without the new
+   `.rbf` in the same push; fix the push, never `--no-verify`.
+
+9. Update the Downloader database: after pushing the release, run the "Update database" workflow of
    `ppriest/MiSTer_ppriest` (or let its daily run do it) and confirm `cores.md` on its `db` branch
    shows this build's date and the right MRA count. Files in `unsupported/` and `_dev/` are not
    published, so keep work in progress there.

@@ -241,6 +241,14 @@ Per roadmap phase, typically CPU + ROM path, then video, then sound, then integr
   session's simulator (`references/WORKFLOW.md`, sections 2 and 2a).
 - **Git:** commit to `develop` as work lands, without being asked; never push `develop`; squash
   onto `master` only when the user asks; revert the commit of a build the user rejects.
+- **Published .mra files go out only with their core.** Every core runs
+  `scripts/check_release_mras.py` from a pre-push hook (`git config core.hooksPath scripts/hooks`;
+  `new_core.py` sets it, set it by hand in an older clone) and in CI. It refuses a push that puts
+  an .mra in `releases/` or `releases/_alternatives/` naming an `<rbf>` with no released
+  `releases/Arcade-<rbf>_YYYYMMDD.rbf`, or that changes an .mra's ROM layout (an added control or
+  mod byte, interleave, offsets), button-slot count or DIP bit positions without adding a new
+  release `.rbf` in the same push. Work in progress lives in `releases/_dev/`; never
+  `git push --no-verify` past it.
 - **Verification:** MAME is not the oracle for sound timing — deploy and judge by ear. A
   screenshot that looks wrong may be the wrong frame before it is a bug. Check a fix on every
   affected set, both players, and a d-pad-only gamepad as well as analogue sticks.
