@@ -832,6 +832,34 @@ pair before the RTL around it.
   Write the bench arguments (coin schedule, DIPs, start presses) into the capture's manifest and make
   the comparison script refuse a mismatch.
 
+### [SnowBros] Compare a CPU against MAME from a restored state, not from reset
+
+snowbros spends 3.9 million bus accesses in its power-on RAM test before any I/O, about 45
+minutes of ModelSim at ~1700 accesses a second. Capturing MAME's state at an instruction
+boundary (the first fetch of an interrupt handler: registers, RAMs, pending levels, raster)
+and restoring it into the bench through the CPU's own state port compares five frames of play
+in under three minutes, and ends with a section-by-section state comparison, which a trace
+alone does not give. Three things then differ between two correct 68000s and are normalised,
+not failed: the order of a long write's halves (MAME low word first on `-(An)`, TG68K.C high
+first); the interrupted PC inside exception frames, and with it how many times a wait loop
+polls RAM; and where in the line an interrupt is taken (`scripts/compare_boot_trace.py`).
+
+### [Silkroad] Raise a boot bench's interrupt where MAME took it, not on a raster
+
+A boot bench that compares its CPU's writes with MAME's in order diverges at the first interrupt
+when the interrupt comes from the bench's own raster: the two CPUs run at different speeds, so the
+handler's writes land between different writes of the main code. Taken instead from MAME's trace:
+for each read of the interrupt vector, the number of writes before it and the last data access
+before it, and the bench raises the line when its CPU has made that many writes and is making that
+access. Two refinements were needed: raise it while that access is still on the bus, not when it
+completes, or TG68K takes it one instruction later; and where MAME's stacked return address is the
+instruction that made the access (a polling loop that went round once more), raise it as the
+access completes. MAME's return address in the exception frame tells the two apart. With both,
+silkroad's boot matched MAME for 74,256 writes through seven vblank interrupts (`sim/boot_tb`).
+Count writes with the halves of a long merged, as the comparer does, and allow a run of writes
+within one instruction to differ in order when the same bytes are written: TG68K's exception
+frame and MOVEM order their 16-bit halves differently from MAME's 68020.
+
 ## Timing closure
 
 - **[BallySente] Ask the timing analyser which path fails; do not reason about it.** A filter
@@ -1021,6 +1049,14 @@ risked: the level-1 autovector shares its target with bus error and illegal inst
 target is the reset entry. Not proven that the extra IRQ caused the restart -- a scan found no
 instruction lowering the mask to 0. Dump the vector table before deciding a board's interrupts; an
 ack address that is also an input port must acknowledge on writes only.
+
+### [SnowBros] TG68K.C's interrupt entry depends on its CPU mode; measure the one you run
+
+`gx_ss_m68k` knew two sequences: TG68K.C as a 68020 (IACK, format word, PC, SR) and fx68k as a
+68000 (PC low before the IACK). TG68K.C with `CPU = "00"` is a third: IACK, PC high at A7+2,
+PC low at A7+4, SR at A7, no format word; and its `MOVEC` is an illegal instruction, so the
+stub's `MOVEC` words have to be NOPs. Logged by `sim/ss_m68k_tb +LOG=1` before writing the
+mode; the first attempt with the 68020 sequence took an illegal-instruction exception in the stub.
 
 ## Quartus synthesis gotchas (not visible in ModelSim)
 
@@ -1307,3 +1343,11 @@ ack address that is also an input port must acknowledge on writes only.
   with "Resource not accessible by personal access token (cloneTemplateRepository)" even with
   Administration write; the GraphQL mutation behind it is refused. The REST endpoint
   `POST repos/<owner>/<template>/generate` works with the same token. `new_core.py` uses it.
+
+### [Silkroad] ModelSim 10.5b's `vlog -quiet` can exit 127 with no message
+
+The same compile line without `-quiet` succeeded every time; with it, half of the core's benches
+(sdram_tb, compositor_tb, ...) failed with exit 127 and nothing printed, leaving `work/_lock`
+behind, so the next run hung. Compile without `-quiet` and filter the per-module lines instead
+(`scripts/run_sim.sh`). A run that dies straight after `--- vlog ---` with no error text is this.
+

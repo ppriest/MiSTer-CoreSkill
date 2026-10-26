@@ -263,6 +263,7 @@ Per roadmap phase, typically CPU + ROM path, then video, then sound, then integr
 | `references/tools.md` | MAME Lua, ISSP, MiSTer API, Verilator, ModelSim invocations |
 | `references/video_write_sweep.md` | before any video buffering decision |
 | `references/cpus_and_vendored.md` | before vendoring or porting a CPU/sound/video module |
+| `references/cpu_from_mame.md` | before writing a CPU core from MAME's interpreter: verification order, the conformance suite, structure that synthesizes |
 | `references/dips_inputs.md`, `crt_adjust.md`, `hiscore.md`, `ddr_rom_loading.md`, `video_audio_options.md`, `osd_and_peripherals.md`, `sdram_ddr_maps.md` | the matching feature |
 | `references/core_roadmap.md` | the order of work from inputs to release, as one diagram |
 | `references/core_design.md` | the design decisions: BRAM / SDRAM / DDR3, clock, snapshot, aids, timing against features |

@@ -10,7 +10,7 @@ anything ("Timing closure").
 | Symptom | Cause seen before | Check |
 |---|---|---|
 | Black screen, no bus activity | memory path held in the core reset; ROM at the wrong base | `compare_boot_trace.py compare` against MAME's first accesses ("MiSTer integration") |
-| Boots in simulation, not on the board | negative slack; `initial` on a register array is not a power-up value | `.sta.summary` first; write reset state at reset ("When simulation passes and hardware fails") |
+| Boots in simulation, not on the board | negative slack; `initial` on a register array is not a power-up value; a construct Quartus builds differently from Verilator (an array written at a variable index, then the index changed, twice in one clock) | `.sta.summary` first; write reset state at reset; then one build with an architectural trace on the board (each retirement, register write, bus transfer) compared per category with the bench's trace of the same RTL -- the first differing value names the logic (Vamphalf `rtl/debug/vh_trace.sv`, `scripts/trace_compare.py`) |
 | RAM test fails | an unbacked region reads 0, not garbage; DTACK/ready pulsed instead of held | back every RAM the test walks at the declared size; ready is a level ("Memory transport") |
 | ROM test or checksum fails | interleave or byte order wrong in the `.mra` or at the SDRAM seam | prove the interleave against MAME's disassembly offline; CRC-found parts ("ROM loading") |
 | EEPROM reported BAD | no default image; `initial`-blanked array | the driver's `.nv` region as the default ("When simulation passes") |

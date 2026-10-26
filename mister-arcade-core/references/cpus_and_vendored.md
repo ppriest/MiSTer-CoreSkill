@@ -27,6 +27,7 @@ commit and local changes; read the one for a module before copying it.
 | CPU | Module | Licence | Used by | Notes |
 |---|---|---|---|---|
 | 68000 / 68010 / 68EC020 | TobiFlex/TG68K.C (VHDL) | LGPL-3.0-or-later | Psikyo, Fuuki, Seta, KonamiGX | `CPU` port selects 68000 (`00`) or 68020 (`11`) at runtime (Fuuki runs both boards from one kernel). Psikyo proved it at 16 MHz including `MOVEC`/`CACR`. Kernel instantiated directly, clock-enabled. Verilator gets it as a GHDL conversion. |
+| Hyperstone E1-16 / E1-32 | written from MAME's interpreter (`Arcade-Vamphalf_MiSTer/rtl/e1`) | own, from BSD-3-Clause source | Vamphalf | No open RTL found (sibling cores, jtcores, MiSTer-MAME-Coverage, GitHub search). Method and structure: `cpu_from_mame.md`. |
 | 68000, cycle-accurate | ijor/fx68k (SystemVerilog) | GPLv3 | Seta, KonamiGX (sound) | ModelSim needs `-suppress 7061`. |
 | Z80 | T80 (Daniel Wallner, VHDL) | BSD-style | Psikyo, Fuuki, MS32 | Also used for Z80-compatible parts (Psikyo treats LZ8420M as T80). |
 | V60/V70 | meathax/s32 `s32_v60`, `IS_V70=1` | GPL-3.0-or-later | MS32 | Came with 37 unit benches and a differential harness against a Python V60 model and a MAME tracing patch; reused as-is. New 32-bit bus adapter. |
