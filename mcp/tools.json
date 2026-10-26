@@ -1,0 +1,1134 @@
+[
+ {
+  "name": "cores_list",
+  "description": "Core repositories found under the cores directory (MISTER_CORES_DIR).",
+  "inputSchema": {
+   "properties": {},
+   "title": "cores_listArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "jobs_list",
+  "description": "Jobs from every session, newest first.",
+  "inputSchema": {
+   "properties": {
+    "active_only": {
+     "default": false,
+     "title": "Active Only",
+     "type": "boolean"
+    },
+    "limit": {
+     "default": 20,
+     "title": "Limit",
+     "type": "integer"
+    }
+   },
+   "title": "jobs_listArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "jobs_status",
+  "description": "A job's state, return code and log tail; waits up to wait_s for it to end. Ended jobs\ncarry `result` (parsed timing, sim summary or capture manifest) where the kind has one.",
+  "inputSchema": {
+   "properties": {
+    "job": {
+     "title": "Job",
+     "type": "string"
+    },
+    "wait_s": {
+     "default": 0,
+     "title": "Wait S",
+     "type": "integer"
+    },
+    "log_lines": {
+     "default": 20,
+     "title": "Log Lines",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "job"
+   ],
+   "title": "jobs_statusArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "jobs_log",
+  "description": "A job's log: the last `lines` lines, or the lines matching the regex `grep`.",
+  "inputSchema": {
+   "properties": {
+    "job": {
+     "title": "Job",
+     "type": "string"
+    },
+    "grep": {
+     "default": "",
+     "title": "Grep",
+     "type": "string"
+    },
+    "lines": {
+     "default": 200,
+     "title": "Lines",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "job"
+   ],
+   "title": "jobs_logArguments",
+   "type": "object"
+  },
+  "outputSchema": {
+   "properties": {
+    "result": {
+     "title": "Result",
+     "type": "string"
+    }
+   },
+   "required": [
+    "result"
+   ],
+   "title": "jobs_logOutput",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "jobs_cancel",
+  "description": "Kill a job's whole process tree (quartus_fit, vsimk, mame).",
+  "inputSchema": {
+   "properties": {
+    "job": {
+     "title": "Job",
+     "type": "string"
+    }
+   },
+   "required": [
+    "job"
+   ],
+   "title": "jobs_cancelArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "destructiveHint": false
+  }
+ },
+ {
+  "name": "locks_status",
+  "description": "JTAG marker, queued JTAG sessions, running Quartus/ModelSim processes, active jobs.",
+  "inputSchema": {
+   "properties": {},
+   "title": "locks_statusArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "build_start",
+  "description": "Full staged Quartus compile (scripts/build_staged.py) as a job. Refuses while JTAG is held,\nas the script does. Builds take tens of minutes; poll jobs_status.",
+  "inputSchema": {
+   "properties": {
+    "core": {
+     "title": "Core",
+     "type": "string"
+    },
+    "rev": {
+     "default": "",
+     "title": "Rev",
+     "type": "string"
+    },
+    "seed": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Seed"
+    },
+    "allow_dirty": {
+     "default": false,
+     "title": "Allow Dirty",
+     "type": "boolean"
+    },
+    "wait_s": {
+     "default": 5,
+     "title": "Wait S",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "core"
+   ],
+   "title": "build_startArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "destructiveHint": false
+  }
+ },
+ {
+  "name": "build_report",
+  "description": "The last build's commit, setup/hold slack and TNS per clock, fit resources, .rbf path.",
+  "inputSchema": {
+   "properties": {
+    "core": {
+     "title": "Core",
+     "type": "string"
+    },
+    "rev": {
+     "default": "",
+     "title": "Rev",
+     "type": "string"
+    }
+   },
+   "required": [
+    "core"
+   ],
+   "title": "build_reportArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "build_worst_paths",
+  "description": "quartus_sta with scripts/report_worst_paths.tcl on the compiled database (no recompile).\nWrites output_files/worst_paths_<rev>.rpt.",
+  "inputSchema": {
+   "properties": {
+    "core": {
+     "title": "Core",
+     "type": "string"
+    },
+    "rev": {
+     "default": "",
+     "title": "Rev",
+     "type": "string"
+    },
+    "wait_s": {
+     "default": 300,
+     "title": "Wait S",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "core"
+   ],
+   "title": "build_worst_pathsArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "destructiveHint": false
+  }
+ },
+ {
+  "name": "build_floorplan",
+  "description": "scripts/floorplan.py: placement image by hierarchy from the compiled database.",
+  "inputSchema": {
+   "properties": {
+    "core": {
+     "title": "Core",
+     "type": "string"
+    },
+    "rev": {
+     "default": "",
+     "title": "Rev",
+     "type": "string"
+    },
+    "reuse": {
+     "default": false,
+     "title": "Reuse",
+     "type": "boolean"
+    },
+    "wait_s": {
+     "default": 600,
+     "title": "Wait S",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "core"
+   ],
+   "title": "build_floorplanArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "destructiveHint": false
+  }
+ },
+ {
+  "name": "sim_list",
+  "description": "Testbenches under sim/, with which simulators each has a file list for.",
+  "inputSchema": {
+   "properties": {
+    "core": {
+     "title": "Core",
+     "type": "string"
+    }
+   },
+   "required": [
+    "core"
+   ],
+   "title": "sim_listArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "sim_run",
+  "description": "One testbench: scripts/run_sim.sh (ModelSim; fresh library, one at a time per core) or\nscripts/run_verilator.sh. `args` go through (+plusargs, -Gparam=, --threads=N). The result\nflags $readmem warnings, which mean empty ROMs rather than an RTL fault.",
+  "inputSchema": {
+   "properties": {
+    "core": {
+     "title": "Core",
+     "type": "string"
+    },
+    "bench": {
+     "title": "Bench",
+     "type": "string"
+    },
+    "simulator": {
+     "default": "modelsim",
+     "title": "Simulator",
+     "type": "string"
+    },
+    "args": {
+     "anyOf": [
+      {
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Args"
+    },
+    "wait_s": {
+     "default": 120,
+     "title": "Wait S",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "core",
+    "bench"
+   ],
+   "title": "sim_runArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "destructiveHint": false
+  }
+ },
+ {
+  "name": "sim_compare_boot",
+  "description": "scripts/compare_boot_trace.py replay|compare <set>: the RTL's boot against MAME's trace.",
+  "inputSchema": {
+   "properties": {
+    "core": {
+     "title": "Core",
+     "type": "string"
+    },
+    "set": {
+     "title": "Set",
+     "type": "string"
+    },
+    "cmd": {
+     "default": "compare",
+     "title": "Cmd",
+     "type": "string"
+    },
+    "wait_s": {
+     "default": 300,
+     "title": "Wait S",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "core",
+    "set"
+   ],
+   "title": "sim_compare_bootArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "destructiveHint": false
+  }
+ },
+ {
+  "name": "sim_sweep",
+  "description": "Orphaned vsim/vsimk processes (no running sim job) and stale work/_lock files.\nkill=True ends the processes and removes the locks.",
+  "inputSchema": {
+   "properties": {
+    "kill": {
+     "default": false,
+     "title": "Kill",
+     "type": "boolean"
+    }
+   },
+   "title": "sim_sweepArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "destructiveHint": false
+  }
+ },
+ {
+  "name": "mame_version",
+  "description": "The MAME binary's version against `git describe` of MAME_SRC. A mismatch means traces\nfrom the binary do not describe the source being read.",
+  "inputSchema": {
+   "properties": {
+    "core": {
+     "title": "Core",
+     "type": "string"
+    }
+   },
+   "required": [
+    "core"
+   ],
+   "title": "mame_versionArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "mame_capture",
+  "description": "scripts/mame_capture.py: RAM/region dumps and reference.png at a frame, with a manifest.\ndips are NAME=SETTING. Output in debug/<set>-<name or frame>.",
+  "inputSchema": {
+   "properties": {
+    "core": {
+     "title": "Core",
+     "type": "string"
+    },
+    "set": {
+     "title": "Set",
+     "type": "string"
+    },
+    "frame": {
+     "default": 1200,
+     "title": "Frame",
+     "type": "integer"
+    },
+    "dips": {
+     "anyOf": [
+      {
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Dips"
+    },
+    "name": {
+     "default": "",
+     "title": "Name",
+     "type": "string"
+    },
+    "seconds": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Seconds"
+    },
+    "wait_s": {
+     "default": 300,
+     "title": "Wait S",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "core",
+    "set"
+   ],
+   "title": "mame_captureArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "destructiveHint": false
+  }
+ },
+ {
+  "name": "mame_boot_trace",
+  "description": "scripts/mame_boot_trace.py <set> <n>: the first n bus accesses from reset.",
+  "inputSchema": {
+   "properties": {
+    "core": {
+     "title": "Core",
+     "type": "string"
+    },
+    "set": {
+     "title": "Set",
+     "type": "string"
+    },
+    "n": {
+     "title": "N",
+     "type": "integer"
+    },
+    "seconds": {
+     "default": 30,
+     "title": "Seconds",
+     "type": "integer"
+    },
+    "wait_s": {
+     "default": 120,
+     "title": "Wait S",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "core",
+    "set",
+    "n"
+   ],
+   "title": "mame_boot_traceArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "destructiveHint": false
+  }
+ },
+ {
+  "name": "mame_sys_trace",
+  "description": "scripts/mame_sys_trace.py <set> <frames>.",
+  "inputSchema": {
+   "properties": {
+    "core": {
+     "title": "Core",
+     "type": "string"
+    },
+    "set": {
+     "title": "Set",
+     "type": "string"
+    },
+    "frames": {
+     "title": "Frames",
+     "type": "integer"
+    },
+    "seconds": {
+     "default": 120,
+     "title": "Seconds",
+     "type": "integer"
+    },
+    "wait_s": {
+     "default": 180,
+     "title": "Wait S",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "core",
+    "set",
+    "frames"
+   ],
+   "title": "mame_sys_traceArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "destructiveHint": false
+  }
+ },
+ {
+  "name": "mame_run_lua",
+  "description": "Run a Lua script headless under scripts/mame/run.lua, so a Lua error comes back as\n`lua_error` instead of a hidden modal dialog. `script` is a file under scripts/mame/ or a\npath. CORE_OUT is a fresh directory, returned with what the script wrote there.",
+  "inputSchema": {
+   "properties": {
+    "core": {
+     "title": "Core",
+     "type": "string"
+    },
+    "set": {
+     "title": "Set",
+     "type": "string"
+    },
+    "script": {
+     "title": "Script",
+     "type": "string"
+    },
+    "env": {
+     "anyOf": [
+      {
+       "additionalProperties": {
+        "type": "string"
+       },
+       "type": "object"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Env"
+    },
+    "seconds": {
+     "default": 60,
+     "title": "Seconds",
+     "type": "integer"
+    },
+    "extra_args": {
+     "anyOf": [
+      {
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Extra Args"
+    },
+    "wait_s": {
+     "default": 120,
+     "title": "Wait S",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "core",
+    "set",
+    "script"
+   ],
+   "title": "mame_run_luaArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "destructiveHint": false
+  }
+ },
+ {
+  "name": "mame_listxml",
+  "description": "mame -listxml <set>, optionally cut to one element type (rom, chip, display, dipswitch...).",
+  "inputSchema": {
+   "properties": {
+    "core": {
+     "title": "Core",
+     "type": "string"
+    },
+    "set": {
+     "title": "Set",
+     "type": "string"
+    },
+    "element": {
+     "default": "",
+     "title": "Element",
+     "type": "string"
+    }
+   },
+   "required": [
+    "core",
+    "set"
+   ],
+   "title": "mame_listxmlArguments",
+   "type": "object"
+  },
+  "outputSchema": {
+   "properties": {
+    "result": {
+     "title": "Result",
+     "type": "string"
+    }
+   },
+   "required": [
+    "result"
+   ],
+   "title": "mame_listxmlOutput",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "mister_state",
+  "description": "What the MiSTer is running (/tmp/RBFNAME, CORENAME, FULLPATH) and, given a core, whether it\nis that core's build.",
+  "inputSchema": {
+   "properties": {
+    "core": {
+     "default": "",
+     "title": "Core",
+     "type": "string"
+    }
+   },
+   "title": "mister_stateArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "mister_check_mra",
+  "description": "Before a launch: which .rbf the .mra's <rbf> prefix resolves to on the device (the highest-\nsorting match, so a stray file can run instead of your deploy), and missing ROM zips.",
+  "inputSchema": {
+   "properties": {
+    "core": {
+     "title": "Core",
+     "type": "string"
+    },
+    "mra": {
+     "title": "Mra",
+     "type": "string"
+    }
+   },
+   "required": [
+    "core",
+    "mra"
+   ],
+   "title": "mister_check_mraArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "mister_deploy",
+  "description": "scripts/deploy.py: checks the build log, .rbf age and timing, copies the .rbf and .mras.",
+  "inputSchema": {
+   "properties": {
+    "core": {
+     "title": "Core",
+     "type": "string"
+    },
+    "rev": {
+     "default": "",
+     "title": "Rev",
+     "type": "string"
+    },
+    "mra_only": {
+     "default": false,
+     "title": "Mra Only",
+     "type": "boolean"
+    },
+    "rbf_only": {
+     "default": false,
+     "title": "Rbf Only",
+     "type": "boolean"
+    },
+    "allow_timing_miss": {
+     "default": false,
+     "title": "Allow Timing Miss",
+     "type": "boolean"
+    },
+    "dry_run": {
+     "default": false,
+     "title": "Dry Run",
+     "type": "boolean"
+    },
+    "wait_s": {
+     "default": 180,
+     "title": "Wait S",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "core"
+   ],
+   "title": "mister_deployArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "destructiveHint": false
+  }
+ },
+ {
+  "name": "mister_launch",
+  "description": "Launch a .mra (name or /media/fat path) through menu.rbf, so the FPGA really reloads.\ncheck=True first refuses when no .rbf matches, another file outranks your deploys, or zips\nare missing.",
+  "inputSchema": {
+   "properties": {
+    "core": {
+     "title": "Core",
+     "type": "string"
+    },
+    "mra": {
+     "title": "Mra",
+     "type": "string"
+    },
+    "bounce": {
+     "default": true,
+     "title": "Bounce",
+     "type": "boolean"
+    },
+    "check": {
+     "default": true,
+     "title": "Check",
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "core",
+    "mra"
+   ],
+   "title": "mister_launchArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "destructiveHint": false
+  }
+ },
+ {
+  "name": "mister_screenshot",
+  "description": "Take a screenshot and copy it here. native=True is the core's own resolution (the one to\ncompare against MAME); the API's default is scaled.",
+  "inputSchema": {
+   "properties": {
+    "core": {
+     "default": "",
+     "title": "Core",
+     "type": "string"
+    },
+    "native": {
+     "default": false,
+     "title": "Native",
+     "type": "boolean"
+    },
+    "settle": {
+     "default": 4,
+     "title": "Settle",
+     "type": "number"
+    }
+   },
+   "title": "mister_screenshotArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "destructiveHint": false
+  }
+ },
+ {
+  "name": "mister_playing",
+  "description": "The Remote API's /games/playing.",
+  "inputSchema": {
+   "properties": {},
+   "title": "mister_playingArguments",
+   "type": "object"
+  },
+  "outputSchema": {
+   "properties": {
+    "result": {
+     "title": "Result",
+     "type": "string"
+    }
+   },
+   "required": [
+    "result"
+   ],
+   "title": "mister_playingOutput",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "mister_osd",
+  "description": "Toggle the OSD (raw keycode 88; the named f12 route returns 200 and does nothing).",
+  "inputSchema": {
+   "properties": {},
+   "title": "mister_osdArguments",
+   "type": "object"
+  },
+  "outputSchema": {
+   "properties": {
+    "result": {
+     "title": "Result",
+     "type": "string"
+    }
+   },
+   "required": [
+    "result"
+   ],
+   "title": "mister_osdOutput",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "destructiveHint": false
+  }
+ },
+ {
+  "name": "mister_ls",
+  "description": "ls -la under /media/fat/_Arcade, games, config or screenshots.",
+  "inputSchema": {
+   "properties": {
+    "path": {
+     "default": "/media/fat/_Arcade",
+     "title": "Path",
+     "type": "string"
+    }
+   },
+   "title": "mister_lsArguments",
+   "type": "object"
+  },
+  "outputSchema": {
+   "properties": {
+    "result": {
+     "title": "Result",
+     "type": "string"
+    }
+   },
+   "required": [
+    "result"
+   ],
+   "title": "mister_lsOutput",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "mister_get",
+  "description": "Copy a file from the device (allowed trees, or /tmp/RBFNAME and the like).",
+  "inputSchema": {
+   "properties": {
+    "remote": {
+     "title": "Remote",
+     "type": "string"
+    },
+    "local": {
+     "default": "",
+     "title": "Local",
+     "type": "string"
+    }
+   },
+   "required": [
+    "remote"
+   ],
+   "title": "mister_getArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "mister_put",
+  "description": "Copy a local file to the device, into _Arcade, games, config or screenshots. Overwrites.",
+  "inputSchema": {
+   "properties": {
+    "local": {
+     "title": "Local",
+     "type": "string"
+    },
+    "remote": {
+     "title": "Remote",
+     "type": "string"
+    }
+   },
+   "required": [
+    "local",
+    "remote"
+   ],
+   "title": "mister_putArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "destructiveHint": true
+  }
+ },
+ {
+  "name": "mister_devmem",
+  "description": "Read HPS physical memory with devmem (DDR3 shared blocks, bridges). Read only.",
+  "inputSchema": {
+   "properties": {
+    "addr": {
+     "title": "Addr",
+     "type": "string"
+    },
+    "words": {
+     "default": 1,
+     "title": "Words",
+     "type": "integer"
+    },
+    "width": {
+     "default": 32,
+     "title": "Width",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "addr"
+   ],
+   "title": "mister_devmemArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "mister_reboot",
+  "description": "Reboot the MiSTer. Needs confirm=true.",
+  "inputSchema": {
+   "properties": {
+    "confirm": {
+     "default": false,
+     "title": "Confirm",
+     "type": "boolean"
+    }
+   },
+   "title": "mister_rebootArguments",
+   "type": "object"
+  },
+  "outputSchema": {
+   "properties": {
+    "result": {
+     "title": "Result",
+     "type": "string"
+    }
+   },
+   "required": [
+    "result"
+   ],
+   "title": "mister_rebootOutput",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "destructiveHint": true
+  }
+ },
+ {
+  "name": "probe_read",
+  "description": "scripts/probe.py read: ISSP probes over JTAG under the machine-wide lock (waits for running\nQuartus/ModelSim). Each line is tagged <core>|<build>|<set>| from the device; check it is\nthis core.",
+  "inputSchema": {
+   "properties": {
+    "core": {
+     "title": "Core",
+     "type": "string"
+    },
+    "instance": {
+     "default": "",
+     "title": "Instance",
+     "type": "string"
+    },
+    "fields": {
+     "anyOf": [
+      {
+       "items": {
+        "type": "string"
+       },
+       "type": "array"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Fields"
+    },
+    "wait_s": {
+     "default": 120,
+     "title": "Wait S",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "core"
+   ],
+   "title": "probe_readArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "destructiveHint": false
+  }
+ },
+ {
+  "name": "probe_issp",
+  "description": "scripts/read_issp.py <instance> [clear|set <v>|pulse <v>]: decode an instance, or drive its\nsource and leave it (set) or return it to 0 (pulse).",
+  "inputSchema": {
+   "properties": {
+    "core": {
+     "title": "Core",
+     "type": "string"
+    },
+    "instance": {
+     "title": "Instance",
+     "type": "string"
+    },
+    "action": {
+     "default": "",
+     "title": "Action",
+     "type": "string"
+    },
+    "value": {
+     "default": "",
+     "title": "Value",
+     "type": "string"
+    },
+    "wait_s": {
+     "default": 120,
+     "title": "Wait S",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "core",
+    "instance"
+   ],
+   "title": "probe_isspArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "destructiveHint": false
+  }
+ }
+]
