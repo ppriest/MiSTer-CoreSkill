@@ -268,6 +268,7 @@ Per roadmap phase, typically CPU + ROM path, then video, then sound, then integr
 | `references/core_roadmap.md` | the order of work from inputs to release, as one diagram |
 | `references/core_design.md` | the design decisions: BRAM / SDRAM / DDR3, clock, snapshot, aids, timing against features |
 | `references/hybrid_cores.md` | before putting a subsystem on the HPS (the shared sound server, `arcsnd`) |
+| `references/rom_encryption.md` | an encrypted or scrambled ROM, or a security chip: the model, the proof against MAME, where the transform goes |
 | `references/symptoms.md` | what is seen on the board or in a bench, the cause met before, the check |
 | `references/sim_cheatsheet.md` | the commands: MAME references, ModelSim, Verilator, STA, deploy, board, JTAG |
 | `references/wickerwaka_irem.md` | the Irem M72/M92/M107 cores as the worked example: cadence-driven sprites, ROM cache, pause by replay, savestate bus, headless simulator |

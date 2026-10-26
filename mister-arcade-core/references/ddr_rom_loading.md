@@ -46,7 +46,7 @@ Origin chain (from headers): srg320/Arcade-PsikyoSH2_MiSTer → Psikyo
   md5 equal); Seta's header is the shortest and states the provenance.
 
 MS32's variant (`ms32_rom_loader.sv`) is the alternative for a core whose download path
-scatters single bytes (tile decryption): it replays the DDR3 image byte-by-byte into the
+scatters single bytes (tile decryption; `rom_encryption.md`): it replays the DDR3 image byte-by-byte into the
 ordinary `ioctl_*` download port so the two paths cannot diverge (`ms32_rom_loader.sv:3-18`).
 Slower per byte (three FSM states plus `ioctl_wait` per byte, `ms32_rom_loader.sv:56-74`);
 unmeasured.

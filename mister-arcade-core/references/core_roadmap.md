@@ -100,7 +100,7 @@ flowchart TD
 | Phase | Read |
 |---|---|
 | 1 | `cpus_and_vendored.md`, `clocks.md`, `video_write_sweep.md`, `pcb_video_reference.md` |
-| 2 | `sdram_ddr_maps.md`, `ddr_rom_loading.md` |
+| 2 | `sdram_ddr_maps.md`, `ddr_rom_loading.md`, `rom_encryption.md` |
 | 3-4 | `tools.md`, `sim_cheatsheet.md`, `LESSONS_LEARNED.md` ("CPU cores", "Memory transport") |
 | 5 | `video_write_sweep.md`, `LESSONS_LEARNED.md` ("Sprite lists, line buffers and snapshots") |
 | 6 | `hybrid_cores.md` when the sound board does not fit |
