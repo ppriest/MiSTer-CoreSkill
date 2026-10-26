@@ -57,7 +57,7 @@ flowchart TD
     end
 
     subgraph P6["6. Sound"]
-        G1["Vendored JT* chips, sound CPU, register traces from MAME"]
+        G1["Vendored JT* chips, sound CPU, register traces from MAME;<br/>no room: the board on the HPS (hybrid_cores.md)"]
         G2["Judged by ear on the board: MAME is not the oracle for sound timing"]
         G1 --> G2
     end
@@ -103,6 +103,7 @@ flowchart TD
 | 2 | `sdram_ddr_maps.md`, `ddr_rom_loading.md` |
 | 3-4 | `tools.md`, `sim_cheatsheet.md`, `LESSONS_LEARNED.md` ("CPU cores", "Memory transport") |
 | 5 | `video_write_sweep.md`, `LESSONS_LEARNED.md` ("Sprite lists, line buffers and snapshots") |
+| 6 | `hybrid_cores.md` when the sound board does not fit |
 | 7 | `rbf_pipeline.md`, `symptoms.md`, `sim_cheatsheet.md`, `LESSONS_LEARNED.md` ("When simulation passes and hardware fails") |
 | 8 | `dips_inputs.md`, `crt_adjust.md`, `hiscore.md`, `video_audio_options.md`, `osd_and_peripherals.md` |
 | 9 | `savestates.md`, the core's `docs/RELEASE_PROCESS.md` |

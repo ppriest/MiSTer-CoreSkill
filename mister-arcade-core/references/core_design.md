@@ -79,10 +79,14 @@ flowchart TD
         T4{"M10K over ~90%?"}
         T5["Count blocks, not bits. Remove memory:<br/>CRT V-Size (~40 blocks) is the first to go,<br/>then rotation line buffers, then caches"]
         T6["Add the next feature"]
+        T7{"A whole subsystem<br/>(the sound board) still has no room?"}
+        T8["To the user: hybrid, that board on the HPS<br/>from MAME's code, the core silent without it<br/>(hybrid_cores.md)"]
         T1 -- "yes" --> T2 --> T3 --> T1
         T1 -- "no" --> T4
         T4 -- "yes" --> T5 --> T1
         T4 -- "no" --> T6
+        T6 --> T7
+        T7 -- "yes" --> T8
     end
 
     S3 --> C1
@@ -115,3 +119,4 @@ flowchart TD
 | Which path to fix | `get_timing_paths`, not reasoning | Bally Sente: two restructures of correct RTL spent on a guess; the path was a `tanh` table in LUTs |
 | Same commit, other seed | games the diff cannot reach regress | Seta: seed 2 clean and broken, seed 7 worse slack and working |
 | Remove memory | M10K blocks at ~90% | no memory packs at 100%; repacking does not recover the last 5% |
+| Hybrid (a board on the HPS) | the fit report, with the subsystem still out; the user | Hornet: no room for fx68k at 99% of ALMs and 100% of M10K; HNG64's port of MAME's V53A needed 1.5 ARM cores until its clock was checked (`hybrid_cores.md`) |
