@@ -1,0 +1,92 @@
+# mister_mcp
+
+MCP server over the skill's core scripts: Quartus builds, ModelSim and Verilator, MAME and its Lua
+scripts, the MiSTer (Remote API, plink/pscp) and ISSP probes. Plan and rationale:
+[`docs/MCP_PLAN.md`](../docs/MCP_PLAN.md).
+
+## Install
+
+```bash
+python -m venv E:/MiSTer-CoreSkill/mcp/.venv
+```
+
+```bash
+E:/MiSTer-CoreSkill/mcp/.venv/Scripts/python.exe -m pip install -r E:/MiSTer-CoreSkill/mcp/requirements.txt
+```
+
+Register it per user (every core repo) in `~/.claude.json`, or per repo in `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "mister": {
+      "command": "E:/MiSTer-CoreSkill/mcp/.venv/Scripts/python.exe",
+      "args": ["-m", "mister_mcp.server"],
+      "cwd": "E:/MiSTer-CoreSkill/mcp"
+    }
+  }
+}
+```
+
+Settings come from the same places as the scripts': the environment, then `~/.mister-core.env`,
+with a core's `mister.env` over both for core tools. Beyond the scripts' own (`MISTER_HOST`,
+`MISTER_USER`, `MISTER_PASSWORD`, `MAME_DIR`, `MAME_SRC`, `QUARTUS_BIN`...):
+
+| Setting | Default |
+|---|---|
+| `MISTER_CORES_DIR` | the directory holding this repository |
+| `PYTHON` | the interpreter the venv was made from (the scripts need Pillow) |
+| `GIT_BASH` | `C:\Program Files\Git\bin\bash.exe`; never WSL's `bash` |
+
+## How it runs
+
+- **One stdio process per Claude session.** What sessions share is on disk:
+  - jobs in `%LOCALAPPDATA%/mister_mcp/jobs/<id>/` (`job.json`, `log.txt`, `status.json`);
+  - hwlock's JTAG markers in `%LOCALAPPDATA%`, which the core scripts take themselves.
+- **The core's own `scripts/` run** when it has the script, so per-core edits (probe instance,
+  `.mra` folder) hold. Otherwise the skill's template copy runs with `CORE_ROOT` set.
+- **Long runs are jobs.** Builds, simulations, MAME runs, STA and probe reads start a detached
+  runner, so a job survives the session that started it.
+  - The tool waits up to `wait_s`, then returns the job id.
+  - `jobs_status` gives the state, log tail and parsed `result`.
+  - `jobs_cancel` kills the whole process tree.
+- **Board access is the listed operations only.**
+  - No general shell.
+  - `mister_get`/`mister_put` are limited to `/media/fat/{_Arcade,games,config,screenshots}`.
+  - `mister_reboot` needs `confirm=true`.
+
+## Tools
+
+| Group | Tools |
+|---|---|
+| jobs | `cores_list`, `jobs_list`, `jobs_status`, `jobs_log`, `jobs_cancel`, `locks_status` |
+| build | `build_start`, `build_report`, `build_worst_paths`, `build_floorplan` |
+| sim | `sim_list`, `sim_run`, `sim_compare_boot`, `sim_sweep` |
+| MAME | `mame_version`, `mame_capture`, `mame_boot_trace`, `mame_sys_trace`, `mame_run_lua`, `mame_listxml` |
+| MiSTer | `mister_state`, `mister_check_mra`, `mister_deploy`, `mister_launch`, `mister_screenshot`, `mister_playing`, `mister_osd`, `mister_ls`, `mister_get`, `mister_put`, `mister_devmem`, `mister_reboot` |
+| probes | `probe_read`, `probe_issp` |
+
+Checks the tools add over the scripts:
+
+- **`mame_version`** compares the binary against `git describe` of `MAME_SRC`, including commits
+  past the release tag.
+- **`mister_check_mra`** (also run by `mister_launch`) resolves the `.mra`'s `<rbf>` to the file
+  the device would launch, and checks the ROM zips.
+  - Both the `<name>_` and `Arcade-<name>_` forms are counted.
+  - It refuses when nothing matches, when another file outranks the `3xxxxxxx` deploys, or when
+    zips are missing.
+- **`mame_run_lua`** always runs through `run.lua` and returns `lua_error.txt`.
+- **`sim_run`** flags `$readmem` warnings, and refuses a second ModelSim job on the same core.
+
+## Tested
+
+Run by hand against this machine, with no compile and no JTAG:
+- tool registration;
+- `cores_list`, `locks_status`, `build_report` and `sim_list` on BallySente;
+- `mame_version`;
+- `mister_state`, `mister_ls` and `mister_check_mra` on BallySente and KonamiHornet;
+- the path and confirm refusals;
+- job start, exit code, cancel.
+
+Not run yet: `build_start`, `sim_run`, the `mame_*` jobs, `mister_deploy`, `mister_launch`,
+`mister_screenshot`, the `probe_*` tools.

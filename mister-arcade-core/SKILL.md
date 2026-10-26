@@ -188,6 +188,9 @@ Per roadmap phase, typically CPU + ROM path, then video, then sound, then integr
 
 ### 4. Hardware
 
+- When the `mister` MCP server is connected (`mcp/` in this skill's repository), use its tools
+  for the steps below: they run the same scripts, return parsed results, and check the `<rbf>`
+  resolution and zips before a launch. Without it, run the scripts.
 - Build with `scripts/build_staged.py` (snapshot of HEAD in a worktree, refuses a dirty
   tree, gates on slack). Never compile in the tree.
 - `scripts/deploy.py` to the MiSTer; `scripts/hw.py` to launch a game, screenshot, reset.
