@@ -221,8 +221,9 @@ Per roadmap phase, typically CPU + ROM path, then video, then sound, then integr
   check that `cores.md` on its `db` branch lists the new build date and MRA count. The database
   only reads the pushed `releases/` folder (it ignores `unsupported/` and `_dev/`), so a release
   that is not pushed is not in it.
-- Append genuinely new lessons to the core's `docs/LESSONS_LEARNED.md` tagged `[<Name>]`,
-  and copy the general ones back into this skill's `references/LESSONS_LEARNED.md`.
+- Add genuinely new lessons to the core's `docs/LESSONS_LEARNED.md`, and copy the general ones
+  back into this skill's `references/LESSONS_LEARNED.md` as that file's header says: under the
+  matching section, merged into the bullet that already states the rule, no core names.
 
 ## Standing rules
 

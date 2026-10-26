@@ -45,8 +45,7 @@ Before you choose it:
   - a flag byte (`0xA5`), a running bit and a heartbeat;
   - the bridge uses the replies only while the heartbeat moves (0.1 s on HNG64);
   - otherwise the core's own stand-in answers the main CPU's handshake, so the game runs, silent;
-  - the stand-in changes state as the real CPU would (LESSONS_LEARNED, "A stand-in for a sound CPU
-    must change state").
+  - the stand-in changes state as the real CPU would (LESSONS_LEARNED, "Sound").
 - **What crosses depends on what the main CPU does.** Measure it in MAME first
   (`scripts/mame_sound_trace.py` in HNG64).
   - **HNG64.** The main CPU writes the whole sound program before it enables the sound CPU and

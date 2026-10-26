@@ -5,7 +5,7 @@ For a CPU with no usable open RTL. Worked example: the Hyperstone E1-16/E1-32
 repository's `docs/` and commit history.
 
 Check first that none exists: ask which boards carry the chip and whether any core was built for
-them (LESSONS_LEARNED, "A web search returning nothing is not evidence that nothing exists"). The
+them (LESSONS_LEARNED, "Diagnosis discipline"). The
 coverage data in `MiSTer-MAME-Coverage/docs/data/coverage.json` lists every MAME driver by CPU and
 whether a core covers it.
 

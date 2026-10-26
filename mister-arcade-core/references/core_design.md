@@ -104,9 +104,9 @@ flowchart TD
 
 | Decision | Made on | Where it went wrong before |
 |---|---|---|
-| All in BRAM | the ROM and RAM sum in M10K blocks, not bits | MS32: 82% of bits and over 553 blocks (`LESSONS_LEARNED.md`, "Past about 90% of M10K") |
+| All in BRAM | the ROM and RAM sum in M10K blocks, not bits | MS32: 82% of bits and over 553 blocks (`LESSONS_LEARNED.md`, "Quartus synthesis gotchas") |
 | One copy of each ROM in SDRAM | the sum against the module the user names | HyperNG64: 175 MB against 128 MB, so DDR3 during play with a written reason |
-| What stays in BRAM | whether a reader has a per-clock deadline | VRAM in SDRAM without a cache stalls the renderer; a line buffer in logic instead of M10K is ~24K ALMs (`LESSONS_LEARNED.md`, "Memory inference") |
+| What stays in BRAM | whether a reader has a per-clock deadline | VRAM in SDRAM without a cache stalls the renderer; a line buffer in logic instead of M10K is ~24K ALMs (`LESSONS_LEARNED.md`, "Quartus synthesis gotchas") |
 | Port assignment | the deadline of each client | MS32: the YMF271 missed ~5% of ticks sharing a port with sprites (`sdram_ddr_maps.md`) |
 | Frame buffer | driver or PCB evidence | the standing rule: per scanline from a buffered list unless the board had one |
 | Clock | fetch arithmetic at ~48 MHz, then the user | our five cores run 85.9 or 96 MHz with DDR3 on 16-bit boards; ZAP's run at 48 to 52 MHz with neither (`clocks.md`); wickerwaka's run 32 or 40 MHz with SDRAM at 3x and a fixed fetch schedule (`wickerwaka_irem.md`) |

@@ -328,7 +328,7 @@ usually not run.
 
 Vendored jotego modules need `+define+SIMULATION +initreg=r+0 +initmem=r+0`: their un-reset
 pipelines are X in a four-state simulator and zero in hardware. That flag has its own trap
-(LESSONS_LEARNED, "`+initreg=r+0` turns an un-evaluated `always @*` into a confident zero").
+(LESSONS_LEARNED, "Testbench discipline").
 
 Sweep for orphaned `vsimk.exe` kernels at the start of any session that runs simulations — killed
 runs leave them spinning at 100% CPU:

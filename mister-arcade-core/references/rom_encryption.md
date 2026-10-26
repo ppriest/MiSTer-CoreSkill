@@ -15,7 +15,7 @@ prove, then generate.
 
 Read the transform against the buffer MAME applies it to. `romload.cpp` byte-swaps a big-endian
 region onto a little-endian host before `init_*` runs, so `i & 1` in an init is the 68000's high
-byte, not the odd file byte (LESSONS_LEARNED, "[Pandora] A driver init's `i & 1`...").
+byte, not the odd file byte (LESSONS_LEARNED, "ROM formats").
 
 ## Where the transform goes
 

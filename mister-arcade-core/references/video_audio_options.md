@@ -120,7 +120,7 @@ What a flip takes is different on every board. Work it out per core and record i
 3. **Get a reference.** Capture with the DIP set (`scripts/mame/setdip.lua`, or Seta's
    `mame_capture.py --dip "Flip Screen=On"`). MAME's own flip can be wrong: the check is that
    the flipped frame equals the unflipped frame of the same state rotated 180 degrees
-   (LESSONS_LEARNED, Seta, "Check flip screen against the rotation"). Where MAME's flipped
+   (LESSONS_LEARNED, "Reading MAME", flip screen). Where MAME's flipped
    output fails that, it goes in `docs/MAME_KLUDGES.md`. For a fake DIP there is no MAME
    reference at all; the rotated unflipped frame is the only check.
 4. **Cover both branches in the benches.** Seta's sprite Y sweep ran flipped and unflipped

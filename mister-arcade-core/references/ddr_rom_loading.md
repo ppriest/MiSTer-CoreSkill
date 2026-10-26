@@ -376,7 +376,7 @@ Region tables (as the RTL declares them):
 6. In `*_sdram_top`: mux `ldr_*` onto the arbiter download port on `ldr_active`
    (`fuuki_sdram_top.sv:304-310`), `ldr_busy = ldr_active ? arb_dl_busy : 0`.
 7. Grep every flag derived from `ioctl_wr` (debug gates, `dl_done`) and add the copy-end
-   edge (`LESSONS_LEARNED.md` "[Fuuki] A debug gate that keys off the load path dies…",
+   edge (`LESSONS_LEARNED.md`, "Debug instrumentation";
    Fuuki `:814`, Seta `:1245`, MS32 `:1410`, KonamiGX `:1519`).
 8. Add a loader ISSP probe if bring-up is blind (`Psikyo.sv:874-891`).
 9. Measure: no core has an in-RTL timer; Fuuki's figure is external. Add one if the number matters.
