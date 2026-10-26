@@ -11,8 +11,11 @@ python -m venv E:/MiSTer-CoreSkill/mcp/.venv
 ```
 
 ```bash
-E:/MiSTer-CoreSkill/mcp/.venv/Scripts/python.exe -m pip install -r E:/MiSTer-CoreSkill/mcp/requirements.txt
+E:/MiSTer-CoreSkill/mcp/.venv/Scripts/python.exe -m pip install -e E:/MiSTer-CoreSkill/mcp
 ```
+
+The editable install (`-e`) puts `mister_mcp` on the venv's path whatever the working
+directory, and edits to the source take effect at the next server start.
 
 Register it per user (every core repo) in `~/.claude.json`, or per repo in `.mcp.json`:
 
@@ -20,9 +23,7 @@ Register it per user (every core repo) in `~/.claude.json`, or per repo in `.mcp
 {
   "mcpServers": {
     "mister": {
-      "command": "E:/MiSTer-CoreSkill/mcp/.venv/Scripts/python.exe",
-      "args": ["-m", "mister_mcp.server"],
-      "cwd": "E:/MiSTer-CoreSkill/mcp"
+      "command": "E:/MiSTer-CoreSkill/mcp/.venv/Scripts/mister-mcp.exe"
     }
   }
 }
@@ -67,7 +68,7 @@ winget install OpenJS.NodeJS.LTS
 ```
 
 ```bash
-npx @modelcontextprotocol/inspector E:/MiSTer-CoreSkill/mcp/.venv/Scripts/python.exe -m mister_mcp.server
+npx @modelcontextprotocol/inspector E:/MiSTer-CoreSkill/mcp/.venv/Scripts/mister-mcp.exe
 ```
 
 | Group | Tools |
