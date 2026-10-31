@@ -31,8 +31,9 @@ Register it once per user:
 claude mcp add --scope user --transport http mister http://127.0.0.1:8770/mcp
 ```
 
-After changing the server's code, restart it; every session picks up the change at its next
-call, with no session restart (a new or renamed tool needs `/mcp` reconnect in each session):
+After changing the server's code, restart it. Whether a running session reconnects by itself
+after a server restart is not tested yet; if its calls fail, reconnect with `/mcp`. A new or
+renamed tool needs that reconnect in any case:
 
 ```bash
 powershell -Command "Stop-ScheduledTask mister-mcp; Start-ScheduledTask mister-mcp"
