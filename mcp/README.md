@@ -15,19 +15,31 @@ E:/MiSTer-CoreSkill/mcp/.venv/Scripts/python.exe -m pip install -e E:/MiSTer-Cor
 ```
 
 The editable install (`-e`) puts `mister_mcp` on the venv's path whatever the working
-directory, and edits to the source take effect at the next server start.
+directory.
 
-Register it per user (every core repo) in `~/.claude.json`, or per repo in `.mcp.json`:
+One server serves every session: streamable HTTP on `http://127.0.0.1:8770/mcp`, localhost only,
+no token. A scheduled task starts it at Windows boot, as the current user (S4U, no stored
+password), and restarts it on failure. Install the task from an elevated PowerShell:
 
-```json
-{
-  "mcpServers": {
-    "mister": {
-      "command": "E:/MiSTer-CoreSkill/mcp/.venv/Scripts/mister-mcp.exe"
-    }
-  }
-}
+```bash
+powershell -ExecutionPolicy Bypass -File E:/MiSTer-CoreSkill/mcp/install_service.ps1
 ```
+
+Register it once per user:
+
+```bash
+claude mcp add --scope user --transport http mister http://127.0.0.1:8770/mcp
+```
+
+After changing the server's code, restart it; every session picks up the change at its next
+call, with no session restart (a new or renamed tool needs `/mcp` reconnect in each session):
+
+```bash
+powershell -Command "Stop-ScheduledTask mister-mcp; Start-ScheduledTask mister-mcp"
+```
+
+The log is `%LOCALAPPDATA%/mister_mcp/server.log`. `mister-mcp.exe --stdio` runs a private copy
+over stdio (the MCP Inspector, tests).
 
 Settings come from the same places as the scripts': the environment, then `~/.mister-core.env`,
 with a core's `mister.env` over both for core tools. Beyond the scripts' own (`MISTER_HOST`,
@@ -37,13 +49,16 @@ with a core's `mister.env` over both for core tools. Beyond the scripts' own (`M
 |---|---|
 | `MISTER_CORES_DIR` | `MiSTer-Cores` and `MiSTer-Devel` beside this repository; several dirs joined by `;`. A core name found in two is refused: pass the path |
 | `PYTHON` | the interpreter the venv was made from (the scripts need Pillow) |
+| `MISTER_MCP_PORT` | `8770` |
 | `GIT_BASH` | `C:\Program Files\Git\bin\bash.exe`; never WSL's `bash` |
 
 ## How it runs
 
-- **One stdio process per Claude session.** What sessions share is on disk:
+- **One process for the machine.** A second start exits while the port is served. State is on
+  disk, so a server restart loses nothing:
   - jobs in `%LOCALAPPDATA%/mister_mcp/jobs/<id>/` (`job.json`, `log.txt`, `status.json`);
   - hwlock's JTAG markers in `%LOCALAPPDATA%`, which the core scripts take themselves.
+- **Tools run in a thread pool**, so a call waiting on `wait_s` holds up only its own caller.
 - **The core's own `scripts/` run** when it has the script, so per-core edits (probe instance,
   `.mra` folder) hold. Otherwise the skill's template copy runs with `CORE_ROOT` set.
 - **Long runs are jobs.** Builds, simulations, MAME runs, STA and probe reads start a detached
@@ -68,7 +83,7 @@ winget install OpenJS.NodeJS.LTS
 ```
 
 ```bash
-npx @modelcontextprotocol/inspector E:/MiSTer-CoreSkill/mcp/.venv/Scripts/mister-mcp.exe
+npx @modelcontextprotocol/inspector E:/MiSTer-CoreSkill/mcp/.venv/Scripts/mister-mcp.exe --stdio
 ```
 
 | Group | Tools |

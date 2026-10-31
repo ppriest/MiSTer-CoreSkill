@@ -583,7 +583,29 @@ RESULTS = {"build": _build_result, "sim": _sim_result, "mame": _capture_result, 
 
 
 def main():
-    server.run(transport="stdio")
+    """The machine's one server: streamable HTTP on 127.0.0.1 (MISTER_MCP_PORT, default 8770),
+    started at boot by the scheduled task from install_service.ps1. --stdio runs a private copy
+    instead (the MCP Inspector, tests)."""
+    import argparse
+    import logging
+    import socket
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--stdio", action="store_true")
+    ap.add_argument("--port", type=int, default=int(C.machine_setting("MISTER_MCP_PORT", "8770")))
+    a = ap.parse_args()
+    if a.stdio:
+        server.run(transport="stdio")
+        return
+    with socket.socket() as s:                # one instance per machine: the port is the lock
+        if s.connect_ex(("127.0.0.1", a.port)) == 0:
+            raise SystemExit(f"port {a.port} is already serving; not starting a second server")
+    import sys
+    J.BASE.mkdir(parents=True, exist_ok=True)
+    log = open(J.BASE.parent / "server.log", "a", encoding="utf-8", buffering=1)
+    sys.stdout = sys.stderr = log             # a scheduled task has no console
+    logging.basicConfig(stream=log, level=logging.INFO, force=True,
+                        format="%(asctime)s %(levelname)s %(name)s %(message)s")
+    server.run(transport="streamable-http", host="127.0.0.1", port=a.port)
 
 
 if __name__ == "__main__":

@@ -16,15 +16,12 @@ already have, not a rewrite:
 
 ## Shape
 
-**Built as: one stdio server per session, with the shared state on disk** (`mcp/`, see its
-README). This replaced the per-PC HTTP daemon proposed here:
-- Claude Code starts stdio servers itself, and a daemon would need its own start and recovery.
-- The state that sessions must share already lives in machine-wide files: hwlock's JTAG markers,
-  and the job records under `%LOCALAPPDATA%/mister_mcp/jobs`.
-- Jobs run in a detached runner, so a job outlives the session that started it.
-
-What this gives up: JTAG requests wait inside each script's `jtag_session` (as now) rather than
-in one queue the server owns.
+**Built as one HTTP server for the machine** (`mcp/`, see its README): streamable HTTP on
+`127.0.0.1:8770`, no token, started at boot by a scheduled task. The first build was one stdio
+server per session; every fix then needed every session restarted, and sessions ran stale code
+into bugs already fixed. State stays on disk (jobs, hwlock's markers), so a server restart loses
+nothing. JTAG requests still wait inside each script's `jtag_session`, not in a queue the server
+owns.
 
 Inside it:
 
