@@ -109,7 +109,7 @@ Read-only; a request whose Host or Origin is not this machine gets 403 (`web.py`
 | Active jobs | running jobs from every session: kind, core, elapsed, script |
 | Cores | every core: path, branch, running jobs, last tool call, `MAME_DIR`/`MAME_EXE`/`MAME_SRC`/`MAME_ROMPATH` with where each comes from (`core`, `machine`, `env`); a path that does not exist is struck through. Filter box searches all columns |
 | Recent jobs | the last 60, with state and return code |
-| Recent calls | the last 150 tool calls from every session; "errors only" for failures |
+| Recent calls | the last 150 tool calls from every session: how long the call took, status (`error`, `ok`, or for a call that started a job the job's state now and its return code; "at return" when the job is older than the jobs list), the job id or the error. "errors only" for failures |
 | Deploys | the last 30 lines of `mister_deployed.tsv` |
 | Server and files | pid, uptime, commit, state dir; downloads |
 

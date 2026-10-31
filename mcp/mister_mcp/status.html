@@ -214,11 +214,18 @@ function render() {
   const kq = $("callfilter").value, eo = $("errsonly").checked;
   const calls = d.calls.filter(c => (!eo || c.ok === false) && match(kq, c.tool, JSON.stringify(c.args), c.error, c.id));
   $("ncalls").textContent = calls.length;
-  $("calls").innerHTML = table(["Time", "Tool", "Arguments", "s", "Result"],
-    calls.map(c => [`<span class="mono muted">${esc((c.t || "").slice(5))}</span>`, `<b>${esc(c.tool)}</b>`,
-      `<div class="args mono" title="${esc(JSON.stringify(c.args))}">${esc(JSON.stringify(c.args || {}))}</div>`, c.s ?? "",
+  // Status: error if the call failed; for a job, its state now (from the jobs list), else the
+  // state the call returned with, marked "at return"; otherwise ok.
+  const byId = Object.fromEntries(d.jobs.map(j => [j.id, j]));
+  $("calls").innerHTML = table(["Time", "Tool", "Arguments", "Took", "Status", "rc", "Job / error"],
+    calls.map(c => { const j = c.id && byId[c.id]; return [`<span class="mono muted">${esc((c.t || "").slice(5))}</span>`, `<b>${esc(c.tool)}</b>`,
+      `<div class="args mono" title="${esc(JSON.stringify(c.args))}">${esc(JSON.stringify(c.args || {}))}</div>`,
+      c.s == null ? "" : `<span title="${c.s} s">${c.s < 10 ? c.s.toFixed(1) + "s" : dur(Math.round(c.s))}</span>`,
+      c.ok === false ? `<span class="err">error</span>` : j ? state(j.state)
+        : c.state ? `${state(c.state)} <span class="muted">at return</span>` : `<span class="ok">ok</span>`,
+      (j ? j.returncode : c.returncode) ?? "",
       c.ok === false ? `<span class="err">${esc(c.error)}</span>`
-        : c.id ? `<a href="#" data-job="${esc(c.id)}" class="mono">${esc(c.id)}</a> ${c.state ? state(c.state) : ""}` : `<span class="ok">ok</span>`]));
+        : c.id ? `<a href="#" data-job="${esc(c.id)}" class="mono">${esc(c.id)}</a>` : ""]; }));
 
   $("deploys").innerHTML = table(["Time", "Core", "RBF", "Commit"],
     d.deploys.map(x => [`<span class="mono muted">${esc(x.t)}</span>`, esc(x.core), `<span class="mono">${esc(x.rbf)}</span>`, `<span class="mono">${esc(x.commit)}</span>`]));
