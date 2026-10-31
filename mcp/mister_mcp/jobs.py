@@ -78,7 +78,8 @@ def status(jid, log_lines=20):
         st = _read_status(d)                  # it may have written its end since the first read
         if st.get("state") == "running":
             st["state"] = "lost"              # the runner died without writing its end
-    log = (d / "log.txt").read_text(encoding="utf-8", errors="replace") if (d / "log.txt").exists() else ""
+    log = (d / "log.txt").read_text(encoding="utf-8", errors="replace") \
+        if log_lines and (d / "log.txt").exists() else ""   # logs reach 50 MB; listings skip them
     end = st.get("ended") or time.time()
     return {"id": jid, "kind": job["kind"], "core": job["core"], "meta": job["meta"],
             "state": st["state"], "returncode": st.get("returncode"),

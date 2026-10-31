@@ -108,9 +108,10 @@ def git_bash():
 def command(root, name, *args):
     """argv and env for running scripts/<name> on this core."""
     path, tpl = script(root, name)
-    # the core's <core>.<KEY> machine settings as environment: its own coretools copy may predate them
+    # the core's <core>.<KEY> machine settings as environment: its own coretools copy may predate them.
+    # Unbuffered: stdout to a file is block-buffered, so a build's log stayed empty until it ended.
     env = dict(os.environ, **coretools.core_settings(root), CORE_ROOT=str(root), PYTHONIOENCODING="utf-8",
-               MSYS_NO_PATHCONV="1")
+               PYTHONUNBUFFERED="1", MSYS_NO_PATHCONV="1")
     if path.suffix == ".py":
         argv = [python_exe(), str(path), *map(str, args)]
     elif path.suffix == ".sh":

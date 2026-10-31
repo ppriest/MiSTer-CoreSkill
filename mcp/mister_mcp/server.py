@@ -345,7 +345,8 @@ def build_project(core: str, project: str, rev: str = "", seed: int | None = Non
     sp = Path(tempfile.mkdtemp(prefix="qproject_")) / "spec.json"
     sp.write_text(json.dumps(spec), encoding="utf-8")
     argv = [C.python_exe(), str(Path(__file__).with_name("qproject.py")), str(sp)]
-    env = dict(os.environ, **C.coretools.core_settings(root), CORE_ROOT=str(root), PYTHONIOENCODING="utf-8")
+    env = dict(os.environ, **C.coretools.core_settings(root), CORE_ROOT=str(root), PYTHONIOENCODING="utf-8",
+               PYTHONUNBUFFERED="1")
     jid = J.start("project", root.name, argv, root, env, {"rev": r, "work": str(work), "qpf": str(qpf)})
     st = J.wait(jid, wait_s)
     if st["state"] not in ("starting", "running"):
@@ -862,7 +863,8 @@ def probe_sequence(core: str, steps: list[dict], wait_s: int = 120) -> dict:
     sp = Path(tempfile.mkdtemp(prefix="issp_seq_")) / "spec.json"
     sp.write_text(json.dumps(spec), encoding="utf-8")
     argv = [C.python_exe(), str(Path(__file__).with_name("issp_seq.py")), str(sp)]
-    env = dict(os.environ, **C.coretools.core_settings(root), CORE_ROOT=str(root), PYTHONIOENCODING="utf-8")
+    env = dict(os.environ, **C.coretools.core_settings(root), CORE_ROOT=str(root), PYTHONIOENCODING="utf-8",
+               PYTHONUNBUFFERED="1")
     jid = J.start("probe_seq", root.name, argv, root, env, {"steps": len(steps)})
     st = J.wait(jid, wait_s)
     if st["state"] in ("starting", "running"):
@@ -929,8 +931,10 @@ def main():
     import uvicorn
     from starlette.routing import WebSocketRoute
     from .stream import job_log
+    from . import web
     app = server.streamable_http_app(host="127.0.0.1")
     app.router.routes.append(WebSocketRoute("/jobs/{id}/log", lambda ws: job_log(ws, _ws_record)))
+    app.router.routes.extend(web.routes(_core_settings, CALLS))
     uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=a.port, log_level="info")).run()
 
 

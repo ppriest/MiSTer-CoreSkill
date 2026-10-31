@@ -50,6 +50,13 @@ whatever a session runs from Bash, a private copy of `AppData\Local`
 this server, which runs outside the package, and the reverse for files the session has its own
 copy of. The home directory is not redirected.
 
+**Status page: `http://127.0.0.1:8770/`.** Cores with their paths, branch and MAME settings
+(a path that does not exist is struck through), the JTAG holder and queue, Quartus/ModelSim
+processes, active and recent jobs (click one for its log, live while it runs), deploys, recent
+calls, and the MiSTer's current core on request. Job logs, `calls.jsonl`, `server.log` and
+`mister_deployed.tsv` download from it. `/api/state` is the same data as JSON. Read-only; a
+request whose Host or Origin is not this machine gets 403 (`web.py`).
+
 `mister-mcp.exe --stdio` runs a private copy
 over stdio (the MCP Inspector, tests).
 

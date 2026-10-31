@@ -14,3 +14,6 @@ mister-mcp = "mister_mcp.server:main"
 
 [tool.setuptools]
 packages = ["mister_mcp"]
+
+[tool.setuptools.package-data]
+mister_mcp = ["*.html", "*.tcl"]
