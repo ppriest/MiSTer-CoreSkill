@@ -162,7 +162,9 @@ function table(cols, rows) {
 function match(q, ...fields) { return !q || fields.join(" ").toLowerCase().includes(q.toLowerCase()); }
 function jobRow(j) {
   const m = j.meta || {};
-  return [`<a href="#" data-job="${esc(j.id)}" class="mono">${esc(j.id)}</a>`, esc(j.kind), esc(j.core),
+  const t = j.started || j.id.replace(/^(\d{4})(\d\d)(\d\d)-(\d\d)(\d\d)(\d\d).*/, "$1-$2-$3 $4:$5:$6");
+  return [`<span class="mono muted" title="${esc(t)}">${esc(t.slice(5, 16))}</span>`,
+    `<a href="#" data-job="${esc(j.id)}" class="mono">${esc(j.id)}</a>`, esc(j.kind), esc(j.core),
     state(j.state), j.returncode ?? "", dur(j.elapsed_s),
     `<span class="mono muted">${esc(m.script || "")}${m.rev ? " " + esc(m.rev) : ""}${m.tag ? " " + esc(m.tag) : ""}</span>`,
     `<a href="/download/jobs/${esc(j.id)}/log.txt">log</a>`];
@@ -190,7 +192,7 @@ function render() {
 
   const act = d.jobs.filter(j => j.state === "running" || j.state === "starting");
   $("nactive").textContent = act.length;
-  $("active").innerHTML = table(["Job", "Kind", "Core", "State", "rc", "Elapsed", "Script", ""], act.map(jobRow));
+  $("active").innerHTML = table(["Started", "Job", "Kind", "Core", "State", "rc", "Elapsed", "Script", ""], act.map(jobRow));
 
   const cq = $("corefilter").value;
   const cores = d.cores.filter(c => match(cq, c.name, c.path, c.branch, JSON.stringify(c.settings)));
@@ -207,7 +209,7 @@ function render() {
   const jq = $("jobfilter").value;
   const jobs = d.jobs.filter(j => match(jq, j.id, j.kind, j.core, j.state, JSON.stringify(j.meta)));
   $("njobs").textContent = jobs.length;
-  $("jobs").innerHTML = table(["Job", "Kind", "Core", "State", "rc", "Elapsed", "Script", ""], jobs.map(jobRow));
+  $("jobs").innerHTML = table(["Started", "Job", "Kind", "Core", "State", "rc", "Elapsed", "Script", ""], jobs.map(jobRow));
 
   const kq = $("callfilter").value, eo = $("errsonly").checked;
   const calls = d.calls.filter(c => (!eo || c.ok === false) && match(kq, c.tool, JSON.stringify(c.args), c.error, c.id));

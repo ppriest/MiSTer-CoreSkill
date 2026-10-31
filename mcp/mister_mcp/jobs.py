@@ -83,6 +83,7 @@ def status(jid, log_lines=20):
     end = st.get("ended") or time.time()
     return {"id": jid, "kind": job["kind"], "core": job["core"], "meta": job["meta"],
             "state": st["state"], "returncode": st.get("returncode"),
+            "started": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(job["started"])),
             "elapsed_s": round(end - job["started"]), "log_tail": tail(log, log_lines),
             "log_path": str(d / "log.txt")}
 
