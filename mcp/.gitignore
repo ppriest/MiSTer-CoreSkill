@@ -1,2 +1,3 @@
 .venv/
 *.egg-info/
+startup_trace.txt
