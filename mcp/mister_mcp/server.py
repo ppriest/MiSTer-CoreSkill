@@ -448,28 +448,29 @@ def mister_deploy(core: str, rev: str = "", stem: str = "", mra_only: bool = Fal
 
 @tool(ACT)
 def mister_launch(core: str, mra: str, bounce: bool = True, check: bool = True) -> dict:
-    """Launch a .mra (name or /media/fat path) through menu.rbf, so the FPGA really reloads.
-    check=True first refuses when no .rbf matches, another file outranks your deploys, or zips
-    are missing."""
+    """Launch a .mra (name or /media/fat path) through menu.rbf, so the FPGA really reloads, then
+    wait until /tmp/CORENAME names the game (its <setname>); an error if it stays at MENU.
+    A name resolves to _Arcade/_<folder>/ or _Arcade/, never a _Organized link. check=True first
+    refuses when no .rbf matches, another file outranks your deploys, or zips are missing."""
     root = C.resolve(core)
     b = B.Board(root)
     res = {}
     local = _local_mra(root, mra)
+    text = local.read_text(errors="replace") if local else ""
     if check and local:
-        res["check"] = _mra_check(b, local.read_text(errors="replace"))
+        res["check"] = _mra_check(b, text)
         if not res["check"]["ok"]:
             raise ToolError("not launched: " + json.dumps(res["check"]))
     if mra.startswith("/"):
         path = B.checked_path(mra)
     else:
-        name = Path(mra).stem + ".mra"
-        rc, out, _ = b.sh(f"find /media/fat/_Arcade -name {B.shlex.quote(name)} 2>/dev/null | head -5")
-        hits = [h for h in out.splitlines() if h.strip()]
-        if not hits:
-            raise ToolError(f"no {name} on the device")
-        path = hits[0]
-    b.launch(path, bounce)
+        name = Path(mra).name if mra.lower().endswith(".mra") else Path(mra).name + ".mra"
+        path, hits = b.find_mra(name)
+        if len(hits) > 1:
+            res["other_copies"] = len(hits) - 1
+    m = re.search(r"<setname>\s*([^<\s]+)\s*</setname>", text)
     res["launched"] = path
+    res["setname"] = b.launch(path, bounce, m.group(1) if m else None)
     return res
 
 

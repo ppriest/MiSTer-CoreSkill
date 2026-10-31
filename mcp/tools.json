@@ -791,7 +791,7 @@
  },
  {
   "name": "mister_launch",
-  "description": "Launch a .mra (name or /media/fat path) through menu.rbf, so the FPGA really reloads.\ncheck=True first refuses when no .rbf matches, another file outranks your deploys, or zips\nare missing.",
+  "description": "Launch a .mra (name or /media/fat path) through menu.rbf, so the FPGA really reloads, then\nwait until /tmp/CORENAME names the game (its <setname>); an error if it stays at MENU.\nA name resolves to _Arcade/_<folder>/ or _Arcade/, never a _Organized link. check=True first\nrefuses when no .rbf matches, another file outranks your deploys, or zips are missing.",
   "inputSchema": {
    "properties": {
     "core": {

@@ -142,11 +142,39 @@ class Board:
         return [{"addr": f"0x{a + i * step:08x}", "value": v} for i, v in enumerate(vals)]
 
     # ---- actions ----
-    def launch(self, mra, bounce=True):
+    def find_mra(self, name):
+        """The real file for an .mra name, as hw.py resolves it: _Arcade/_<folder>/ first, then
+        _Arcade/, never a _Organized link (a launch through one returned 200 and left the menu
+        up). Symlinks are resolved."""
+        q = shlex.quote(name)
+        rc, out, _ = self.sh(f"find /media/fat/_Arcade -path /media/fat/_Arcade/_Organized -prune "
+                             f"-o -name {q} -print 2>/dev/null")
+        hits = [h.strip() for h in out.splitlines() if h.strip()]
+        if not hits:
+            raise ToolError(f"no {name} on the device outside _Organized")
+
+        def rank(h):
+            rel = h[len("/media/fat/_Arcade/"):].split("/")
+            return (0 if len(rel) == 2 and rel[0].startswith("_") else 1 if len(rel) == 1 else 2, h)
+        best = sorted(hits, key=rank)[0]
+        real = self.sh(f"readlink -f {shlex.quote(best)}")[1].strip() or best
+        return real, hits
+
+    def launch(self, mra, bounce=True, setname=None, timeout=25):
+        """Launch and wait for /tmp/CORENAME to name the game; the API answers 200 either way."""
         if bounce:                       # a relaunch of the same core does not reload the FPGA
             self.post("/launch", {"path": "/media/fat/menu.rbf"})
             time.sleep(2)
         self.post("/launch", {"path": mra})
+        deadline = time.time() + timeout
+        name = None
+        while time.time() < deadline:
+            time.sleep(2)
+            name = self.sh("cat /tmp/CORENAME 2>/dev/null", 20)[1].strip()
+            if name and name.upper() != "MENU" and (not setname or name == setname):
+                return name
+        raise ToolError(f"launched {mra} but /tmp/CORENAME is still {name!r} after {timeout} s"
+                        + (f" (expected {setname})" if setname else ""))
 
     def screenshot(self, local, native=False, settle=4, timeout=20):
         time.sleep(settle)                  # /tmp/CORENAME names the previous core straight after a launch

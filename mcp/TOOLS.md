@@ -302,7 +302,7 @@ scripts/deploy.py: checks the build log, .rbf age and timing, copies the .rbf an
 
 *acts*
 
-Launch a .mra (name or /media/fat path) through menu.rbf, so the FPGA really reloads. check=True first refuses when no .rbf matches, another file outranks your deploys, or zips are missing.
+Launch a .mra (name or /media/fat path) through menu.rbf, so the FPGA really reloads, then wait until /tmp/CORENAME names the game (its <setname>); an error if it stays at MENU. A name resolves to _Arcade/_<folder>/ or _Arcade/, never a _Organized link. check=True first refuses when no .rbf matches, another file outranks your deploys, or zips are missing.
 
 | Argument | Type | Default |
 |---|---|---|
