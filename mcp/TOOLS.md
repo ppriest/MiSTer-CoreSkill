@@ -419,12 +419,13 @@ ls -la under /media/fat/_Arcade, games, config or screenshots.
 
 *read-only*
 
-Copy a file from the device (allowed trees, or /tmp/RBFNAME and the like).
+Copy a file from the device (allowed trees, /tmp/RBFNAME and the like, or a mister_memdump file /tmp/<name>.bin; about 6 MB/s, the board's SSH is the limit). remove=True deletes a /tmp/<name>.bin after the copy: /tmp is the board's RAM.
 
 | Argument | Type | Default |
 |---|---|---|
 | `remote` | string | required |
 | `local` | string | `""` |
+| `remove` | boolean | `false` |
 
 ### `mister_put`
 
@@ -448,6 +449,18 @@ Read HPS physical memory with devmem (DDR3 shared blocks, bridges). Read only.
 | `addr` | string | required |
 | `words` | integer | `1` |
 | `width` | integer | `32` |
+
+### `mister_memdump`
+
+*acts*
+
+Copy physical-memory ranges (DDR3: state dumps, VRAM), concatenated in the order given, into a file on the MiSTer; fetch it with mister_get. ranges: [{"addr": "0x34000000", "size": "0x2620000"}, ...], addresses page-aligned (4 KB), all below 0x40000000. out: /tmp/<name>.bin. Uses mmap (read() on /dev/mem fails above the kernel's memory). Returns each range's offset in the file. Refuses when /tmp lacks the room.
+
+| Argument | Type | Default |
+|---|---|---|
+| `ranges` | list[dict[str, string]] | required |
+| `out` | string | `"/tmp/memdump.bin"` |
+| `timeout_s` | integer | `120` |
 
 ### `mister_reboot`
 

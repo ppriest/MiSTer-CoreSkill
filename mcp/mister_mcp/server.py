@@ -8,6 +8,7 @@ import functools
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import tempfile
@@ -762,14 +763,22 @@ def mister_ls(path: str = "/media/fat/_Arcade") -> str:
 
 
 @tool(RO)
-def mister_get(remote: str, local: str = "") -> dict:
-    """Copy a file from the device (allowed trees, or /tmp/RBFNAME and the like)."""
+def mister_get(remote: str, local: str = "", remove: bool = False) -> dict:
+    """Copy a file from the device (allowed trees, /tmp/RBFNAME and the like, or a mister_memdump
+    file /tmp/<name>.bin; about 6 MB/s, the board's SSH is the limit). remove=True deletes a
+    /tmp/<name>.bin after the copy: /tmp is the board's RAM."""
     q = B.checked_path(remote)
+    if remove and not B.DUMP.match(q):
+        raise ToolError("remove is only for mister_memdump files, /tmp/<name>.bin")
     dst = Path(local) if local else Path(tempfile.gettempdir()) / "mister_mcp" / Path(q).name
     dst.parent.mkdir(parents=True, exist_ok=True)
     b = B.Board()
     b.scp(b.remote(q), str(dst))
-    return {"remote": q, "local": str(dst), "bytes": dst.stat().st_size}
+    res = {"remote": q, "local": str(dst), "bytes": dst.stat().st_size}
+    if remove:
+        b.sh(f"rm -f {shlex.quote(q)}")
+        res["removed"] = True
+    return res
 
 
 @tool(DESTRUCTIVE)
@@ -789,6 +798,23 @@ def mister_devmem(addr: str, words: int = 1, width: int = 32) -> dict:
     if not 1 <= words <= 256:
         raise ToolError("words is 1..256")
     return {"words": B.Board().devmem(addr, words, width)}
+
+
+@tool(ACT)
+def mister_memdump(ranges: list[dict[str, str]], out: str = "/tmp/memdump.bin",
+                   timeout_s: int = 120) -> dict:
+    """Copy physical-memory ranges (DDR3: state dumps, VRAM), concatenated in the order given,
+    into a file on the MiSTer; fetch it with mister_get. ranges: [{"addr": "0x34000000",
+    "size": "0x2620000"}, ...], addresses page-aligned (4 KB), all below 0x40000000. out:
+    /tmp/<name>.bin. Uses mmap (read() on /dev/mem fails above the kernel's memory). Returns
+    each range's offset in the file. Refuses when /tmp lacks the room."""
+    try:
+        pairs = [(int(str(r["addr"]), 0), int(str(r["size"]), 0)) for r in ranges]
+    except (KeyError, TypeError, ValueError):
+        raise ToolError('ranges: [{"addr": "0x...", "size": "0x..."}, ...]')
+    if not pairs:
+        raise ToolError("no ranges")
+    return B.Board().memdump(pairs, out, timeout=max(10, min(int(timeout_s), 600)))
 
 
 @tool(DESTRUCTIVE)

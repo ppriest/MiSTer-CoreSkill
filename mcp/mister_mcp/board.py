@@ -19,6 +19,32 @@ ALLOWED = ("/media/fat/_Arcade", "/media/fat/games", "/media/fat/config", "/medi
 READ_ONLY = ("/tmp/RBFNAME", "/tmp/CORENAME", "/tmp/FULLPATH", "/tmp/STARTPATH")
 CORES = "/media/fat/_Arcade/cores"
 ZIPS = "/media/fat/games/mame"
+# Memory dumps: /tmp/<name>.bin only, so they cannot replace RBFNAME and the other control files.
+DUMP = re.compile(r"^/tmp/[A-Za-z0-9._-]+\.bin$")
+DDR3_END = 0x40000000                         # the HPS DDR3; the FPGA bridges above it can hang a bulk read
+PAGE = 4096
+# Run on the MiSTer: read() on /dev/mem above the kernel's memory fails with EFAULT, mmap works.
+# Copies in 1 MB slices so a 40 MB range does not need 40 MB of Python memory; writes to .part,
+# renames at the end, refuses when /tmp lacks the room.
+MEMDUMP_PY = r"""
+import mmap, os, sys
+out, r = sys.argv[1], sys.argv[2:]
+pairs = [(int(r[i], 0), int(r[i + 1], 0)) for i in range(0, len(r), 2)]
+need = sum(n for _, n in pairs)
+st = os.statvfs(os.path.dirname(out))
+free = st.f_bavail * st.f_frsize
+if need + (16 << 20) > free:
+    sys.exit("%s has %d MB free, the dump needs %d MB" % (os.path.dirname(out), free >> 20, need >> 20))
+f = os.open("/dev/mem", os.O_RDONLY | os.O_SYNC)
+with open(out + ".part", "wb") as o:
+    for b, n in pairs:
+        m = mmap.mmap(f, n, mmap.MAP_SHARED, mmap.PROT_READ, offset=b)
+        for off in range(0, n, 1 << 20):
+            o.write(m[off:off + (1 << 20)])
+        m.close()
+os.rename(out + ".part", out)
+print(os.path.getsize(out))
+"""
 
 
 def _env(root=None):
@@ -45,7 +71,7 @@ def checked_path(p, write=False):
     q = str(PurePosixPath(p))
     if ".." in PurePosixPath(q).parts or not q.startswith("/"):
         raise ToolError(f"{p}: give an absolute path without '..'")
-    if not write and q in READ_ONLY:
+    if not write and (q in READ_ONLY or DUMP.match(q)):
         return q
     if not any(q == a or q.startswith(a + "/") for a in ALLOWED):
         raise ToolError(f"{p} is outside {', '.join(ALLOWED)}")
@@ -142,6 +168,29 @@ class Board:
             raise ToolError(err.strip() or "devmem failed")
         vals = [v.strip() for v in out.splitlines() if v.strip()]
         return [{"addr": f"0x{a + i * step:08x}", "value": v} for i, v in enumerate(vals)]
+
+    def memdump(self, ranges, out, timeout=120):
+        """Copy physical-memory ranges [(addr, size)], concatenated, to `out` on the MiSTer."""
+        if not DUMP.match(out):
+            raise ToolError(f"{out}: the dump goes to /tmp/<name>.bin")
+        pairs, layout, pos = [], [], 0
+        for a, n in ranges:
+            if a % PAGE:
+                raise ToolError(f"0x{a:x} is not page-aligned (4 KB): mmap needs it")
+            if n <= 0 or a + n > DDR3_END:
+                raise ToolError(f"0x{a:x}+0x{n:x} is outside the DDR3 (below 0x{DDR3_END:x})")
+            pairs += [f"0x{a:x}", f"0x{n:x}"]
+            layout.append({"addr": f"0x{a:08x}", "size": f"0x{n:x}", "offset": f"0x{pos:x}"})
+            pos += n
+        t0 = time.time()
+        rc, o, err = self.sh(" ".join(["python3", "-c", shlex.quote(MEMDUMP_PY), shlex.quote(out), *pairs]),
+                             timeout)
+        if rc:
+            raise ToolError((err or o).strip().splitlines()[-1] if (err or o).strip() else f"memdump failed ({rc})")
+        got = int(o.strip().splitlines()[-1])
+        if got != pos:
+            raise ToolError(f"{out} has {got} bytes, expected {pos}")
+        return {"remote": out, "bytes": got, "ranges": layout, "seconds": round(time.time() - t0, 1)}
 
     # ---- actions ----
     def find_mra(self, name):

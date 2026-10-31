@@ -102,7 +102,11 @@ only, read on every call. Beyond the scripts' own (`MISTER_HOST`,
   the board nothing; `live=true` reads now. Launches and reboots trigger a read.
 - **Board access is the listed operations only.**
   - No general shell.
-  - `mister_get`/`mister_put` are limited to `/media/fat/{_Arcade,games,config,screenshots}`.
+  - `mister_get`/`mister_put` are limited to `/media/fat/{_Arcade,games,config,screenshots}`;
+    `mister_get` also reads `/tmp/RBFNAME` and the like, and `mister_memdump`'s `/tmp/<name>.bin`.
+  - `mister_memdump` copies DDR3 ranges (below `0x40000000`, page-aligned) to `/tmp/<name>.bin`
+    by mmap: 73 MB in 2.3 s; fetching it with `mister_get` took 12.3 s (`pscp`; a `cat` over the
+    held connection took 11.0 s, so the board's SSH is the limit).
   - `mister_reboot` needs `confirm=true`.
 
 ## Status page
@@ -152,7 +156,7 @@ npx @modelcontextprotocol/inspector E:/MiSTer-CoreSkill/mcp/.venv/Scripts/mister
 | build | `build_start`, `build_project`, `build_report`, `build_worst_paths`, `build_floorplan` |
 | sim | `sim_list`, `sim_run`, `sim_compare_boot`, `sim_sweep` |
 | MAME | `mame_version`, `mame_capture`, `mame_boot_trace`, `mame_sys_trace`, `mame_run_lua`, `mame_listxml` |
-| MiSTer | `mister_state`, `mister_check_mra`, `mister_deploy`, `mister_launch`, `mister_screenshot`, `mister_playing`, `mister_osd`, `mister_ls`, `mister_get`, `mister_put`, `mister_devmem`, `mister_reboot` |
+| MiSTer | `mister_state`, `mister_check_mra`, `mister_deploy`, `mister_launch`, `mister_screenshot`, `mister_playing`, `mister_osd`, `mister_ls`, `mister_get`, `mister_put`, `mister_devmem`, `mister_memdump`, `mister_reboot` |
 | probes | `probe_read`, `probe_issp`, `probe_sequence` |
 
 Checks the tools add over the scripts:

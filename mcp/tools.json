@@ -1155,7 +1155,7 @@
  },
  {
   "name": "mister_get",
-  "description": "Copy a file from the device (allowed trees, or /tmp/RBFNAME and the like).",
+  "description": "Copy a file from the device (allowed trees, /tmp/RBFNAME and the like, or a mister_memdump\nfile /tmp/<name>.bin; about 6 MB/s, the board's SSH is the limit). remove=True deletes a\n/tmp/<name>.bin after the copy: /tmp is the board's RAM.",
   "inputSchema": {
    "properties": {
     "remote": {
@@ -1166,6 +1166,11 @@
      "default": "",
      "title": "Local",
      "type": "string"
+    },
+    "remove": {
+     "default": false,
+     "title": "Remove",
+     "type": "boolean"
     }
    },
    "required": [
@@ -1232,6 +1237,43 @@
   },
   "annotations": {
    "readOnlyHint": true
+  }
+ },
+ {
+  "name": "mister_memdump",
+  "description": "Copy physical-memory ranges (DDR3: state dumps, VRAM), concatenated in the order given,\ninto a file on the MiSTer; fetch it with mister_get. ranges: [{\"addr\": \"0x34000000\",\n\"size\": \"0x2620000\"}, ...], addresses page-aligned (4 KB), all below 0x40000000. out:\n/tmp/<name>.bin. Uses mmap (read() on /dev/mem fails above the kernel's memory). Returns\neach range's offset in the file. Refuses when /tmp lacks the room.",
+  "inputSchema": {
+   "properties": {
+    "ranges": {
+     "items": {
+      "additionalProperties": {
+       "type": "string"
+      },
+      "type": "object"
+     },
+     "title": "Ranges",
+     "type": "array"
+    },
+    "out": {
+     "default": "/tmp/memdump.bin",
+     "title": "Out",
+     "type": "string"
+    },
+    "timeout_s": {
+     "default": 120,
+     "title": "Timeout S",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "ranges"
+   ],
+   "title": "mister_memdumpArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "destructiveHint": false
   }
  },
  {
