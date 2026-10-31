@@ -605,6 +605,9 @@ def main():
     sys.stdout = sys.stderr = log             # a scheduled task has no console
     logging.basicConfig(stream=log, level=logging.INFO, force=True,
                         format="%(asctime)s %(levelname)s %(name)s %(message)s")
+    log.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} server starting, pid {os.getpid()}, "
+              f"port {a.port}\n")
+    log.flush()
     server.run(transport="streamable-http", host="127.0.0.1", port=a.port)
 
 
