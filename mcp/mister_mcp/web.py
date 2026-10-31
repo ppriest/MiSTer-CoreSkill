@@ -32,16 +32,34 @@ STARTED = time.time()
 CALLS_TAIL = 256 * 1024                      # bytes of calls.jsonl the page reads: ~800 calls
 
 
-def _commit():
+def _git(*args):
     try:
-        r = subprocess.run(["git", "-C", str(C.SKILL.parent), "log", "-1", "--format=%h %s"],
+        r = subprocess.run(["git", "-C", str(C.SKILL.parent), *args],
                            capture_output=True, text=True, timeout=10, **C.NO_WINDOW)
         return r.stdout.strip() or None
     except (OSError, subprocess.SubprocessError):
         return None
 
 
+def _commit():
+    return _git("log", "-1", "--format=%h %s")
+
+
+# What this process has loaded: a change here needs a restart. The page itself is read per
+# request, and the job runners and the core scripts start fresh for every job.
+LOADED = ["mcp/mister_mcp/*.py", ":(exclude)mcp/mister_mcp/jobrun.py",
+          ":(exclude)mcp/mister_mcp/qproject.py", ":(exclude)mcp/mister_mcp/issp_seq.py",
+          "mister-arcade-core/assets/core/scripts/coretools.py",
+          "mister-arcade-core/assets/core/scripts/hwlock.py"]
 STARTED_COMMIT = _commit()
+STARTED_HEAD = _git("rev-parse", "HEAD")
+
+
+def _changed_since_start():
+    """Loaded files that differ from what was checked out at start, committed or not."""
+    if not STARTED_HEAD:
+        return []
+    return (_git("diff", "--name-only", STARTED_HEAD, "--", *LOADED) or "").splitlines()
 
 
 def _local(request):
@@ -167,7 +185,8 @@ def routes(core_settings, calls_path):
             "server": {"pid": os.getpid(), "port": request.url.port,
                        "started": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(STARTED)),
                        "uptime_s": round(time.time() - STARTED), "commit_at_start": STARTED_COMMIT,
-                       "commit_now": _commit(), "state_dir": str(J.STATE),
+                       "commit_now": _commit(), "restart_for": _changed_since_start(),
+                       "state_dir": str(J.STATE),
                        "machine_env": str(C.coretools.machine_env_path()),
                        "cores_dirs": [str(d) for d in C.cores_dirs()]},
             "locks": {"jtag_held": {"pid": held[0], "what": held[1]} if held else None,

@@ -61,6 +61,17 @@ a { color: var(--accent); }
 .args { max-width: 560px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .banner { background: var(--warn); color: #fff; padding: 6px 20px; font-size: 13px; }
 .err { color: var(--bad); }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.tabs button { border: 1px solid transparent; border-bottom: 0; border-radius: 6px 6px 0 0; background: none;
+  padding: 7px 16px; font-size: 13.5px; color: var(--muted); margin-bottom: -1px; }
+.tabs button[aria-selected=true] { background: var(--panel); border-color: var(--line); color: var(--ink); font-weight: 600; }
+.tabs button:hover { color: var(--ink); }
+.badge { font-size: 11px; padding: 0 6px; border-radius: 9px; background: var(--accent); color: var(--panel); }
+.badge.bad { background: var(--bad); }
+.badge:empty { display: none; }
+.panel { display: none; gap: 16px; }
+.panel.on { display: grid; }
+.panel > section { min-width: 0; }
 #drawer { position: fixed; inset: 0 0 0 auto; width: min(900px, 100%); background: var(--panel);
   border-left: 1px solid var(--line); box-shadow: -8px 0 24px rgba(0,0,0,.18); display: none;
   flex-direction: column; z-index: 5; }
@@ -98,9 +109,47 @@ a { color: var(--accent); }
     </div>
   </section>
 
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="jobs">Jobs <span class="badge" id="tabjobs"></span></button>
+    <button role="tab" data-tab="calls">Calls <span class="badge bad" id="tabcalls"></span></button>
+    <button role="tab" data-tab="deploys">Deploys</button>
+    <button role="tab" data-tab="system">System</button>
+  </nav>
+
+  <div class="panel" data-panel="jobs">
   <section>
     <h2>Active jobs <span class="count" id="nactive"></span></h2>
     <div class="scroll" id="active"></div>
+  </section>
+
+  <section>
+    <h2>Recent jobs <span class="count" id="njobs"></span>
+      <span class="tools"><input type="search" id="jobfilter" placeholder="filter"></span></h2>
+    <div class="scroll" id="jobs"></div>
+  </section>
+  </div>
+
+  <div class="panel" data-panel="calls">
+  <section>
+    <h2>Recent calls <span class="count" id="ncalls"></span>
+      <span class="tools"><label><input type="checkbox" id="errsonly"> errors only</label>
+      <input type="search" id="callfilter" placeholder="filter"></span></h2>
+    <div class="scroll" id="calls"></div>
+  </section>
+  </div>
+
+  <div class="panel" data-panel="deploys">
+  <section>
+    <h2>Deploys to the MiSTer <span class="count">(latest 30)</span></h2>
+    <div class="scroll" id="deploys"></div>
+  </section>
+  </div>
+
+  <div class="panel" data-panel="system">
+  <section>
+    <h2>Server and files</h2>
+    <div class="grid3" id="server"></div>
+    <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap" id="files"></div>
   </section>
 
   <section>
@@ -111,32 +160,9 @@ a { color: var(--accent); }
       (<span class="mono">Gaelco3D.MAME_DIR=…</span>, set with <span class="mono">core_settings_set</span>);
       <b>machine</b> = the plain line every core shares (<span class="mono">MAME_DIR=…</span>);
       <b>env</b> = the server's environment, which overrides both. A struck-through path does not exist.</p>
-    <div class="scroll limit" id="cores"></div>
+    <div class="scroll" id="cores"></div>
   </section>
-
-  <section>
-    <h2>Recent jobs <span class="count" id="njobs"></span>
-      <span class="tools"><input type="search" id="jobfilter" placeholder="filter"></span></h2>
-    <div class="scroll limit" id="jobs"></div>
-  </section>
-
-  <section>
-    <h2>Recent calls <span class="count" id="ncalls"></span>
-      <span class="tools"><label><input type="checkbox" id="errsonly"> errors only</label>
-      <input type="search" id="callfilter" placeholder="filter"></span></h2>
-    <div class="scroll limit" id="calls"></div>
-  </section>
-
-  <section>
-    <h2>Deploys to the MiSTer <span class="count">(latest 30)</span></h2>
-    <div class="scroll limit" id="deploys"></div>
-  </section>
-
-  <section>
-    <h2>Server and files</h2>
-    <div class="grid3" id="server"></div>
-    <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap" id="files"></div>
-  </section>
+  </div>
 </main>
 
 <div id="drawer">
@@ -188,9 +214,9 @@ function render() {
   const d = data, sv = d.server, L = d.locks;
   $("srv").innerHTML = `pid ${sv.pid} · port ${sv.port} · up ${dur(sv.uptime_s)} · <span class="mono">${esc(sv.commit_now || "")}</span>`;
   $("updated").textContent = `updated ${d.now.slice(11)}`;
-  const stale = sv.commit_at_start && sv.commit_now && sv.commit_at_start !== sv.commit_now;
+  const stale = (sv.restart_for || []).length > 0;
   $("banner").hidden = !stale;
-  if (stale) $("banner").textContent = `The skill repository moved on since this server started (${sv.commit_at_start} → ${sv.commit_now}). Code changes take effect after a restart.`;
+  if (stale) $("banner").textContent = `Server code changed since it started (${sv.restart_for.join(", ")}). It takes effect after a restart.`;
 
   $("jtag").innerHTML = L.jtag_held ? `<span class="warn">${esc(L.jtag_held.what)}</span> <span class="muted">pid ${L.jtag_held.pid}</span>` : `<span class="ok">free</span>`;
   $("waiting").innerHTML = L.jtag_waiting.length ? L.jtag_waiting.map(w => `<div>${esc(w.what)} <span class="muted">pid ${w.pid}</span></div>`).join("") : `<span class="muted">nobody</span>`;
@@ -199,6 +225,8 @@ function render() {
 
   const act = d.jobs.filter(j => j.state === "running" || j.state === "starting");
   $("nactive").textContent = act.length;
+  $("tabjobs").textContent = act.length || "";
+  $("tabjobs").title = `${act.length} running`;
   $("active").innerHTML = table(["Started", "Job", "Kind", "Core", "State", "Elapsed", "Script", ""], act.map(jobRow));
 
   const cq = $("corefilter").value;
@@ -221,6 +249,9 @@ function render() {
   const kq = $("callfilter").value, eo = $("errsonly").checked;
   const calls = d.calls.filter(c => (!eo || c.ok === false) && match(kq, c.tool, JSON.stringify(c.args), c.error, c.id));
   $("ncalls").textContent = calls.length;
+  const nerr = d.calls.filter(c => c.ok === false).length;
+  $("tabcalls").textContent = nerr || "";
+  $("tabcalls").title = `${nerr} failed in the last ${d.calls.length} calls`;
   // Status: error if the call failed; for a job, its state now (from the jobs list), else the
   // state the call returned with, marked "at return"; otherwise ok.
   const byId = Object.fromEntries(d.jobs.map(j => [j.id, j]));
@@ -298,6 +329,16 @@ $("boardbtn").onclick = async () => {
 $("errsonly").onchange = () => data && render();
 $("auto").onchange = schedule;
 $("refresh").onclick = load;
+const TABS = ["jobs", "calls", "deploys", "system"];
+function showTab(t) {
+  if (!TABS.includes(t)) t = "jobs";
+  document.querySelectorAll(".tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t));
+  document.querySelectorAll(".panel").forEach(p => p.classList.toggle("on", p.dataset.panel === t));
+  if (location.hash.slice(1) !== t) history.replaceState(null, "", "#" + t);
+}
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => showTab(b.dataset.tab));
+window.addEventListener("hashchange", () => showTab(location.hash.slice(1)));
+showTab(location.hash.slice(1));
 load(); schedule();
 </script>
 </body>

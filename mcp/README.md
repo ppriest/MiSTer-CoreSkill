@@ -103,23 +103,25 @@ only, read on every call. Beyond the scripts' own (`MISTER_HOST`,
 `http://127.0.0.1:8770/`, refreshed every 5 s (untick "auto refresh" to hold it still).
 Read-only; a request whose Host or Origin is not this machine gets 403 (`web.py`).
 
-| Panel | What it shows |
+Hardware sits above four tabs; the open tab is in the URL (`#jobs`, `#calls`, `#deploys`,
+`#system`).
+
+| Where | What it shows |
 |---|---|
 | Hardware | who holds the JTAG cable (USB-Blaster), who is queued for it, running Quartus/ModelSim processes. "Check now" logs in to the MiSTer over SSH once and reads the core and set it has loaded; it is not part of the auto refresh |
-| Active jobs | running jobs from every session: kind, core, elapsed, script |
-| Cores | every core: path, branch, running jobs, last tool call, `MAME_DIR`/`MAME_EXE`/`MAME_SRC`/`MAME_ROMPATH` with where each comes from (`core`, `machine`, `env`); a path that does not exist is struck through. Filter box searches all columns |
-| Recent jobs | the last 60, with state and return code |
-| Recent calls | the last 150 tool calls from every session: how long the call took, status (`error`, `ok`, or for a call that started a job the job's state now; "at return" when the job is older than the jobs list), the job id or the error. "errors only" for failures |
+| Jobs | active jobs, then the last 60 from every session: start time, kind, core, state, elapsed, script. The tab's badge counts the running ones |
+| Calls | the last 150 tool calls from every session: how long the call took, status (`error`, `ok`, or for a call that started a job the job's state now; "at return" when the job is older than the jobs list), the job id or the error. "errors only" for failures; the tab's badge counts them |
 | Deploys | the last 30 lines of `mister_deployed.tsv` |
-| Server and files | pid, uptime, commit, state dir; downloads |
+| System | server (pid, uptime, commit, state dir) and downloads; then every core: path, branch, running jobs, last tool call, `MAME_DIR`/`MAME_EXE`/`MAME_SRC`/`MAME_ROMPATH` with where each comes from (`core`, `machine`, `env`); a path that does not exist is struck through |
 
 - **A job's log:** click its id (in jobs or calls). The drawer shows the last 400 lines and, while
   the job runs, follows new lines over the WebSocket; untick "follow" to scroll back. "Download
   log" saves the whole file.
 - **Downloads:** each job's `log.txt`, `calls.jsonl`, `server.log`, `mister_deployed.tsv`, as
   they are at the moment of the click.
-- **A banner** appears when the skill repository has moved on since the server started: code
-  changes need a restart.
+- **A banner** lists the server's own files (its modules, the template's `coretools.py` and
+  `hwlock.py`) changed since it started: those need a restart. The page, the job runners and
+  the core scripts are read fresh and do not.
 - `/api/state` is the page's data as JSON; `/api/jobs/<id>?lines=N` one job with its log tail.
 
 ## Tools
