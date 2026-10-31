@@ -12,8 +12,6 @@ from pathlib import Path
 
 SKILL = Path(__file__).resolve().parents[2] / "mister-arcade-core"
 TEMPLATE_SCRIPTS = SKILL / "assets" / "core" / "scripts"
-CORES_DIR = Path(os.environ.get("MISTER_CORES_DIR") or SKILL.parents[1])
-
 sys.path.insert(0, str(TEMPLATE_SCRIPTS))
 import coretools  # noqa: E402
 from mcp.server.mcpserver.exceptions import ToolError as _SdkToolError  # noqa: E402
@@ -23,7 +21,20 @@ NO_WINDOW = {"creationflags": subprocess.CREATE_NO_WINDOW} if os.name == "nt" el
 
 def machine_setting(name, default=None):
     """Environment, then ~/.mister-core.env. coretools.setting() needs a core root."""
-    return os.environ.get(name) or coretools._read_env_file(coretools.machine_env_path()).get(name)         or default
+    return (os.environ.get(name) or coretools._read_env_file(coretools.machine_env_path()).get(name)
+            or default)
+
+
+def cores_dir():
+    """MISTER_CORES_DIR, else MiSTer-Cores beside this repository, else its parent.
+    Looked up per call, so moving the repositories needs no server restart."""
+    v = machine_setting("MISTER_CORES_DIR")
+    if v:
+        return Path(v)
+    for d in (SKILL.parents[1] / "MiSTer-Cores", SKILL.parents[1]):
+        if any(d.glob("*_MiSTer/*.qpf")):
+            return d
+    return SKILL.parents[1]
 
 
 class ToolError(_SdkToolError):
@@ -34,21 +45,22 @@ def resolve(core):
     """The core's root directory."""
     if not core:
         raise ToolError("name the core: a repository directory, a short name or a path")
+    base = cores_dir()
     p = Path(core)
-    cands = [p] if p.is_absolute() else [CORES_DIR / core, CORES_DIR / f"Arcade-{core}_MiSTer",
-                                         CORES_DIR / f"{core}_MiSTer"]
+    cands = [p] if p.is_absolute() else [base / core, base / f"Arcade-{core}_MiSTer",
+                                         base / f"{core}_MiSTer"]
     for c in cands:
         if c.is_dir() and any(c.glob("*.qpf")):
             return c.resolve()
-    hits = [d for d in CORES_DIR.glob("*_MiSTer") if d.name.lower() == f"arcade-{core}_mister".lower()
+    hits = [d for d in base.glob("*_MiSTer") if d.name.lower() == f"arcade-{core}_mister".lower()
             or d.name.lower() == str(core).lower()]
     if hits:
         return hits[0].resolve()
-    raise ToolError(f"no core '{core}' under {CORES_DIR} (a directory with a .qpf)")
+    raise ToolError(f"no core '{core}' under {base} (a directory with a .qpf); set MISTER_CORES_DIR")
 
 
 def list_cores():
-    return sorted(d.name for d in CORES_DIR.glob("*_MiSTer") if any(d.glob("*.qpf")))
+    return sorted(d.name for d in cores_dir().glob("*_MiSTer") if any(d.glob("*.qpf")))
 
 
 def script(root, name):

@@ -200,6 +200,7 @@ def next_rbf_name(m):
 
 
 def main():
+    global RBF_STEM                     # --stem replaces it for next_rbf_name()
     ap = argparse.ArgumentParser()
     ap.add_argument("--rev", help="Quartus revision the staged build used "
                                   "(default: coretools.revision)")
@@ -211,6 +212,10 @@ def main():
                          f"{RBF_STEM}_NNNNNNNN.rbf on the device (see "
                          "next_rbf_name); the .mra's <rbf> tag must match the "
                          "part before the underscore")
+    ap.add_argument("--stem", default=None,
+                    help=f"the bitstream's name on the device (default {RBF_STEM}). A core "
+                         "that ships several bitstreams gives each revision the name its "
+                         ".mra files' <rbf> tag uses")
     ap.add_argument("--all", action="store_true",
                     help="also deploy .mra files listed in HELD_BACK_SETS")
     ap.add_argument("--mra-only", action="store_true")
@@ -222,6 +227,7 @@ def main():
     ap.add_argument("--force", action="store_true",
                     help="deploy despite failed build checks -- say why")
     a = ap.parse_args()
+    RBF_STEM = a.stem or RBF_STEM
 
     rev = revision(REPO, a.rev)
     stage = REPO / "build"

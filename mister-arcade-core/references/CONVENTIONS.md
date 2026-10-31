@@ -27,10 +27,10 @@ What every core repository in this family shares. Terse by design; the reasons a
   Fuuki do. KonamiGX omits the leading underscore; that is a defect in that core, not an option. `<rbf><Name></rbf>`: the `.mra` names the core file **without** the
   `Arcade-` prefix, while the released bitstream keeps it, so the README's install step says to
   drop the prefix when copying the `.rbf` to the device. `deploy.py` already installs it under the
-  un-prefixed name. The released bitstream keeps the prefix the guidelines ask for,
-  `releases/Arcade-<Name>_YYYYMMDD.rbf`, so the README's install step tells the user to drop it
-  when copying to the device. KonamiGX instead puts `Arcade-KonamiGX` in the `<rbf>` tag; that is
-  wrong, and a new core follows Seta and Fuuki. Changing the stem of an already-deployed core means
+  un-prefixed name. A core that ships several bitstreams gives each its own `<rbf>` name
+  (KonamiGX, KonamiGXT1, KonamiGXT34) and deploys each revision under that name
+  (`deploy.py --stem`), or one revision's build becomes the newest file another's sets load.
+  Changing the stem of an already-deployed core means
   deleting the files under the old stem from the device in the same change; MiSTer ignores them, so
   they only mislead.
 

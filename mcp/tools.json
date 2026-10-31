@@ -735,7 +735,7 @@
  },
  {
   "name": "mister_deploy",
-  "description": "scripts/deploy.py: checks the build log, .rbf age and timing, copies the .rbf and .mras.",
+  "description": "scripts/deploy.py: checks the build log, .rbf age and timing, copies the .rbf and .mras.\nThe .rbf goes up as <stem>_<next number>.rbf. stem defaults to the script's (the project),\nexcept that a revision whose name (less _stp) is an <rbf> tag in releases/ deploys under that\nname: a core shipping several bitstreams (KonamiGX, KonamiGXT1, KonamiGXT34) must not put one\nrevision's build under another's name.",
   "inputSchema": {
    "properties": {
     "core": {
@@ -745,6 +745,11 @@
     "rev": {
      "default": "",
      "title": "Rev",
+     "type": "string"
+    },
+    "stem": {
+     "default": "",
+     "title": "Stem",
      "type": "string"
     },
     "mra_only": {

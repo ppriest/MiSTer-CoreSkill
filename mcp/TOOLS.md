@@ -285,12 +285,13 @@ Before a launch: which .rbf the .mra's <rbf> prefix resolves to on the device (t
 
 *acts*
 
-scripts/deploy.py: checks the build log, .rbf age and timing, copies the .rbf and .mras.
+scripts/deploy.py: checks the build log, .rbf age and timing, copies the .rbf and .mras. The .rbf goes up as <stem>_<next number>.rbf. stem defaults to the script's (the project), except that a revision whose name (less _stp) is an <rbf> tag in releases/ deploys under that name: a core shipping several bitstreams (KonamiGX, KonamiGXT1, KonamiGXT34) must not put one revision's build under another's name.
 
 | Argument | Type | Default |
 |---|---|---|
 | `core` | string | required |
 | `rev` | string | `""` |
+| `stem` | string | `""` |
 | `mra_only` | boolean | `false` |
 | `rbf_only` | boolean | `false` |
 | `allow_timing_miss` | boolean | `false` |

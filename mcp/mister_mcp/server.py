@@ -65,7 +65,7 @@ def _job(kind, root, script, args, wait_s, meta=None, result=None):
 @tool(RO)
 def cores_list() -> dict:
     """Core repositories found under the cores directory (MISTER_CORES_DIR)."""
-    return {"cores_dir": str(C.CORES_DIR), "cores": C.list_cores()}
+    return {"cores_dir": str(C.cores_dir()), "cores": C.list_cores()}
 
 
 @tool(RO)
@@ -238,7 +238,7 @@ def sim_sweep(kill: bool = False) -> dict:
                        capture_output=True, text=True, **C.NO_WINDOW)
     procs = [ln.split(None, 1) for ln in r.stdout.splitlines() if ln.strip()]
     running = [j for j in J.listing(50, True) if j["kind"] == "sim"]
-    locks = [str(p) for c in C.list_cores() for p in (C.CORES_DIR / c).glob("**/work/_lock")
+    locks = [str(p) for c in C.list_cores() for p in (C.cores_dir() / c).glob("**/work/_lock")
              if "node_modules" not in str(p)]
     out = {"processes": [{"pid": int(p), "name": n} for p, n in procs], "running_sim_jobs":
            [j["id"] for j in running], "stale_locks": locks if not running else [],
@@ -417,15 +417,33 @@ def mister_check_mra(core: str, mra: str) -> dict:
     return dict(_mra_check(B.Board(root), p.read_text(errors="replace")), mra=str(p))
 
 
+def _mra_rbf_tags(root):
+    return {B.mra_rbf(p.read_text(errors="replace")) for p in root.glob("releases/**/*.mra")} - {None}
+
+
 @tool(ACT)
-def mister_deploy(core: str, rev: str = "", mra_only: bool = False, rbf_only: bool = False,
-                  allow_timing_miss: bool = False, dry_run: bool = False, wait_s: int = 180) -> dict:
-    """scripts/deploy.py: checks the build log, .rbf age and timing, copies the .rbf and .mras."""
+def mister_deploy(core: str, rev: str = "", stem: str = "", mra_only: bool = False,
+                  rbf_only: bool = False, allow_timing_miss: bool = False, dry_run: bool = False,
+                  wait_s: int = 180) -> dict:
+    """scripts/deploy.py: checks the build log, .rbf age and timing, copies the .rbf and .mras.
+    The .rbf goes up as <stem>_<next number>.rbf. stem defaults to the script's (the project),
+    except that a revision whose name (less _stp) is an <rbf> tag in releases/ deploys under that
+    name: a core shipping several bitstreams (KonamiGX, KonamiGXT1, KonamiGXT34) must not put one
+    revision's build under another's name."""
     root = C.resolve(core)
-    args = (["--rev", rev] if rev else []) + (["--mra-only"] if mra_only else []) + \
-        (["--rbf-only"] if rbf_only else []) + (["--allow-timing-miss"] if allow_timing_miss else []) + \
-        (["--dry-run"] if dry_run else [])
-    return _job("deploy", root, "deploy.py", args, wait_s)
+    if not stem and rev:
+        cand = re.sub(r"_stp$", "", rev)
+        tags = {t.lower(): t for t in _mra_rbf_tags(root)}
+        if cand.lower() in tags and cand.lower() != C.coretools.project(root).lower():
+            stem = tags[cand.lower()]
+    if stem:
+        path, _ = C.script(root, "deploy.py")
+        if "--stem" not in path.read_text(errors="replace"):
+            raise ToolError(f"{path} has no --stem option; copy the skill's deploy.py, or deploy by hand")
+    args = (["--rev", rev] if rev else []) + (["--stem", stem] if stem else []) +         (["--mra-only"] if mra_only else []) + (["--rbf-only"] if rbf_only else []) +         (["--allow-timing-miss"] if allow_timing_miss else []) + (["--dry-run"] if dry_run else [])
+    st = _job("deploy", root, "deploy.py", args, wait_s, {"stem": stem or None})
+    st["stem"] = stem or "(script default)"
+    return st
 
 
 @tool(ACT)
