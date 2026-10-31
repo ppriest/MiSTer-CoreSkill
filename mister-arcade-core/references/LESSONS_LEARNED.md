@@ -801,6 +801,12 @@ To add a lesson:
   it. Check `wc -l` after a scripted rewrite; a clean `git status` says nothing about correctness.
 - **Two sessions in one working tree share the git index.** Commit with `git commit -- <paths>`, and
   agree first on files both edit.
+- **Run long CPU benches in Verilator from the start, VHDL CPUs included.** The ModelSim here is
+  the Intel Starter Edition, which is speed-limited. TG68K.C booting a ROM ran about 3,700 accesses a
+  second in ModelSim and 156,000 in Verilator through a GHDL conversion
+  (`scripts/verilator_prep.sh`), with the same clock count and trace. A 68EC020 boot to its DSP
+  handshake, 27.7 million accesses that are mostly a byte-wise ROM checksum, took 177 s instead of
+  about two hours. Keep ModelSim for X-propagation and as the second opinion.
 - **Verilator on Windows:**
   - A comment beginning "Verilator" is a pragma.
   - Set `_fmode = _O_BINARY` before a save.
