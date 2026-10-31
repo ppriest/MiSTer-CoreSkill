@@ -302,7 +302,7 @@
  },
  {
   "name": "sim_run",
-  "description": "One testbench: scripts/run_sim.sh (ModelSim; fresh library, one at a time per core) or\nscripts/run_verilator.sh. `args` go through (+plusargs, -Gparam=, --threads=N). The result\nflags $readmem warnings, which mean empty ROMs rather than an RTL fault.",
+  "description": "One testbench: scripts/run_sim.sh (ModelSim; fresh library, one at a time per core) or\nscripts/run_verilator.sh. `args` go through (+plusargs, -Gparam=, --threads=N). Verilator:\n`tag` builds in obj_verilator/<bench>[params]-<tag>/, so two runs of one bench (different\nsets) can go at once; two runs that would share a build directory are refused. The result\nflags $readmem warnings, which mean empty ROMs rather than an RTL fault.",
   "inputSchema": {
    "properties": {
     "core": {
@@ -332,6 +332,11 @@
      ],
      "default": null,
      "title": "Args"
+    },
+    "tag": {
+     "default": "",
+     "title": "Tag",
+     "type": "string"
     },
     "wait_s": {
      "default": 120,

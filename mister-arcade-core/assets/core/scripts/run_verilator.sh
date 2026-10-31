@@ -3,7 +3,7 @@
 #
 # Build and run one testbench with Verilator. RUN FROM THE REPOSITORY ROOT.
 #
-#     scripts/run_verilator.sh video_tb [-GNAME=value ...] [--threads=N] [+plusargs ...]
+#     scripts/run_verilator.sh video_tb [-GNAME=value ...] [--threads=N] [--tag=NAME] [+plusargs ...]
 #
 # The fast second simulator (WORKFLOW section 10): two-state and no VHDL, and a
 # disagreement with ModelSim is a finding. VHDL modules come in as GHDL Verilog
@@ -40,11 +40,12 @@ fi
 [ -d sys ] || { echo "run me from the repository root"; exit 1; }
 [ -f "sim/$TB/verilator.files" ] || { echo "no sim/$TB/verilator.files"; exit 1; }
 
-GEN=(); RUN=(); THREADS=1
+GEN=(); RUN=(); THREADS=1; TAG=""
 for a in "$@"; do
 	case "$a" in
 		-G*)         GEN+=("$a") ;;
 		--threads=*) THREADS="${a#--threads=}" ;;
+		--tag=*)     TAG="${a#--tag=}" ;;
 		*)           RUN+=("$a") ;;
 	esac
 done
@@ -54,9 +55,11 @@ done
 [ -x scripts/verilator_prep.sh ] && scripts/verilator_prep.sh "$TB"
 
 # A parameter override or a thread count changes the model, so it gets its
-# own build directory
+# own build directory. --tag gives a run its own too, so two runs of one
+# bench (different sets, same model) can go at once without sharing a build.
 OUT="obj_verilator/$TB$(printf '%s' "${GEN[@]+"${GEN[@]}"}" | tr -c 'A-Za-z0-9_' '_')"
 [ "$THREADS" = 1 ] || OUT="${OUT}_t$THREADS"
+[ -z "$TAG" ] || OUT="${OUT}-$(printf '%s' "$TAG" | tr -c 'A-Za-z0-9_' '_')"
 mkdir -p "$OUT"
 
 # A bench with its own sim/<tb>/main.cpp drives its clock from C++ and can

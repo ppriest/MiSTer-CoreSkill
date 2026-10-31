@@ -201,22 +201,43 @@ def _sim_result(jid):
 
 @tool(ACT)
 def sim_run(core: str, bench: str, simulator: str = "modelsim", args: list[str] | None = None,
-            wait_s: int = 120) -> dict:
+            tag: str = "", wait_s: int = 120) -> dict:
     """One testbench: scripts/run_sim.sh (ModelSim; fresh library, one at a time per core) or
-    scripts/run_verilator.sh. `args` go through (+plusargs, -Gparam=, --threads=N). The result
+    scripts/run_verilator.sh. `args` go through (+plusargs, -Gparam=, --threads=N). Verilator:
+    `tag` builds in obj_verilator/<bench>[params]-<tag>/, so two runs of one bench (different
+    sets) can go at once; two runs that would share a build directory are refused. The result
     flags $readmem warnings, which mean empty ROMs rather than an RTL fault."""
     root = C.resolve(core)
+    args = list(args or [])
     if simulator not in ("modelsim", "verilator"):
         raise ToolError("simulator is modelsim or verilator")
+    running = [j for j in J.listing(50, True) if j["kind"] == "sim" and j["core"] == root.name
+               and j["meta"].get("simulator") == simulator]
     if simulator == "modelsim":
-        busy = [j for j in J.listing(50, True) if j["kind"] == "sim" and j["core"] == root.name
-                and j["meta"].get("simulator") == "modelsim"]
-        if busy:
-            raise ToolError(f"ModelSim job {busy[0]['id']} is running on this core; run_sim.sh "
+        if tag:
+            raise ToolError("tag is for Verilator; run_sim.sh rebuilds one work library per core")
+        if running:
+            raise ToolError(f"ModelSim job {running[0]['id']} is running on this core; run_sim.sh "
                             "rebuilds one shared work library, so wait or cancel it")
+    else:
+        if tag:
+            path, _ = C.script(root, "run_verilator.sh")
+            if "--tag=" not in path.read_text(errors="replace"):
+                raise ToolError(f"{path} has no --tag option; copy the skill's run_verilator.sh")
+            args.append(f"--tag={tag}")
+        # the build directory is named from the bench, the -G and --threads arguments and the tag
+        build = (bench, tuple(sorted(a for a in args if a.startswith(("-G", "--threads=", "--tag=")))))
+        clash = [j for j in running if j["meta"].get("build") == list(build[1])
+                 and j["meta"].get("bench") == bench]
+        if clash:
+            raise ToolError(f"Verilator job {clash[0]['id']} is building or running the same "
+                            f"model ({bench}, {list(build[1]) or 'no -G/--threads/--tag'}); pass "
+                            "a different tag to run alongside it")
     script = "run_sim.sh" if simulator == "modelsim" else "run_verilator.sh"
-    return _job("sim", root, script, [bench, *(args or [])], wait_s,
-                {"bench": bench, "simulator": simulator}, _sim_result)
+    meta = {"bench": bench, "simulator": simulator}
+    if simulator == "verilator":
+        meta["build"] = list(build[1])
+    return _job("sim", root, script, [bench, *args], wait_s, meta, _sim_result)
 
 
 @tool(ACT)

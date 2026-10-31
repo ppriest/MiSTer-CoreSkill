@@ -139,7 +139,7 @@ Testbenches under sim/, with which simulators each has a file list for.
 
 *acts*
 
-One testbench: scripts/run_sim.sh (ModelSim; fresh library, one at a time per core) or scripts/run_verilator.sh. `args` go through (+plusargs, -Gparam=, --threads=N). The result flags $readmem warnings, which mean empty ROMs rather than an RTL fault.
+One testbench: scripts/run_sim.sh (ModelSim; fresh library, one at a time per core) or scripts/run_verilator.sh. `args` go through (+plusargs, -Gparam=, --threads=N). Verilator: `tag` builds in obj_verilator/<bench>[params]-<tag>/, so two runs of one bench (different sets) can go at once; two runs that would share a build directory are refused. The result flags $readmem warnings, which mean empty ROMs rather than an RTL fault.
 
 | Argument | Type | Default |
 |---|---|---|
@@ -147,6 +147,7 @@ One testbench: scripts/run_sim.sh (ModelSim; fresh library, one at a time per co
 | `bench` | string | required |
 | `simulator` | string | `"modelsim"` |
 | `args` | list[string] or null | `null` |
+| `tag` | string | `""` |
 | `wait_s` | integer | `120` |
 
 ### `sim_compare_boot`
