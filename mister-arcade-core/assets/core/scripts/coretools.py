@@ -94,11 +94,12 @@ CONFIG_DEFAULTS = {
 
 def core_config(root=None):
     """scripts/core.json over CONFIG_DEFAULTS: the per-core values the MCP's scripts read.
-    The ISSP field tables are in scripts/issp_fields.tcl (Tcl reads them)."""
+    Under the MCP, CORE_CONFIG names the copy the core registered (core_register), which is
+    read instead. The ISSP field tables are in scripts/issp_fields.tcl (Tcl reads them)."""
     import json
     root = Path(root or core_root())
     cfg = dict(CONFIG_DEFAULTS)
-    p = root / "scripts" / "core.json"
+    p = Path(os.environ["CORE_CONFIG"]) if os.environ.get("CORE_CONFIG") else root / "scripts" / "core.json"
     if p.exists():
         cfg.update(json.loads(p.read_text(encoding="utf-8")))
     cfg["mra_folder"] = cfg["mra_folder"] or "_" + project(root)

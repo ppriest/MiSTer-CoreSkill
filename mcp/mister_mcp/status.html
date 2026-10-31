@@ -250,13 +250,18 @@ function render() {
   const cq = $("corefilter").value;
   const cores = d.cores.filter(c => match(cq, c.name, c.path, c.branch, JSON.stringify(c.settings)));
   $("ncores").textContent = `${cores.length}${cq ? " of " + d.cores.length : ""}`;
-  $("cores").innerHTML = table(["Core", "Path", "Branch", "Busy", "Last call", "MAME_DIR", "MAME_EXE", "MAME_SRC", "MAME_ROMPATH", "Scripts"],
+  const reg = r => r.error ? `<span class="chip warn" title="${esc(r.error)}">error</span>`
+    : r.stale && r.stale.length ? `<span class="chip warn" title="changed since ${esc(r.registered)}: ${esc(r.stale.join(", "))}; call core_register">stale</span>`
+    : r.registered ? `<span class="muted nw" title="scripts/${esc(r.files.join(", scripts/"))}">${esc(r.registered.slice(5, 16))}</span>`
+    : r.needed ? `<span class="chip warn" title="has ${esc(r.files.join(", "))}; call core_register">not registered</span>`
+    : `<span class="muted">defaults</span>`;
+  $("cores").innerHTML = table(["Core", "Path", "Branch", "Busy", "Last call", "MAME_DIR", "MAME_EXE", "MAME_SRC", "MAME_ROMPATH", "Registered", "Scripts"],
     cores.map(c => [`<b>${esc(c.short)}</b>${c.duplicate ? ' <span class="chip warn" title="this name is in two cores dirs">dup</span>' : ""}`,
       `<span class="mono muted">${esc(c.path)}</span>`, `<span class="mono">${esc(c.branch || "")}</span>`,
       c.active.map(a => `<span class="chip s-running">${esc(a.split(" ")[0])}</span>`).join(" "),
       `<span class="muted">${esc(c.last_call ? c.last_call.slice(5, 16) : "")}</span>`,
       setting(c.settings, "MAME_DIR"), setting(c.settings, "MAME_EXE"), setting(c.settings, "MAME_SRC"),
-      setting(c.settings, "MAME_ROMPATH"),
+      setting(c.settings, "MAME_ROMPATH"), reg(c.registration),
       c.own_scripts.length
         ? `<span class="chip warn" title="runs its own copy of: ${esc(c.own_scripts.join(", "))}">${c.own_scripts.length} own</span>`
         : `<span class="muted" title="${c.core_json ? "scripts/core.json" : "no scripts/core.json: defaults"}">server${c.core_json ? "" : " (defaults)"}</span>`]));

@@ -120,6 +120,9 @@ def command(root, name, *args):
     env = dict(os.environ, **coretools.core_settings(root), CORE_ROOT=str(root), PYTHONIOENCODING="utf-8",
                PYTHONUNBUFFERED="1", MSYS_NO_PATHCONV="1",
                PYTHONPATH=os.pathsep.join(filter(None, [str(TEMPLATE_SCRIPTS), os.environ.get("PYTHONPATH")])))
+    from . import registry                       # imports this module
+    if tpl and name in registry.USERS:
+        env.update(registry.env(root))           # the registered core.json / issp_fields.tcl
     if path.suffix == ".py":
         argv = [python_exe(), str(path), *map(str, args)]
     elif path.suffix == ".sh":

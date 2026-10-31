@@ -17,6 +17,15 @@ scripts, write_timing), and run with `CORE_ROOT` set to the core. They import `c
 | `scripts/issp_fields.tcl` | `set fields_<id> {{name lo hi format} ...}` per probe instance; `set fields_B $fields_A` to share one; `fields_<id>_w<bits>` for a build whose bus has that width |
 | `scripts/floorplan.json`, `scripts/mame/regions.json` | floorplan groups; MAME regions to capture, trace and sweep |
 
+**Registration.** `core_register` validates `core.json` (known keys, types, `stage_copies`
+sources exist) and `issp_fields.tcl` (every table and row parses, `lo <= hi`, known formats) and
+stores a copy in `~/.mister/cores/`. The server's build_staged, deploy, probe and read_issp run
+with `CORE_CONFIG` and `ISSP_FIELDS` naming that copy, `probe_sequence` and `build_worst_paths`
+read it, and all of them refuse while either file in the core differs from what was registered
+(`registry.py`). A core with neither file runs on the defaults without registering.
+`core_config` shows the registered values, what changed since, and what the files would register
+as now. The status page's Registered column shows the state per core.
+
 A core that still has its own copy of a script (`scripts/<name>` in the core) runs that copy:
 most older cores changed theirs beyond the per-core values, so each is migrated by moving its
 values into the files above, folding generic changes into the server's copy, and deleting it.

@@ -31,7 +31,8 @@ Three properties that must survive any port:
 
 Two further gates: every block in `scripts/core.json` `required_instances` must survive to the fitted
 netlist, and every macro in `required_macros` must be defined in the revision's `.qsf`. Add to both
-in the commit that adds the module or the macro.
+in the commit that adds the module or the macro, and call `core_register`: the build runs from the
+registered copy and refuses while `core.json` differs from it.
 
 ### Two revisions from one source
 
@@ -204,7 +205,8 @@ and how often", not "what does this waveform look like".
 
 Keep the wrapper generic and build the probe bus in the module that owns the signals. The field
 tables in `scripts/issp_fields.tcl` (`set fields_<id> {{name lo hi format} ...}`) must be kept in
-step with the bit layout — say so in a comment at both ends.
+step with the bit layout — say so in a comment at both ends — and registered with `core_register`
+after each change; the probe tools decode with the registered copy.
 
 The **source** direction is as valuable as the probe direction: pausing the CPU, selecting a
 memory page to dump, re-arming a capture and stepping the SDRAM clock phase are runtime pokes that

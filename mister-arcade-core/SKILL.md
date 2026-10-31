@@ -59,9 +59,11 @@ No `plink`, `pscp`, `ssh` or script of your own against the board: the server ho
 connection. The scripts the tools run are the server's (`mcp/mister_mcp/scripts/`), not copies in
 the core; what differs per core is in the core's `scripts/core.json` (`.mra` folder, held-back
 sets, blocks and macros the build must keep, stage copies, default probe instance) and
-`scripts/issp_fields.tcl` (probe field tables). An older core that still has its own copy of one
-of those scripts runs that copy until its values are moved into those two files and the copy
-deleted.
+`scripts/issp_fields.tcl` (probe field tables). **After any change to either file, call
+`core_register`**: the server validates them and keeps the registered copy, and the build,
+deploy, probe and STA tools run from it and refuse while the files differ from it. An older core
+that still has its own copy of one of those scripts runs that copy until its values are moved
+into those two files and the copy deleted.
 
 | Task | Tool |
 |---|---|
@@ -74,6 +76,7 @@ deleted.
 | ISSP probes | `probe_read`, `probe_issp`, `probe_sequence` |
 | JTAG and Quartus/ModelSim state | `locks_status` |
 | a core's tool paths | `core_settings`, `core_settings_set` |
+| a core's parameters (`core.json`, `issp_fields.tcl`) | `core_register`, `core_config` |
 | jobs and the call log | `jobs_list`, `jobs_status`, `jobs_log`, `jobs_stream_url`, `jobs_cancel`, `calls_log` |
 
 - **Long runs are jobs.** Builds, simulations, MAME runs, STA and probe reads wait up to `wait_s`

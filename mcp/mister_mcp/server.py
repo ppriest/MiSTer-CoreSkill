@@ -21,6 +21,7 @@ from mcp.types import ToolAnnotations
 from . import board as B
 from . import cores as C
 from . import jobs as J
+from . import registry as REG
 from . import reports as R
 from .cores import ToolError
 from .link import MONITOR, POLL as MONITOR_POLL
@@ -156,6 +157,37 @@ def core_settings_set(core: str, key: str, value: str = "") -> dict:
             "now": _core_settings(root)["settings"][key]}
 
 
+@tool(ACT)
+def core_register(core: str) -> dict:
+    """Register the core's parameters with the server: scripts/core.json (.mra folder, held-back
+    sets, required instances and macros, stage copies, default probe instance, STA clock) and
+    scripts/issp_fields.tcl (probe field tables). Validates both and stores a copy; build_start,
+    mister_deploy, probe_* and build_worst_paths run from that copy and refuse while either file
+    differs from it. Call it after every change to either file. Returns what was registered and
+    any warnings; refuses, registering nothing, on a problem."""
+    root = C.resolve(core)
+    return REG.register(root, branch=_git_branch(root))
+
+
+@tool(RO)
+def core_config(core: str) -> dict:
+    """The core's registered parameters, when they were registered, and which of scripts/core.json
+    and scripts/issp_fields.tcl changed since (stale: call core_register). check=what the files
+    would register as now, with problems and warnings, without registering."""
+    root = C.resolve(core)
+    st = REG.status(root)
+    cfg, tables, problems, warnings = REG.validate(root)
+    st["files_now"] = {"config": cfg, "tables": {k: len(v) for k, v in tables.items()},
+                       "problems": problems, "warnings": warnings}
+    return st
+
+
+def _git_branch(root):
+    r = subprocess.run(["git", "-C", str(root), "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True,
+                       text=True, **C.NO_WINDOW)
+    return r.stdout.strip() or None
+
+
 @tool(RO)
 def calls_log(limit: int = 50, tool: str = "", errors_only: bool = False, since: str = "") -> dict:
     """Recent tool calls from every session, newest last: time, tool, arguments, seconds,
@@ -283,11 +315,13 @@ def build_worst_paths(core: str, rev: str = "", wait_s: int = 300) -> dict:
     Writes output_files/worst_paths_<rev>.rpt."""
     root = C.resolve(core)
     r = _rev(root, rev)
-    tcl, _ = C.script(root, "report_worst_paths.tcl")
+    tcl, shared = C.script(root, "report_worst_paths.tcl")
     db = root / "build" if (root / "build" / "db").is_dir() else root
     sta = C.coretools.quartus_bin(root) / "quartus_sta.exe"
     argv = [str(sta), "-t", str(tcl), r]
-    env = dict(os.environ, CORE_ROOT=str(root), STA_CLOCK=C.coretools.core_config(root)["sta_clock"])
+    env = dict(os.environ, CORE_ROOT=str(root))
+    if shared:
+        env["STA_CLOCK"] = REG.config(root)["sta_clock"]
     jid = J.start("sta", root.name, argv, db, env, {"rev": r, "db": str(db)})
     st = J.wait(jid, wait_s)
     if st["state"] == "done":
@@ -929,10 +963,10 @@ def probe_sequence(core: str, steps: list[dict], wait_s: int = 120) -> dict:
             raise ToolError(f"bad step {s}")
         if k != "sleep" and not re.fullmatch(r"\w+", str(s[k])):
             raise ToolError(f"bad instance id in {s}")
-    # field tables: the core's own read_issp.tcl if it still has one, else its issp_fields.tcl
+    # field tables: the core's own read_issp.tcl if it still has one, else its registered issp_fields.tcl
     tcl, shared = C.script(root, "read_issp.tcl")
     if shared:
-        tcl = root / "scripts" / "issp_fields.tcl"
+        tcl = REG.env(root).get("ISSP_FIELDS", "")
     spec = {"root": str(root), "scripts": [str(d) for d in (root / "scripts", C.TEMPLATE_SCRIPTS, C.MCP_SCRIPTS)
                                            if d.is_dir()],
             "tcl": str(tcl), "here_tcl": str(Path(__file__).with_name("issp_seq.tcl")), "steps": steps}

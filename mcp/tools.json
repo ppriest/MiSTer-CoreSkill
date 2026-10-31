@@ -63,6 +63,47 @@
   }
  },
  {
+  "name": "core_register",
+  "description": "Register the core's parameters with the server: scripts/core.json (.mra folder, held-back\nsets, required instances and macros, stage copies, default probe instance, STA clock) and\nscripts/issp_fields.tcl (probe field tables). Validates both and stores a copy; build_start,\nmister_deploy, probe_* and build_worst_paths run from that copy and refuse while either file\ndiffers from it. Call it after every change to either file. Returns what was registered and\nany warnings; refuses, registering nothing, on a problem.",
+  "inputSchema": {
+   "properties": {
+    "core": {
+     "title": "Core",
+     "type": "string"
+    }
+   },
+   "required": [
+    "core"
+   ],
+   "title": "core_registerArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "destructiveHint": false
+  }
+ },
+ {
+  "name": "core_config",
+  "description": "The core's registered parameters, when they were registered, and which of scripts/core.json\nand scripts/issp_fields.tcl changed since (stale: call core_register). check=what the files\nwould register as now, with problems and warnings, without registering.",
+  "inputSchema": {
+   "properties": {
+    "core": {
+     "title": "Core",
+     "type": "string"
+    }
+   },
+   "required": [
+    "core"
+   ],
+   "title": "core_configArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
   "name": "calls_log",
   "description": "Recent tool calls from every session, newest last: time, tool, arguments, seconds,\nok/error, and the job id and state where the tool returned one. Filter by tool name\n(substring), errors_only, or since (\"YYYY-MM-DD HH:MM:SS\" prefix, e.g. \"2026-10-31 10:4\").",
   "inputSchema": {

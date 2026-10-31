@@ -15,7 +15,8 @@ MiSTer arcade core for {{NAME}}. Built with the `mister-arcade-core` skill.
 - Builds, probes, MAME runs and everything on the MiSTer go through the `mister` MCP server's
   tools (`mcp__mister__*`). No `plink`, `pscp`, `ssh` or script of your own against the board.
   The scripts it runs are the server's; this core's values for them are `scripts/core.json` and
-  `scripts/issp_fields.tcl`. Long runs return a job id: follow it with `jobs_status` or stream
+  `scripts/issp_fields.tcl`. Call `core_register` after every change to either; the tools refuse
+  until you do. Long runs return a job id: follow it with `jobs_status` or stream
   it with `jobs_stream_url` and the Monitor tool. The user watches jobs, locks and cores on its
   status page, `http://127.0.0.1:8770/`. Tool paths for this core: `core_settings`,
   `core_settings_set`. When a tool is missing or fails, tell the MCP server session rather than

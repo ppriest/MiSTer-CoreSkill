@@ -24,6 +24,7 @@ from starlette.routing import Route
 
 from . import cores as C
 from . import jobs as J
+from . import registry as REG
 from .cores import ToolError
 from .link import MONITOR
 
@@ -86,6 +87,14 @@ def _guard(fn):
         except ToolError as e:
             return PlainTextResponse(str(e), status_code=404)
     return endpoint
+
+
+def _registration(root):
+    try:
+        st = REG.status(root)
+    except Exception as e:                   # a broken record must not take the page down
+        return {"error": str(e)}
+    return {k: st[k] for k in ("registered", "files", "stale", "needed")}
 
 
 def _branch(root):
@@ -189,6 +198,7 @@ def routes(core_settings, calls_path):
                     "own_scripts": sorted(p.name for p in C.MCP_SCRIPTS.iterdir()
                                           if (root / "scripts" / p.name).exists()),
                     "core_json": (root / "scripts" / "core.json").exists(),
+                    "registration": _registration(root),
                     "active": active.get(name, []),
                     "last_call": max((last.get(k, "") for k in (name, short, str(root))), default="") or None})
         held = hwlock.read_marker()

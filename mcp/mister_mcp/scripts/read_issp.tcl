@@ -12,9 +12,13 @@
 # Counters typically SATURATE and count per-cycle events, so they pin almost
 # immediately: `clear` first and read again for a rate.
 
-# The field tables, `set fields_<id> {{name lo hi format} ...}`, are the core's
-# scripts/issp_fields.tcl (CORE_ROOT names the core).
-set tables [file join $env(CORE_ROOT) scripts issp_fields.tcl]
+# The field tables, `set fields_<id> {{name lo hi format} ...}`: the copy of the core's
+# scripts/issp_fields.tcl it registered with the MCP (ISSP_FIELDS), else the file itself.
+if {[info exists env(ISSP_FIELDS)]} {
+    set tables $env(ISSP_FIELDS)
+} else {
+    set tables [file join $env(CORE_ROOT) scripts issp_fields.tcl]
+}
 if {![file exists $tables]} { puts "no $tables -- the core's probe field tables"; exit 1 }
 source $tables
 

@@ -40,6 +40,26 @@ Set one of a core's tool settings in ~/.mister-core.env as <core>.<KEY>=value, w
 | `key` | string | required |
 | `value` | string | `""` |
 
+### `core_register`
+
+*acts*
+
+Register the core's parameters with the server: scripts/core.json (.mra folder, held-back sets, required instances and macros, stage copies, default probe instance, STA clock) and scripts/issp_fields.tcl (probe field tables). Validates both and stores a copy; build_start, mister_deploy, probe_* and build_worst_paths run from that copy and refuse while either file differs from it. Call it after every change to either file. Returns what was registered and any warnings; refuses, registering nothing, on a problem.
+
+| Argument | Type | Default |
+|---|---|---|
+| `core` | string | required |
+
+### `core_config`
+
+*read-only*
+
+The core's registered parameters, when they were registered, and which of scripts/core.json and scripts/issp_fields.tcl changed since (stale: call core_register). check=what the files would register as now, with problems and warnings, without registering.
+
+| Argument | Type | Default |
+|---|---|---|
+| `core` | string | required |
+
 ### `calls_log`
 
 *read-only*
