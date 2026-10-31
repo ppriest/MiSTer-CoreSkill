@@ -15,7 +15,7 @@ What every core repository in this family shares. Terse by design; the reasons a
 - The top-level module is `emu`, in `<Name>.sv`, `` `include "sys/emu_ports.vh" ``. CONF_STR
   starts `"<Name>;;"`.
 - Deployed cores on the device: `<Name>_NNNNNNNN.rbf` in `/media/fat/_Arcade/cores/`, numbered
-  from **30000001** and incrementing per deploy (`scripts/deploy.py`). MiSTer launches the
+  from **30000001** and incrementing per deploy (`mister_deploy`). MiSTer launches the
   highest-sorting `<Name>_*.rbf`, and releases and other sources put a date there
   (`<Name>_20260927.rbf`), so a number below the date loses to it silently: the `.mra` launches
   someone else's build. 30000001 is above any date. Released cores:
@@ -26,10 +26,11 @@ What every core repository in this family shares. Terse by design; the reasons a
   `releases/_alternatives/_<game name>/`, as the contribution guidelines require and as Seta and
   Fuuki do. KonamiGX omits the leading underscore; that is a defect in that core, not an option. `<rbf><Name></rbf>`: the `.mra` names the core file **without** the
   `Arcade-` prefix, while the released bitstream keeps it, so the README's install step says to
-  drop the prefix when copying the `.rbf` to the device. `deploy.py` already installs it under the
+  drop the prefix when copying the `.rbf` to the device. `mister_deploy` already installs it under the
   un-prefixed name. A core that ships several bitstreams gives each its own `<rbf>` name
   (KonamiGX, KonamiGXT1, KonamiGXT34) and deploys each revision under that name
-  (`deploy.py --stem`), or one revision's build becomes the newest file another's sets load.
+  (`mister_deploy` `stem`; a revision named after an `<rbf>` tag in `releases/` gets that stem by
+  default), or one revision's build becomes the newest file another's sets load.
   Changing the stem of an already-deployed core means
   deleting the files under the old stem from the device in the same change; MiSTer ignores them, so
   they only mislead.
@@ -47,8 +48,10 @@ What every core repository in this family shares. Terse by design; the reasons a
   counters, tracer and pause control. `rtl/synth_check/` is a standalone Quartus project for
   measuring one block.
 - `sim/<bench>/` per testbench, with a `files.f`; `sim/common/` shared models.
-- `scripts/` build, deploy, capture and verification tooling (`docs/WORKFLOW.md`, "Script
-  inventory"). `scripts/mame/*.lua` for MAME capture.
+- `scripts/` simulation, `.mra` and verification tooling (`docs/WORKFLOW.md`, "Script
+  inventory"); build, deploy, board, probe and MAME-capture steps are MCP tools, which read the
+  core's `scripts/core.json`, `scripts/issp_fields.tcl`, `scripts/floorplan.json` and
+  `scripts/mame/` (`*.lua`, `regions.json`).
 - `tools/` vendored generators (source committed, binaries gitignored).
 - `docs/`: `ROADMAP.md`, `WORKFLOW.md`, `RELEASE_PROCESS.md`, `LESSONS_LEARNED.md`,
   `MAME_KLUDGES.md`, `HACKS.md`, `screenshots/<set>/`, plus per-subsystem design notes named
@@ -66,7 +69,7 @@ are source), `build/`, `quartus_*.log`, `q_*.log`, `sta*.log`, `worst_*.rpt`, Mo
 Verilator (`obj_verilator/`, `simout/`), vendored cores' simulation dumps (`/*.raw`,
 `sim/**/*.lxt`, `sim/**/*.vcd`), `roms/`, `/debug/` (anchored — a bare `debug/` swallows
 `rtl/debug/`), `/*.png`, `/*.txt`, `scratch_*`, `cfg.bin`, `outfile.bin`, MAME's `cfg/`, `nvram/`,
-`snap/`, `sta/`, `mister.env`, `releases/*.rbf` (add a verified one with `git add -f`),
+`snap/`, `sta/`, `releases/*.rbf` (add a verified one with `git add -f`),
 `compile.log`, `worst.tcl`, `tools/<gen>/<binary>`, editor and Python scratch.
 
 ## `.gitattributes`
@@ -76,11 +79,10 @@ left alone); one `<vendored dir>/** -text` line per vendored directory.
 
 ## Settings
 
-No `mister.env` in a core. Machine settings (`MISTER_HOST`, `MISTER_USER`, `MISTER_PASSWORD`,
+Machine settings (`MISTER_HOST`, `MISTER_USER`, `MISTER_PASSWORD`,
 `QUARTUS_BIN`, `MODELSIM_BIN`, `MAME_DIR`, `MAME_EXE`, `MAME_SRC`, `MAME_ROMPATH`) live in
 `~/.mister-core.env`; a core that differs (its own MAME build, say) has `<core>.<KEY>=value` lines
-there, written with the MCP server's `core_settings_set`. `.gitignore` keeps `mister.env` so an
-old one is never committed. Absolute MiSTer paths need `MSYS_NO_PATHCONV=1` under Git bash.
+there, written with the MCP server's `core_settings_set`.
 
 ## `THIRD-PARTY.md`
 

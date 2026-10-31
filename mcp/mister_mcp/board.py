@@ -53,7 +53,7 @@ print(os.path.getsize(out))
 
 
 def _env(root=None):
-    """The board's connection: the environment, then ~/.mister-core.env, never a core's mister.env.
+    """The board's connection: the environment, then ~/.mister-core.env.
     There is one board, so per-core copies could only drift. Read per call: an edit to the file
     applies at the next call. `root` is accepted and ignored."""
     keys = ("MISTER_HOST", "MISTER_USER", "MISTER_PASSWORD")

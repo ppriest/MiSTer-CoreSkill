@@ -4,7 +4,7 @@ Survey of the Seta core (primary), cross-checked against Fuuki, Psikyo,
 JalecoMS32 and KonamiGX. `build/` ignored. All pointers absolute `file:line`.
 
 Paths without a core name in this document are the Seta core's; the skill ships
-`write_timing.py` and `mame/wtiming.lua` (section 5), not the rest.
+`mame/wtiming.lua`, run by the MCP tool `mame_write_timing` (section 5), not the rest.
 
 Scope note: `scripts/mame_subtrace.py`, `scripts/flip_shots.py` and
 `scripts/phase_sweep.py` were read as asked but are not part of this topic
@@ -370,8 +370,8 @@ Internal inconsistency in Seta's docs: `MAME_DIVERGENCE.md:31-32` says
 
 ## 5. Repeatable procedure for a new core
 
-Steps 1-2 use the skill's scripts (`write_timing.py`, `mame/wtiming.lua`, sharing
-`scripts/mame/regions.json`). Steps 3-5 use Seta tools the skill does not ship; port them from
+Steps 1-2 use the MCP tool `mame_write_timing` and the skill's `mame/wtiming.lua`, sharing
+`scripts/mame/regions.json`. Steps 3-5 use Seta tools the skill does not ship; port them from
 the Seta core's `scripts/` when needed.
 
 1. **Transcribe the address map** from the MAME driver into `scripts/mame/regions.json`: sprite
@@ -385,21 +385,21 @@ the Seta core's `scripts/` when needed.
 
 2. **Histogram over a long run, attract AND in play. Both, every set.**
    ```
-   python scripts/write_timing.py <set> --skip 600  --frames 1800
-   python scripts/write_timing.py <set> --coin 600 --skip 1500 --frames 1800 --tag _play
-   python scripts/write_timing.py <set> --reuse        # re-print from debug/wtiming/
+   mame_write_timing(core, sets=[set], skip=600, frames=1800)
+   mame_write_timing(core, sets=[set], coin=600, skip=1500, frames=1800, tag="_play")
+   jobs_log(job)        # the report again; raw counts in debug/wtiming/<set><tag>.txt
    ```
    The play run is the decisive one: attract is a demo loop and need not write the way the
    game does. Seta measured a set whose sprite codes went from 0% to 18% of writes in the
    first 24 lines after vblank between attract and play; a snapshot point chosen from attract
-   alone would have been wrong in play. `--coin` inserts a coin, presses Start, then holds a
+   alone would have been wrong in play. `coin` inserts a coin, presses Start, then holds a
    direction and pulses a button so play continues unattended.
 
    Run long: 1800 frames is 30 seconds of game time, enough for several scenes, level
    transitions and an attract cycle. A short run measures one scene.
 
    Skip past boot: counting from an early frame shows nothing while the game is still in its
-   RAM test (checked on `thunderl`: nothing at `--skip 120`, Seta's result at 600). For the play
+   RAM test (checked on `thunderl`: nothing at `skip=120`, Seta's result at 600). For the play
    run, skip past the coin and Start as well.
 
    Check the closing snapshot in `debug/wtiming/snap<tag>/` shows the scene wanted: a run that

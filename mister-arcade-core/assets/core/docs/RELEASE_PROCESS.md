@@ -5,7 +5,7 @@ something other people run.
 
 | | `<Name>_stp` (debug) | `<Name>` (release) |
 | --- | --- | --- |
-| Built by | `build_staged.py` (default) | `build_staged.py --rev <Name>` |
+| Built by | `build_start(core)` (default) | `build_start(core, rev="<Name>")` |
 | Contains | ISSP probes, debug tracer, Debug OSD page | none of it — compiled out |
 | Timing | **may ship with negative slack** | **must close timing** |
 | Goes to | our own DE10-nano | `releases/`, other people's hardware |
@@ -16,19 +16,20 @@ A release build goes to hardware we cannot see, where a path that only just fail
 intermittent glitch someone else has to chase. So negative slack is qualified for the debug revision
 and disqualifying for a release.
 
-`build_staged.py` enforces this: it reads every clock in the `.sta.summary` — not just `clk_sys` —
-and refuses to print the deploy command if any fail, naming the offenders.
-`--allow-negative-slack` overrides it, prints a warning instead, and obliges you to state the
-shortfall in the release notes.
+`build_start` enforces this: it reads every clock in the `.sta.summary` — not just `clk_sys` —
+and fails the job if any fail, naming the offenders. `allow_negative_slack=true` lets a debug
+build through; `mister_deploy` then refuses the `.rbf` unless given `allow_timing_miss=true`, and
+using either obliges you to state the shortfall wherever the build is used.
 
 It also gates on two things slack cannot see, both of which have shipped a falsely-green build on a
-sibling core: every block in `REQUIRED_INSTANCES` survived to the fitted netlist, and every macro
-in `REQUIRED_MACROS` is defined in the revision's `.qsf`. Keep both lists current as modules land.
+sibling core: every block in `scripts/core.json` `required_instances` survived to the fitted
+netlist, and every macro in `required_macros` is defined in the revision's `.qsf`. Keep both
+current as modules land.
 
 Steps for a release:
 
-1. `python scripts/build_staged.py --rev <Name>` — must pass the timing gate, the presence gate and
-   the macro gate.
+1. `build_start(core, rev="<Name>")` — must pass the timing gate, the presence gate and
+   the macro gate; `build_report` has the result.
 2. Smoketest every parent set (a smoke-test or sweep script: Seta's and Fuuki's `scripts/sweep.py` are the ones to port): load each, capture a
    screenshot, compare against the reference crop.
 3. Deploy and play-test; the debug revision is the one to reach for if anything needs diagnosing.
@@ -44,7 +45,7 @@ Steps for a release:
    the worst slack per clock and the resource table. A commit alone does not identify a bitstream:
    two builds of one commit at different seeds have differed in which games ran.
 7. Update `README.md`: History, Supported table, Status, Resource usage, and the Hardware
-   section's floorplan: `python scripts/floorplan.py --rev <rev>` for each release revision
+   section's floorplan: `build_floorplan(core, rev="<rev>")` for each release revision
    (reads the build just made, no compile), copy `debug/floorplan/<rev>.png` and
    `<rev>_groups.md` to `docs/floorplan/`, update the fit date under the image.
 
@@ -71,7 +72,7 @@ From the contribution guidelines (https://github.com/MiSTer-devel/Wiki_MiSTer/wi
 - One primary `.mra` per game in `releases/`, alternatives in `releases/_alternatives/_<game>/`,
   no filename clashes with existing platform `.mra` files.
 - The `<rbf>` tag names the core without the `Arcade-` prefix (`<rbf><Name></rbf>`), matching the
-  name `deploy.py` installs; the released file keeps the prefix, and the README's install step says
+  name `mister_deploy` installs; the released file keeps the prefix, and the README's install step says
   to drop it.
 - Every `.mra` regenerated against the current MAME, so `<mameversion>` matches it and the
   CRCs were re-verified against that release's set definitions.

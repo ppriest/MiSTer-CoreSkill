@@ -69,7 +69,7 @@ def revision(root, override=None):
 
 def _env_files(root):
     out = {}
-    for f in (os.environ.get("MISTER_CORE_ENV") or Path.home() / ".mister-core.env", root / "mister.env"):
+    for f in (os.environ.get("MISTER_CORE_ENV") or Path.home() / ".mister-core.env",):
         if Path(f).exists():
             for ln in Path(f).read_text(encoding="utf-8", errors="replace").splitlines():
                 if "=" in ln and not ln.lstrip().startswith("#"):

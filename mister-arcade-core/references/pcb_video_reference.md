@@ -37,7 +37,7 @@ uncertain.
 - Prefer viewing in the browser and stepping with `,` and `.` over downloading. Downloading
   a video is a file download: ask the user first, name the file and source. If approved,
   `yt-dlp` then `ffmpeg -ss <t> -frames:v 1` for single frames.
-- Compare against `scripts/hw.py shot --native` output at the same scene; note that the
+- Compare against `mister_screenshot(native=True)` output at the same scene; note that the
   MiSTer screenshot is the core's raw frame, the video is a scaled capture.
 - Record every video used in `docs/REFERENCE_VIDEO.md`: URL, timestamp, what it shows, what
   was concluded, how confident. Link, never re-host or transcribe the content.

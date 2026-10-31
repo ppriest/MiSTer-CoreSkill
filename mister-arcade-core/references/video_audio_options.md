@@ -117,8 +117,8 @@ What a flip takes is different on every board. Work it out per core and record i
    the tile's own flip bits, and fixed per-game offsets. Expect a few pixels of per-game offset
    that MAME encodes as constants. For `osd_flip`/`fake_dip` on a board whose flip is a chip
    register, force that register's bit in the core rather than inventing a second path.
-3. **Get a reference.** Capture with the DIP set (`scripts/mame/setdip.lua`, or Seta's
-   `mame_capture.py --dip "Flip Screen=On"`). MAME's own flip can be wrong: the check is that
+3. **Get a reference.** Capture with the DIP set (`mame_capture(core, set, dips=["Flip Screen=On"])`,
+   which runs `scripts/mame/setdip.lua`). MAME's own flip can be wrong: the check is that
    the flipped frame equals the unflipped frame of the same state rotated 180 degrees
    (LESSONS_LEARNED, "Reading MAME", flip screen). Where MAME's flipped
    output fails that, it goes in `docs/MAME_KLUDGES.md`. For a fake DIP there is no MAME

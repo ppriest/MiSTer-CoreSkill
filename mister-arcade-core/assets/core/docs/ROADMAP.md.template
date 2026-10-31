@@ -187,7 +187,7 @@ Exit criteria:
 
 **Phase 1 — Video, against a software model.**
 
-Build the MAME capture pipeline first (`mame_capture.py` + a `render_model.py` that reproduces the
+Build the MAME capture pipeline first (the `mame_capture` tool + a `render_model.py` that reproduces the
 driver's video file), get it pixel-exact on captured frames, then check RTL against the model layer
 by layer. Exit criteria: the first target renders frames pixel-identical to MAME's for a captured
 set of scenes, silent, in simulation.

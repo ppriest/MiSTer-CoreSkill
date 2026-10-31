@@ -13,7 +13,7 @@
  },
  {
   "name": "core_settings",
-  "description": "A core's tool settings as the tools resolve them, and where each comes from: env (the\nserver's environment), core (<core>.<KEY> in ~/.mister-core.env, set with core_settings_set),\nmister.env (the core's own file), machine (~/.mister-core.env) or unset.",
+  "description": "A core's tool settings as the tools resolve them, and where each comes from: env (the\nserver's environment), core (<core>.<KEY> in ~/.mister-core.env, set with core_settings_set),\nmachine (~/.mister-core.env) or unset.",
   "inputSchema": {
    "properties": {
     "core": {
@@ -33,7 +33,7 @@
  },
  {
   "name": "core_settings_set",
-  "description": "Set one of a core's tool settings in ~/.mister-core.env as <core>.<KEY>=value, which wins\nover the core's mister.env and the machine-wide value (e.g. a core that follows a newer MAME:\nMAME_DIR, MAME_EXE, MAME_SRC). An empty value removes it. Directories and files must exist.",
+  "description": "Set one of a core's tool settings in ~/.mister-core.env as <core>.<KEY>=value, which wins\nover the machine-wide value (e.g. a core that follows a newer MAME:\nMAME_DIR, MAME_EXE, MAME_SRC). An empty value removes it. Directories and files must exist.",
   "inputSchema": {
    "properties": {
     "core": {
@@ -256,7 +256,7 @@
  },
  {
   "name": "build_start",
-  "description": "Full staged Quartus compile (scripts/build_staged.py) as a job. Refuses while JTAG is held,\nas the script does. Builds take tens of minutes; poll jobs_status.",
+  "description": "Full staged Quartus compile (scripts/build_staged.py) as a job. Refuses while JTAG is held,\nas the script does. Fails on negative slack on any clock unless allow_negative_slack (a debug\nrevision only; a release must close timing). Builds take tens of minutes; poll jobs_status.",
   "inputSchema": {
    "properties": {
     "core": {
@@ -283,6 +283,11 @@
     "allow_dirty": {
      "default": false,
      "title": "Allow Dirty",
+     "type": "boolean"
+    },
+    "allow_negative_slack": {
+     "default": false,
+     "title": "Allow Negative Slack",
      "type": "boolean"
     },
     "wait_s": {
@@ -1456,7 +1461,7 @@
  },
  {
   "name": "probe_sequence",
-  "description": "ISSP steps in one quartus_stp session, under the machine-wide JTAG lock, so a clear, a\ntimed run and a read are one measurement. Steps, in order: {\"clear\": id}, {\"set\": id,\n\"value\": n}, {\"pulse\": id, \"value\": n}, {\"sleep\": seconds}, {\"read\": id}. Each read returns\nt_ms (since the session started), the raw bits, and fields decoded with the instance's table\nin the core's scripts/read_issp.tcl. `tag` is <core>|<build>|<set>| from the device.",
+  "description": "ISSP steps in one quartus_stp session, under the machine-wide JTAG lock, so a clear, a\ntimed run and a read are one measurement. Steps, in order: {\"clear\": id}, {\"set\": id,\n\"value\": n}, {\"pulse\": id, \"value\": n}, {\"sleep\": seconds}, {\"read\": id}. Each read returns\nt_ms (since the session started), the raw bits, and fields decoded with the instance's table\nin the core's scripts/issp_fields.tcl. `tag` is <core>|<build>|<set>| from the device.",
   "inputSchema": {
    "properties": {
     "core": {

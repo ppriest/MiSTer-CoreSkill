@@ -63,7 +63,7 @@ flowchart TD
     end
 
     subgraph P7["7. On the board"]
-        H1["build_staged.py, deploy.py, test: rbf_pipeline.md"]
+        H1["build_start, mister_deploy, test: rbf_pipeline.md"]
         H2{"Plays like MAME?"}
         H3["Symptom to cause, then back to a bench<br/>with a MAME capture or a state dump"]
         H1 --> H2

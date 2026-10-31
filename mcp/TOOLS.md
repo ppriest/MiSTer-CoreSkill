@@ -22,7 +22,7 @@ Core repositories and their paths, from MiSTer-Cores and MiSTer-Devel (MISTER_CO
 
 *read-only*
 
-A core's tool settings as the tools resolve them, and where each comes from: env (the server's environment), core (<core>.<KEY> in ~/.mister-core.env, set with core_settings_set), mister.env (the core's own file), machine (~/.mister-core.env) or unset.
+A core's tool settings as the tools resolve them, and where each comes from: env (the server's environment), core (<core>.<KEY> in ~/.mister-core.env, set with core_settings_set), machine (~/.mister-core.env) or unset.
 
 | Argument | Type | Default |
 |---|---|---|
@@ -32,7 +32,7 @@ A core's tool settings as the tools resolve them, and where each comes from: env
 
 *acts*
 
-Set one of a core's tool settings in ~/.mister-core.env as <core>.<KEY>=value, which wins over the core's mister.env and the machine-wide value (e.g. a core that follows a newer MAME: MAME_DIR, MAME_EXE, MAME_SRC). An empty value removes it. Directories and files must exist.
+Set one of a core's tool settings in ~/.mister-core.env as <core>.<KEY>=value, which wins over the machine-wide value (e.g. a core that follows a newer MAME: MAME_DIR, MAME_EXE, MAME_SRC). An empty value removes it. Directories and files must exist.
 
 | Argument | Type | Default |
 |---|---|---|
@@ -123,7 +123,7 @@ JTAG marker, queued JTAG sessions, running Quartus/ModelSim processes, active jo
 
 *acts*
 
-Full staged Quartus compile (scripts/build_staged.py) as a job. Refuses while JTAG is held, as the script does. Builds take tens of minutes; poll jobs_status.
+Full staged Quartus compile (scripts/build_staged.py) as a job. Refuses while JTAG is held, as the script does. Fails on negative slack on any clock unless allow_negative_slack (a debug revision only; a release must close timing). Builds take tens of minutes; poll jobs_status.
 
 | Argument | Type | Default |
 |---|---|---|
@@ -131,6 +131,7 @@ Full staged Quartus compile (scripts/build_staged.py) as a job. Refuses while JT
 | `rev` | string | `""` |
 | `seed` | integer or null | `null` |
 | `allow_dirty` | boolean | `false` |
+| `allow_negative_slack` | boolean | `false` |
 | `wait_s` | integer | `5` |
 
 ### `build_report`
@@ -523,7 +524,7 @@ scripts/read_issp.py <instance> [clear|set <v>|pulse <v>]: decode an instance, o
 
 *acts*
 
-ISSP steps in one quartus_stp session, under the machine-wide JTAG lock, so a clear, a timed run and a read are one measurement. Steps, in order: {"clear": id}, {"set": id, "value": n}, {"pulse": id, "value": n}, {"sleep": seconds}, {"read": id}. Each read returns t_ms (since the session started), the raw bits, and fields decoded with the instance's table in the core's scripts/read_issp.tcl. `tag` is <core>|<build>|<set>| from the device.
+ISSP steps in one quartus_stp session, under the machine-wide JTAG lock, so a clear, a timed run and a read are one measurement. Steps, in order: {"clear": id}, {"set": id, "value": n}, {"pulse": id, "value": n}, {"sleep": seconds}, {"read": id}. Each read returns t_ms (since the session started), the raw bits, and fields decoded with the instance's table in the core's scripts/issp_fields.tcl. `tag` is <core>|<build>|<set>| from the device.
 
 | Argument | Type | Default |
 |---|---|---|

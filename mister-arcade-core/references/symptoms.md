@@ -9,7 +9,7 @@ anything ("Timing closure").
 
 | Symptom | Cause seen before | Check |
 |---|---|---|
-| Black screen, no bus activity | memory path held in the core reset; ROM at the wrong base | `compare_boot_trace.py compare` against MAME's first accesses ("MiSTer integration") |
+| Black screen, no bus activity | memory path held in the core reset; ROM at the wrong base | `sim_compare_boot(cmd="compare")` against MAME's first accesses ("MiSTer integration") |
 | Boots in simulation, not on the board | negative slack; `initial` on a register array is not a power-up value; a construct Quartus builds differently from Verilator (an array written at a variable index, then the index changed, twice in one clock) | `.sta.summary` first; write reset state at reset; then one build with an architectural trace on the board (each retirement, register write, bus transfer) compared per category with the bench's trace of the same RTL -- the first differing value names the logic (Vamphalf `rtl/debug/vh_trace.sv`, `scripts/trace_compare.py`) |
 | RAM test fails | an unbacked region reads 0, not garbage; DTACK/ready pulsed instead of held | back every RAM the test walks at the declared size; ready is a level ("Memory transport") |
 | ROM test or checksum fails | interleave or byte order wrong in the `.mra` or at the SDRAM seam | prove the interleave against MAME's disassembly offline; CRC-found parts ("ROM loading") |
@@ -79,13 +79,13 @@ anything ("Timing closure").
 | A screenshot mismatch | the grab is one frame off; a stale `.rbf` reused by launching an `.mra` over a running core | check the grab time on each side; launch through `menu.rbf` (`tools.md`) |
 | A bench differs from a capture that matched before | the capture was taken with different inputs (coin, DIPs, start) | the manifest records the inputs; the comparison refuses a mismatch ("Testbench discipline") |
 | Black and silent on the board, suspect a subsystem | the suspect cannot produce that symptom; the board ran a release `.rbf` instead of the build | break the suspect in simulation first and see whether the symptom matches ("Diagnosis discipline") |
-| The probe answers for the wrong core | another session's build is loaded | the `core|build|set|` prefix on every line (`identity.py`) |
+| The probe answers for the wrong core | another session's build is loaded | the `core|build|set|` prefix on every `probe_*` reading |
 
 ## Build and tooling
 
 | Symptom | Cause seen before | Check |
 |---|---|---|
-| "Fitter was successful", board broken | negative slack is not an error to Quartus | `build_staged.py` gates on it; read `.sta.summary` |
+| "Fitter was successful", board broken | negative slack is not an error to Quartus | `build_start` gates on it; read `build_report` or `.sta.summary` |
 | An ALM count that cannot be right | a RAM inferred in logic (asynchronous read on a dual-port, a line buffer in a `generate` loop, a table in LUTs) | fit report RAM-block count; a simple-dual-port module per memory; a standalone synth harness ("Quartus synthesis gotchas") |
 | M10K over though the bits fit | blocks are 1024 x 10 whatever the shape | count blocks; remove memory |
 | Slack worse after relaxing a constraint | the bottleneck moved | re-read `report_timing` after every change |

@@ -109,17 +109,16 @@ CORE_KEYS = ("MAME_DIR", "MAME_EXE", "MAME_SRC", "MAME_ROMPATH", "MAME_MEAS_EXE"
 def core_settings(core: str) -> dict:
     """A core's tool settings as the tools resolve them, and where each comes from: env (the
     server's environment), core (<core>.<KEY> in ~/.mister-core.env, set with core_settings_set),
-    mister.env (the core's own file), machine (~/.mister-core.env) or unset."""
+    machine (~/.mister-core.env) or unset."""
     return _core_settings(C.resolve(core))
 
 
 def _core_settings(root):
     own = C.coretools.core_settings(root)
-    local = C.coretools._read_env_file(root / "mister.env")
     machine = C.coretools._read_env_file(C.coretools.machine_env_path())
     out = {}
     for k in CORE_KEYS:
-        for src, d in (("env", os.environ), ("core", own), ("mister.env", local), ("machine", machine)):
+        for src, d in (("env", os.environ), ("core", own), ("machine", machine)):
             if d.get(k):
                 out[k] = {"value": d[k], "from": src}
                 break
@@ -132,7 +131,7 @@ def _core_settings(root):
 @tool(ACT)
 def core_settings_set(core: str, key: str, value: str = "") -> dict:
     """Set one of a core's tool settings in ~/.mister-core.env as <core>.<KEY>=value, which wins
-    over the core's mister.env and the machine-wide value (e.g. a core that follows a newer MAME:
+    over the machine-wide value (e.g. a core that follows a newer MAME:
     MAME_DIR, MAME_EXE, MAME_SRC). An empty value removes it. Directories and files must exist."""
     root = C.resolve(core)
     if key not in CORE_KEYS:
@@ -259,13 +258,15 @@ def _build_result(jid):
 
 @tool(ACT)
 def build_start(core: str, rev: str = "", seed: int | None = None, allow_dirty: bool = False,
-                wait_s: int = 5) -> dict:
+                allow_negative_slack: bool = False, wait_s: int = 5) -> dict:
     """Full staged Quartus compile (scripts/build_staged.py) as a job. Refuses while JTAG is held,
-    as the script does. Builds take tens of minutes; poll jobs_status."""
+    as the script does. Fails on negative slack on any clock unless allow_negative_slack (a debug
+    revision only; a release must close timing). Builds take tens of minutes; poll jobs_status."""
     root = C.resolve(core)
     r = _rev(root, rev)
     args = ["--rev", r] + (["--seed", seed] if seed is not None else []) + \
-        (["--allow-dirty"] if allow_dirty else [])
+        (["--allow-dirty"] if allow_dirty else []) + \
+        (["--allow-negative-slack"] if allow_negative_slack else [])
     return _job("build", root, "build_staged.py", args, wait_s, {"rev": r}, _build_result)
 
 
@@ -900,7 +901,7 @@ def probe_sequence(core: str, steps: list[dict], wait_s: int = 120) -> dict:
     timed run and a read are one measurement. Steps, in order: {"clear": id}, {"set": id,
     "value": n}, {"pulse": id, "value": n}, {"sleep": seconds}, {"read": id}. Each read returns
     t_ms (since the session started), the raw bits, and fields decoded with the instance's table
-    in the core's scripts/read_issp.tcl. `tag` is <core>|<build>|<set>| from the device."""
+    in the core's scripts/issp_fields.tcl. `tag` is <core>|<build>|<set>| from the device."""
     root = C.resolve(core)
     if not steps or len(steps) > 1000:
         raise ToolError("steps: 1 to 1000")

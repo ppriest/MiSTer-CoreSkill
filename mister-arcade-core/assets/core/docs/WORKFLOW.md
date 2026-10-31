@@ -3,18 +3,19 @@
 The build, deploy, instrumentation and reference-capture practices every core in this family
 adopts. **These are not suggestions.** Each exists because its absence cost a sibling core real
 time, and `LESSONS_LEARNED.md` records what it cost. Adopt the whole set at the start, not the
-parts that seem needed yet. (Evidence: one core judged `build_staged.py` optional and left it
+parts that seem needed yet. (Evidence: one core judged the staged build optional and left it
 unported; the bill was serialised work, a build killed mid-Fitter by an edit in flight, and a
 `.qsf` hand-edit silently reverted by Quartus re-saving the project.)
 
 ---
 
-Not every script named below ships with the skill: the Script inventory at the end marks
-each one `skill` or names the sibling core to port it from.
+Builds, deploys, the board, probes and MAME traces go through the `mister` MCP server's tools,
+named below. Not every script named below ships with the skill: the Script inventory at the end
+marks each one `skill` or names the sibling core to port it from.
 
 ## 1. Build out of a snapshot, never in the tree
 
-`scripts/build_staged.py` snapshots HEAD into a **git worktree at `build/`** (gitignored) and runs
+`build_start` snapshots HEAD into a **git worktree at `build/`** (gitignored) and runs
 the Quartus flow there. The main tree stays editable for the whole compile, Quartus scratch stays
 out of the repo root, and the build is exactly HEAD — a dirty tree is refused by default. The built
 commit and seed are recorded in `build/BUILT_COMMIT` beside the log.
@@ -28,9 +29,9 @@ Three properties that must survive any port:
 - **Keeps `output_files/` and the log under `build/`**, so a failed build cannot be mistaken for the
   previous good one.
 
-Two further gates: every block in `REQUIRED_INSTANCES` must survive to the fitted netlist, and every
-macro in `REQUIRED_MACROS` must be defined in the revision's `.qsf`. Add to both lists in the commit
-that adds the module or the macro.
+Two further gates: every block in `scripts/core.json` `required_instances` must survive to the fitted
+netlist, and every macro in `required_macros` must be defined in the revision's `.qsf`. Add to both
+in the commit that adds the module or the macro.
 
 ### Two revisions from one source
 
@@ -41,8 +42,9 @@ the menu page compile out. No `#ifdef` in the middle of the logic — the guard 
 instances in the top-level `.sv` and around one `localparam` that drives `status_menumask`.
 
 ```
-python scripts/build_staged.py                  # <Name>_stp, the default
-python scripts/build_staged.py --rev <Name>     # the release build
+build_start(core)                   # <Name>_stp, the default
+build_start(core, rev="<Name>")     # the release build
+build_report(core, rev=...)         # commit, slack per clock, fit resources, .rbf path
 ```
 
 Outputs are named after the revision (`build/output_files/<Name>_stp.rbf`), so the two never
@@ -56,8 +58,9 @@ seeds 2 and 7 differed in whether five games ran, and the one that ran them all 
 slack.) When a build regresses games whose code paths the diff cannot reach, rebuild the same commit
 at another seed before bisecting the source.
 
-Keep an in-tree `scripts/build.sh` for the one case that needs it — a compile that must see
-uncommitted work — and treat it as the exception.
+No tool compiles the core's own project in the tree: commit, then `build_start`
+(`allow_dirty=true` builds HEAD without the uncommitted edits). `build_project` compiles a
+standalone project such as `rtl/synth_check` in place.
 
 Do not run Quartus wrapped in `nohup ... &` (the run becomes untracked), do not switch branches
 while a Quartus process is reading the tree (it silently kills the run), and invoke `quartus_sta`,
@@ -97,9 +100,9 @@ Two properties that must survive any port:
 - **A stale marker whose pid is gone is cleared automatically.** A crashed tool must not wedge every
   later build.
 
-Every entry point that touches either side calls it: `build_staged.py`, `run_sim.sh`,
-`read_issp.py`, `memdump.py`, `tracer_readout.py`, and anything else that opens the Blaster.
-`deploy.py` does not and should not — it is scp over the network.
+Every entry point that touches either side calls it: the MCP server's build, simulation and
+`probe_*` tools, `run_sim.sh`, `memdump.py`, `tracer_readout.py`, and anything else that opens the
+Blaster. `mister_deploy` does not and should not — it is a copy over the network.
 
 ## 2a. Sharing the PC and the MiSTer with other sessions
 
@@ -121,9 +124,8 @@ sessions on different cores stepping on each other.
   board, takes it away from whoever is using it: do it only when the user asks, and say so.
 - **Ask before taking the board back**, and before killing another session's simulator: a stray
   `vsim`/`vsimk` may still be in use. Ask its owner; do not assume it is abandoned.
-- **Read probes only through the MCP server's `probe_*` tools** (or `scripts/read_issp.py`,
-  `probe.py` without it), never a bare `quartus_stp` call: the bare call does not take the marker
-  and silently defeats the lock.
+- **Read probes only through the MCP server's `probe_*` tools**, never a bare `quartus_stp` call:
+  the bare call does not take the marker and silently defeats the lock.
 - **Everything runs through the MCP server** (the skill's `SKILL.md`, "The `mister` MCP
   server"): builds, simulations, MAME, deploys and probes are jobs every session can see, on the
   status page and with `jobs_list`. A script run by hand is invisible there.
@@ -142,7 +144,7 @@ ignored: they sit in `/media/fat/_Arcade/cores/` looking current, and the next p
 stale-looking core finds several candidates. Renaming the tag and deleting the orphans belong in the
 same change (KonamiGX, on dropping the `Arcade-` prefix).
 
-`scripts/deploy.py` refuses to copy a `.rbf` unless:
+`mister_deploy` refuses to copy a `.rbf` unless:
 
 - the build log says the compile succeeded,
 - the `.rbf` is **not older than that log**, and
@@ -191,16 +193,18 @@ Rules that come with the pattern:
 
 ## 5. The JTAG probe
 
-`rtl/debug/issp_probe.sv` — In-System Sources and Probes, read and poked over JTAG with
-`quartus_stp -t scripts/read_issp.tcl`, under the section 2 lock.
+`rtl/debug/issp_probe.sv` — In-System Sources and Probes, read and poked over JTAG with the MCP
+server's `probe_read`, `probe_issp` and `probe_sequence` (`quartus_stp` underneath), under the
+section 2 lock.
 
 **Why ISSP and not SignalTap:** SignalTap acquisition is GUI-only in Quartus Prime Lite 17.0. ISSP
 is scriptable (`start_insystem_source_probe`, `read_probe_data`, `write_source_data`), which is
 what a headless workflow needs, and it suits the questions a bring-up asks: "did this ever happen,
 and how often", not "what does this waveform look like".
 
-Keep the wrapper generic and build the probe bus in the module that owns the signals. The Tcl
-decoder must be kept in step with the bit layout — say so in a comment at both ends.
+Keep the wrapper generic and build the probe bus in the module that owns the signals. The field
+tables in `scripts/issp_fields.tcl` (`set fields_<id> {{name lo hi format} ...}`) must be kept in
+step with the bit layout — say so in a comment at both ends.
 
 The **source** direction is as valuable as the probe direction: pausing the CPU, selecting a
 memory page to dump, re-arming a capture and stepping the SDRAM clock phase are runtime pokes that
@@ -210,12 +214,12 @@ read every source back after writing it.
 
 **Every probe reading is labelled with what produced it: `<core>|<build>|<set>|`.** Several
 sessions share one MiSTer, so the core that answers a JTAG read is whatever is loaded, not
-necessarily the repository that asked. `read_issp.py` and `probe.py` prefix every line from
-`scripts/identity.py`: the core file and set come from the device (`/tmp/RBFNAME`,
-`/tmp/CORENAME`), the commit from a machine-wide deploy log that `deploy.py` appends to
-(`~/.mister/mister_deployed.tsv`). A field that cannot be established prints `?`, and when
-the loaded core is not this repository's, a warning goes to stderr. Quote readings with their
-prefix in notes, commit messages and messages to other sessions.
+necessarily the repository that asked. The `probe_*` tools prefix every reading: the core file and
+set come from the device (`/tmp/RBFNAME`, `/tmp/CORENAME`), the commit from a machine-wide deploy
+log that `mister_deploy` appends to (`~/.mister/mister_deployed.tsv`). A field that cannot be
+established prints `?`, and when the loaded core is not this repository's, a warning goes to the
+job log. Quote readings with their prefix in notes, commit messages and messages to other
+sessions.
 
 The authoritative check is in the bitstream itself: put a constant identity word on the probe bus
 (a core tag and the build's commit, written into a header by the build) and compare it with the
@@ -285,9 +289,9 @@ hang.
 ## 9. MAME as a reference generator
 
 Reference data is **captured, not hand-made**, so any claim about the hardware can be re-checked
-the same way by anyone with a MAME install and the ROM sets. `scripts/mame_capture.py` drives MAME
-headlessly through `scripts/mame/*.lua` and captures video regions, screenshots and register write
-logs.
+the same way by anyone with a MAME install and the ROM sets. The MCP server's `mame_capture` drives
+MAME headlessly through the core's `scripts/mame/*.lua` (regions from `scripts/mame/regions.json`)
+and captures video regions, screenshots and register write logs.
 
 What this makes provable offline, before hardware exists:
 
@@ -299,7 +303,7 @@ What this makes provable offline, before hardware exists:
 | Palette RAM dump | The colour path |
 | Write taps over a boot | Which RAM pages a game actually writes — the measurement the RAM budget depends on |
 
-The pipeline, in order: `mame_capture.py <set> --frame N` dumping every video RAM and register
+The pipeline, in order: `mame_capture(core, set, frame=N)` dumping every video RAM and register
 block through the CPU's address space; `render_model.py` reproducing the driver's video file and
 reporting the pixel match against MAME's own screenshot; then the RTL checked against the model,
 layer by layer. **The model is checked against MAME first and the RTL against the model.**
@@ -464,11 +468,18 @@ block (the skill's `references/SCRIPTS_NOTES.md`). The rest are ported from the 
 header comments intact: the rationale in those headers is why they have the shape they do. Mark
 each **done** as it lands.
 
+The staged build, deploy, launch and screenshot, probe readout, MAME capture and traces, and the
+boot-trace compare are MCP tools, not core scripts: `build_start`/`build_report`,
+`build_worst_paths`, `build_floorplan`, `mister_deploy`, `mister_launch`/`mister_screenshot`/
+`mister_playing`, `probe_read`/`probe_issp`/`probe_sequence`, `mame_capture`, `mame_boot_trace`,
+`mame_sys_trace`, `sim_compare_boot`, `mame_write_timing`. The core supplies their per-core values
+in `scripts/core.json`, `scripts/issp_fields.tcl`, `scripts/floorplan.json` and
+`scripts/mame/regions.json`.
+
 | script | why | from |
 |---|---|---|
 | `hwlock.py` | **first**, before any build: section 2 | skill |
-| `build_staged.py` | worktree build at `build/`, refuses dirty tree, gates on slack, instances, macros | skill |
-| `deploy.py` | slack-gated deploy, incrementing `.rbf` numbering, fallbacks on device | skill |
+| `core.json` | per-core values for the build, deploy and probe tools: `.mra` folder, held-back sets, required instances and macros, stage copies, default probe instance, STA clock | skill |
 | `run_sim.sh` | one testbench, fresh `work` library every run, takes the lock | skill |
 | `run_verilator.sh` | the fast second simulator; outside the lock | skill |
 | `mra.py`, `extract_dips.py`, `validate_mra.py` | verify byte-for-byte, extract DIPs, check every `.mra` | skill |
@@ -476,19 +487,17 @@ each **done** as it lands.
 | `extract_romstart.py` | `ROM_START` straight from the driver | skill |
 | `build_rom_image.py`, `build_region.py` | the ROM image the benches load | GX, Seta |
 | `cfg.py` | read-modify-write of the per-core `.CFG` status word | Seta, Fuuki |
-| `read_issp.tcl`, `read_issp.py`, `probe.py` | read the probe / write the source bus over JTAG | skill |
-| `report_worst_paths.tcl`, `sta_*.tcl` | worst setup paths from the compiled database | skill |
-| `floorplan.py`, `floorplan.tcl` | PNG of placement on the die coloured by block, per-group resource table | skill |
+| `issp_fields.tcl` | the probe field tables the `probe_*` tools decode with | skill |
+| `sta_*.tcl` | worst setup paths from the compiled database, run by hand (`build_worst_paths` is the tool) | skill |
+| `floorplan.example.json` | starting point for `scripts/floorplan.json`, the `build_floorplan` groups | skill |
 | `check_release_mras.py`, `hooks/pre-push` | refuses a push of published .mra files whose core is unreleased or whose layout changed without a new .rbf; also `.github/workflows/check-mras.yml` | skill |
-| `mame_capture.py` + `mame/*.lua`, `write_timing.py` | headless MAME reference capture; video-write sweep | skill |
+| `mame/*.lua`, `mame/regions.json` | what `mame_capture`, the traces and `mame_write_timing` run and read | skill |
 | `render_model.py` | the software model of the driver's video file | GX, MS32 (pattern only) |
-| `mame_boot_trace.py`, `mame_sys_trace.py`, `compare_boot_trace.py` | the CPU trace diff against MAME | skill |
 | `diff_core_trace.py` | RTL-side trace diff | Seta |
 | `decode_gfx.py`, `gfx_sheet.py` | decode tiles straight from the ROM zip | Seta, Fuuki |
 | `memdump.py` | read any CPU-visible memory out of a running core | Seta, Fuuki |
 | `decode_debug_screenshot.py` | trace ring readout through the video path | skill |
 | `tracer_readout.py` | the same, for the tracer's ring | Seta, Fuuki |
-| `hw.py` | launch, screenshot, what is playing | skill |
 | `wait_scene.py`, `sweep.py`, `soak.py` | hold a chosen scene, compare sets, detect hangs | Seta, Fuuki |
 | `sdram_pattern_test.py`, `sdram_dump_check.py` | known-pattern SDRAM test through the real download path | Seta, Fuuki |
 | `regen_mmr.sh --check` | drift check for generated register-map modules, where used | GX |

@@ -209,7 +209,7 @@ function setting(s, key) {
   const cls = x.exists === false ? "missing" : "";
   const tip = x.exists === false ? "path does not exist" : "";
   const why = {core: `this core's own line: ${key} prefixed with the core name`, machine: `the plain ${key} line every core shares`,
-               env: "the server's environment", "mister.env": "the core's old mister.env file"}[x.from] || "";
+               env: "the server's environment"}[x.from] || "";
   return `<span class="mono ${cls}" title="${tip}">${esc(x.value)}</span><span class="src" title="${esc(why)}">${esc(x.from)}</span>`;
 }
 

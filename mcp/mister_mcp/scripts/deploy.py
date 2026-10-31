@@ -12,7 +12,7 @@ revision (build/output_files/<rev>.rbf, build/q_staged.log); --rev, --rbf,
 --log and --sta point it elsewhere. The remote name is derived from the
 project (the .qpf stem): <project>_NNNNNNNN.rbf (numbered from 30000001).
 
-Connection settings come from ./mister.env (gitignored):
+Connection settings come from ~/.mister-core.env:
 
     MISTER_HOST=...
     MISTER_USER=...

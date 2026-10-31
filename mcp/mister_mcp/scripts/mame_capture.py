@@ -29,33 +29,15 @@ REPO = Path(os.environ.get("CORE_ROOT") or Path(__file__).resolve().parent.paren
 LUA_DIR = REPO / "scripts" / "mame"
 NO_WINDOW = {"creationflags": 0x08000000} if os.name == "nt" else {}
 
-
-def _read_env_file(path):
-    env = {}
-    if Path(path).exists():
-        for line in Path(path).read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if line and not line.startswith("#") and "=" in line:
-                k, v = line.split("=", 1)
-                env[k.strip()] = v.strip().strip('"').strip("'")
-    return env
-
-
-def load_env(path=REPO / "mister.env"):
-    """Per-machine settings (MISTER_CORE_ENV, else ~/.mister-core.env), then the core's."""
-    machine = os.environ.get("MISTER_CORE_ENV") or (Path.home() / ".mister-core.env")
-    env = _read_env_file(machine)
-    env.update(_read_env_file(path))
-    return env
+from coretools import setting  # noqa: E402  (the skill's template, on PYTHONPATH)
 
 
 def mame_paths():
-    env = load_env()
-    mame_dir = Path(os.environ.get("MAME_DIR", env.get("MAME_DIR", "")))
-    exe = mame_dir / os.environ.get("MAME_EXE", env.get("MAME_EXE", "mame.exe"))
+    mame_dir = Path(setting("MAME_DIR", "", REPO))
+    exe = mame_dir / setting("MAME_EXE", "mame.exe", REPO)
     if not exe.exists():
-        sys.exit(f"MAME not found at {exe}; set MAME_DIR/MAME_EXE in ~/.mister-core.env, "
-                 f"the core's mister.env, or the environment")
+        sys.exit(f"MAME not found at {exe}; set MAME_DIR/MAME_EXE with core_settings_set "
+                 f"or in ~/.mister-core.env")
     return mame_dir, exe
 
 
@@ -104,8 +86,8 @@ def mame_cmd(exe, game, lua, mame_dir, extra=()):
 
 
 def rompath(mame_dir):
-    """roms/ in the repo, MAME's own roms/, then MAME_ROMPATH (mister.env or environment)."""
-    extra = os.environ.get("MAME_ROMPATH", load_env().get("MAME_ROMPATH", ""))
+    """roms/ in the repo, MAME's own roms/, then MAME_ROMPATH."""
+    extra = setting("MAME_ROMPATH", "", REPO)
     return ";".join(p for p in [str(REPO / "roms"), str(mame_dir / "roms"), extra] if p)
 
 

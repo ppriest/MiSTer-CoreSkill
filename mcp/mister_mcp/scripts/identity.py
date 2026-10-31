@@ -70,7 +70,7 @@ def lookup(rbf_stem):
 def device_state(root=None):
     """(rbf stem, set name) as the MiSTer reports them, or (None, None)."""
     try:
-        import hw                                      # needs mister.env settings
+        import hw                                      # needs the MiSTer connection settings
         env = load_env(root, require=("MISTER_HOST", "MISTER_USER", "MISTER_PASSWORD"))
         out = hw.Mister(env).sh("cat /tmp/RBFNAME; echo; cat /tmp/CORENAME",
                                 check=False, timeout=20)

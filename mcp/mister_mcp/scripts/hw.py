@@ -9,9 +9,9 @@
     python scripts/hw.py osd                             # toggle the OSD (forces an nvram save)
 
 Needs MiSTer Remote (wizzomafizzo/mrext) listening on port 8182, and the same
-./mister.env that scripts/deploy.py uses. The .mra folder is derived from the
-project name (/media/fat/_Arcade/_<project>); REMOTE_ARCADE_DIR below
-overrides it.
+connection settings deploy.py uses (~/.mister-core.env). The .mra folder is
+/media/fat/_Arcade/_<project> unless the core's scripts/core.json mra_folder
+names another.
 
 TWO BEHAVIOURS HERE ARE NOT OPTIONAL, each learned from a false positive:
 

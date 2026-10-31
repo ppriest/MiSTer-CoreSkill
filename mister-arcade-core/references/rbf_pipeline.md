@@ -1,6 +1,6 @@
 # From source to Arcade RBF
 
-How a core's bitstream is produced, deployed and released, as the skill's scripts do it.
+How a core's bitstream is produced, deployed and released, as the MCP tools and the skill's scripts do it.
 Every refusal box is a check that exists because its absence once cost a session; the
 scripts' own headers say which.
 
@@ -15,21 +15,21 @@ flowchart TD
 
     D --> E["Commit to develop"]
 
-    subgraph BUILD["scripts/build_staged.py"]
+    subgraph BUILD["build_start"]
         E --> F{"Tree clean?"}
         F -- "no" --> F1["Refuse: commit first,<br/>the build is exactly HEAD"]
         F -- "yes" --> G{"hwlock: JTAG held<br/>or waiting?"}
         G -- "yes" --> G1["Refuse: JTAG has priority"]
         G -- "no" --> H{"Another staged<br/>build running?"}
         H -- "yes" --> H1["Refuse"]
-        H -- "no" --> I["Worktree build/ reset to HEAD,<br/>SEED patched, BUILT_COMMIT written,<br/>STAGE_COPIES copied in"]
+        H -- "no" --> I["Worktree build/ reset to HEAD,<br/>SEED patched, BUILT_COMMIT written,<br/>core.json stage_copies copied in"]
         I --> J["quartus_sh flow on the revision:<br/>Name_stp (DEBUG_ISSP) or Name (release)"]
         J --> K{"Required macros set,<br/>required blocks in the fit report,<br/>setup slack >= 0 on every clock?"}
         K -- "no" --> K1["Fail: nothing to deploy"]
         K -- "yes" --> L["build/output_files/rev.rbf,<br/>rev.sta.summary, q_staged.log"]
     end
 
-    subgraph DEPLOY["scripts/deploy.py"]
+    subgraph DEPLOY["mister_deploy"]
         L --> M{"Log shows this build<br/>finished and met timing?"}
         M -- "no" --> M1["Refuse: never copy a stale .rbf"]
         M -- "yes" --> N["Next name Name_NNNNNNNN.rbf,<br/>numbered from 30000001"]
