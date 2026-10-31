@@ -6,6 +6,7 @@ to the trees a core session needs.
 import json
 import os
 import re
+import secrets
 import shlex
 import subprocess
 import time
@@ -19,8 +20,12 @@ ALLOWED = ("/media/fat/_Arcade", "/media/fat/games", "/media/fat/config", "/medi
 READ_ONLY = ("/tmp/RBFNAME", "/tmp/CORENAME", "/tmp/FULLPATH", "/tmp/STARTPATH")
 CORES = "/media/fat/_Arcade/cores"
 ZIPS = "/media/fat/games/mame"
-# Memory dumps: /tmp/<name>.bin only, so they cannot replace RBFNAME and the other control files.
-DUMP = re.compile(r"^/tmp/[A-Za-z0-9._-]+\.bin$")
+# Memory dumps: named by memdump, in a directory only this server writes, so the sweep cannot touch
+# RBFNAME and the other control files. /tmp is the board's RAM: mister_get removes a dump once
+# copied, and the monitor removes any left unread for DUMP_TTL_MIN minutes.
+DUMP_DIR = "/tmp/mcp"
+DUMP = re.compile(r"^/tmp/mcp/dump-[0-9]{8}-[0-9]{6}-[0-9a-f]{4}\.bin$")
+DUMP_TTL_MIN = 10
 DDR3_END = 0x40000000                         # the HPS DDR3; the FPGA bridges above it can hang a bulk read
 PAGE = 4096
 # Run on the MiSTer: read() on /dev/mem above the kernel's memory fails with EFAULT, mmap works.
@@ -169,10 +174,13 @@ class Board:
         vals = [v.strip() for v in out.splitlines() if v.strip()]
         return [{"addr": f"0x{a + i * step:08x}", "value": v} for i, v in enumerate(vals)]
 
-    def memdump(self, ranges, out, timeout=120):
-        """Copy physical-memory ranges [(addr, size)], concatenated, to `out` on the MiSTer."""
-        if not DUMP.match(out):
-            raise ToolError(f"{out}: the dump goes to /tmp/<name>.bin")
+    def sweep_dumps(self, minutes=DUMP_TTL_MIN):
+        """Remove dumps (and .part files of failed ones) older than `minutes`."""
+        self.sh(f"find {DUMP_DIR} -type f -mmin +{int(minutes)} -delete 2>/dev/null; true")
+
+    def memdump(self, ranges, timeout=120):
+        """Copy physical-memory ranges [(addr, size)], concatenated, to a new file in DUMP_DIR."""
+        out = f"{DUMP_DIR}/dump-{time.strftime('%Y%m%d-%H%M%S')}-{secrets.token_hex(2)}.bin"
         pairs, layout, pos = [], [], 0
         for a, n in ranges:
             if a % PAGE:
@@ -183,14 +191,16 @@ class Board:
             layout.append({"addr": f"0x{a:08x}", "size": f"0x{n:x}", "offset": f"0x{pos:x}"})
             pos += n
         t0 = time.time()
-        rc, o, err = self.sh(" ".join(["python3", "-c", shlex.quote(MEMDUMP_PY), shlex.quote(out), *pairs]),
-                             timeout)
+        self.sweep_dumps()
+        rc, o, err = self.sh(" ".join([f"mkdir -p {DUMP_DIR} &&", "python3", "-c", shlex.quote(MEMDUMP_PY),
+                                       shlex.quote(out), *pairs]), timeout)
         if rc:
             raise ToolError((err or o).strip().splitlines()[-1] if (err or o).strip() else f"memdump failed ({rc})")
         got = int(o.strip().splitlines()[-1])
         if got != pos:
             raise ToolError(f"{out} has {got} bytes, expected {pos}")
-        return {"remote": out, "bytes": got, "ranges": layout, "seconds": round(time.time() - t0, 1)}
+        return {"remote": out, "bytes": got, "ranges": layout, "seconds": round(time.time() - t0, 1),
+                "expires_min": DUMP_TTL_MIN}
 
     # ---- actions ----
     def find_mra(self, name):

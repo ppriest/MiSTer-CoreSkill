@@ -103,10 +103,13 @@ only, read on every call. Beyond the scripts' own (`MISTER_HOST`,
 - **Board access is the listed operations only.**
   - No general shell.
   - `mister_get`/`mister_put` are limited to `/media/fat/{_Arcade,games,config,screenshots}`;
-    `mister_get` also reads `/tmp/RBFNAME` and the like, and `mister_memdump`'s `/tmp/<name>.bin`.
-  - `mister_memdump` copies DDR3 ranges (below `0x40000000`, page-aligned) to `/tmp/<name>.bin`
-    by mmap: 73 MB in 2.3 s; fetching it with `mister_get` took 12.3 s (`pscp`; a `cat` over the
-    held connection took 11.0 s, so the board's SSH is the limit).
+    `mister_get` also reads `/tmp/RBFNAME` and the like, and `mister_memdump`'s files.
+  - `mister_memdump` copies DDR3 ranges (below `0x40000000`, page-aligned) by mmap to a file it
+    names, `/tmp/mcp/dump-<time>-<hex>.bin`: 73 MB in 2.3 s; fetching it with `mister_get` took
+    12.3 s (`pscp`; a `cat` over the held connection took 11.0 s, so the board's SSH is the limit).
+    `/tmp` is the board's RAM (246 MB), so `mister_get` deletes a dump once copied (`keep=true`
+    leaves it), and the monitor deletes any in `/tmp/mcp` older than 10 minutes. Nothing else
+    writes to `/tmp/mcp`.
   - `mister_reboot` needs `confirm=true`.
 
 ## Status page

@@ -6,7 +6,8 @@ still go through pscp: the MiSTer serves no SFTP.
 
 The monitor reads /tmp/RBFNAME, CORENAME and FULLPATH every POLL seconds. mister_state and the
 status page read its last result, so any number of sessions asking costs the board nothing. While
-the board does not answer, it retries at POLL, doubling to at most BACKOFF_MAX.
+the board does not answer, it retries at POLL, doubling to at most BACKOFF_MAX. Once a minute it
+also deletes mister_memdump files left unread (board.DUMP_TTL_MIN).
 
 Host keys: ~/.mister/known_hosts, first one seen is kept; a changed key is refused.
 """
@@ -137,11 +138,15 @@ class Monitor:
         return s
 
     def _loop(self):
-        wait = POLL
+        from .board import Board
+        wait, swept = POLL, 0
         while True:
             try:
                 self.read()
                 wait = POLL
+                if time.time() - swept >= 60:   # expire unread memory dumps
+                    Board().sweep_dumps()
+                    swept = time.time()
             except Exception as e:           # the board off or unreachable: keep trying, slower
                 self.error = str(e) or type(e).__name__
                 wait = min(BACKOFF_MAX, wait * 2)

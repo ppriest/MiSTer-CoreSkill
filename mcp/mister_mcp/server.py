@@ -763,13 +763,12 @@ def mister_ls(path: str = "/media/fat/_Arcade") -> str:
 
 
 @tool(RO)
-def mister_get(remote: str, local: str = "", remove: bool = False) -> dict:
+def mister_get(remote: str, local: str = "", keep: bool = False) -> dict:
     """Copy a file from the device (allowed trees, /tmp/RBFNAME and the like, or a mister_memdump
-    file /tmp/<name>.bin; about 6 MB/s, the board's SSH is the limit). remove=True deletes a
-    /tmp/<name>.bin after the copy: /tmp is the board's RAM."""
+    file; about 6 MB/s, the board's SSH is the limit). A mister_memdump file is deleted from the
+    board after the copy (/tmp is its RAM) unless keep=True; unread ones expire after 10 minutes."""
     q = B.checked_path(remote)
-    if remove and not B.DUMP.match(q):
-        raise ToolError("remove is only for mister_memdump files, /tmp/<name>.bin")
+    remove = bool(B.DUMP.match(q)) and not keep
     dst = Path(local) if local else Path(tempfile.gettempdir()) / "mister_mcp" / Path(q).name
     dst.parent.mkdir(parents=True, exist_ok=True)
     b = B.Board()
@@ -801,20 +800,20 @@ def mister_devmem(addr: str, words: int = 1, width: int = 32) -> dict:
 
 
 @tool(ACT)
-def mister_memdump(ranges: list[dict[str, str]], out: str = "/tmp/memdump.bin",
-                   timeout_s: int = 120) -> dict:
+def mister_memdump(ranges: list[dict[str, str]], timeout_s: int = 120) -> dict:
     """Copy physical-memory ranges (DDR3: state dumps, VRAM), concatenated in the order given,
-    into a file on the MiSTer; fetch it with mister_get. ranges: [{"addr": "0x34000000",
-    "size": "0x2620000"}, ...], addresses page-aligned (4 KB), all below 0x40000000. out:
-    /tmp/<name>.bin. Uses mmap (read() on /dev/mem fails above the kernel's memory). Returns
-    each range's offset in the file. Refuses when /tmp lacks the room."""
+    into a new file on the MiSTer; fetch it with mister_get(remote), which then deletes it.
+    ranges: [{"addr": "0x34000000", "size": "0x2620000"}, ...], addresses page-aligned (4 KB),
+    all below 0x40000000. Uses mmap (read() on /dev/mem fails above the kernel's memory). Returns
+    the file's path, each range's offset in it, and expires_min: an unread dump is deleted after
+    that. Refuses when /tmp lacks the room."""
     try:
         pairs = [(int(str(r["addr"]), 0), int(str(r["size"]), 0)) for r in ranges]
     except (KeyError, TypeError, ValueError):
         raise ToolError('ranges: [{"addr": "0x...", "size": "0x..."}, ...]')
     if not pairs:
         raise ToolError("no ranges")
-    return B.Board().memdump(pairs, out, timeout=max(10, min(int(timeout_s), 600)))
+    return B.Board().memdump(pairs, timeout=max(10, min(int(timeout_s), 600)))
 
 
 @tool(DESTRUCTIVE)

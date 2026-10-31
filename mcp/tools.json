@@ -1155,7 +1155,7 @@
  },
  {
   "name": "mister_get",
-  "description": "Copy a file from the device (allowed trees, /tmp/RBFNAME and the like, or a mister_memdump\nfile /tmp/<name>.bin; about 6 MB/s, the board's SSH is the limit). remove=True deletes a\n/tmp/<name>.bin after the copy: /tmp is the board's RAM.",
+  "description": "Copy a file from the device (allowed trees, /tmp/RBFNAME and the like, or a mister_memdump\nfile; about 6 MB/s, the board's SSH is the limit). A mister_memdump file is deleted from the\nboard after the copy (/tmp is its RAM) unless keep=True; unread ones expire after 10 minutes.",
   "inputSchema": {
    "properties": {
     "remote": {
@@ -1167,9 +1167,9 @@
      "title": "Local",
      "type": "string"
     },
-    "remove": {
+    "keep": {
      "default": false,
-     "title": "Remove",
+     "title": "Keep",
      "type": "boolean"
     }
    },
@@ -1241,7 +1241,7 @@
  },
  {
   "name": "mister_memdump",
-  "description": "Copy physical-memory ranges (DDR3: state dumps, VRAM), concatenated in the order given,\ninto a file on the MiSTer; fetch it with mister_get. ranges: [{\"addr\": \"0x34000000\",\n\"size\": \"0x2620000\"}, ...], addresses page-aligned (4 KB), all below 0x40000000. out:\n/tmp/<name>.bin. Uses mmap (read() on /dev/mem fails above the kernel's memory). Returns\neach range's offset in the file. Refuses when /tmp lacks the room.",
+  "description": "Copy physical-memory ranges (DDR3: state dumps, VRAM), concatenated in the order given,\ninto a new file on the MiSTer; fetch it with mister_get(remote), which then deletes it.\nranges: [{\"addr\": \"0x34000000\", \"size\": \"0x2620000\"}, ...], addresses page-aligned (4 KB),\nall below 0x40000000. Uses mmap (read() on /dev/mem fails above the kernel's memory). Returns\nthe file's path, each range's offset in it, and expires_min: an unread dump is deleted after\nthat. Refuses when /tmp lacks the room.",
   "inputSchema": {
    "properties": {
     "ranges": {
@@ -1253,11 +1253,6 @@
      },
      "title": "Ranges",
      "type": "array"
-    },
-    "out": {
-     "default": "/tmp/memdump.bin",
-     "title": "Out",
-     "type": "string"
     },
     "timeout_s": {
      "default": 120,
