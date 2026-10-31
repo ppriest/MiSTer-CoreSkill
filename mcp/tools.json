@@ -12,6 +12,57 @@
   }
  },
  {
+  "name": "core_settings",
+  "description": "A core's tool settings as the tools resolve them, and where each comes from: env (the\nserver's environment), core (<core>.<KEY> in ~/.mister-core.env, set with core_settings_set),\nmister.env (the core's own file), machine (~/.mister-core.env) or unset.",
+  "inputSchema": {
+   "properties": {
+    "core": {
+     "title": "Core",
+     "type": "string"
+    }
+   },
+   "required": [
+    "core"
+   ],
+   "title": "core_settingsArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
+  "name": "core_settings_set",
+  "description": "Set one of a core's tool settings in ~/.mister-core.env as <core>.<KEY>=value, which wins\nover the core's mister.env and the machine-wide value (e.g. a core that follows a newer MAME:\nMAME_DIR, MAME_EXE, MAME_SRC). An empty value removes it. Directories and files must exist.",
+  "inputSchema": {
+   "properties": {
+    "core": {
+     "title": "Core",
+     "type": "string"
+    },
+    "key": {
+     "title": "Key",
+     "type": "string"
+    },
+    "value": {
+     "default": "",
+     "title": "Value",
+     "type": "string"
+    }
+   },
+   "required": [
+    "core",
+    "key"
+   ],
+   "title": "core_settings_setArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "destructiveHint": false
+  }
+ },
+ {
   "name": "calls_log",
   "description": "Recent tool calls from every session, newest last: time, tool, arguments, seconds,\nok/error, and the job id and state where the tool returned one. Filter by tool name\n(substring), errors_only, or since (\"YYYY-MM-DD HH:MM:SS\" prefix, e.g. \"2026-10-31 10:4\").",
   "inputSchema": {

@@ -10,7 +10,7 @@ from pathlib import Path
 from mister_mcp.server import server
 
 HERE = Path(__file__).resolve().parent
-GROUPS = [("jobs", "Jobs and locks", ("cores_", "jobs_", "locks_")), ("build", "Builds", ("build_",)),
+GROUPS = [("jobs", "Cores, jobs and locks", ("cores_", "core_", "calls_", "jobs_", "locks_")), ("build", "Builds", ("build_",)),
           ("sim", "Simulation", ("sim_",)), ("mame", "MAME", ("mame_",)),
           ("mister", "MiSTer", ("mister_",)), ("probe", "Probes (JTAG)", ("probe_",))]
 
@@ -39,6 +39,9 @@ def hint(t):
 
 def main():
     tools = asyncio.run(server.list_tools())
+    loose = [t.name for t in tools if not any(t.name.startswith(p) for _, _, ps in GROUPS for p in ps)]
+    if loose:
+        raise SystemExit(f"in no group (add a prefix to GROUPS): {', '.join(loose)}")
     dump = [t.model_dump(by_alias=True, exclude_none=True, mode="json") for t in tools]
     (HERE / "tools.json").write_text(json.dumps(dump, indent=1) + "\n", encoding="utf-8")
 

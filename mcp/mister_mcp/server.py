@@ -100,6 +100,61 @@ def cores_list() -> dict:
     return {"cores_dirs": [str(d) for d in C.cores_dirs()], "cores": C.list_cores()}
 
 
+CORE_KEYS = ("MAME_DIR", "MAME_EXE", "MAME_SRC", "MAME_ROMPATH", "MAME_MEAS_EXE", "QUARTUS_BIN", "MODELSIM_BIN")
+
+
+@tool(RO)
+def core_settings(core: str) -> dict:
+    """A core's tool settings as the tools resolve them, and where each comes from: env (the
+    server's environment), core (<core>.<KEY> in ~/.mister-core.env, set with core_settings_set),
+    mister.env (the core's own file), machine (~/.mister-core.env) or unset."""
+    return _core_settings(C.resolve(core))
+
+
+def _core_settings(root):
+    own = C.coretools.core_settings(root)
+    local = C.coretools._read_env_file(root / "mister.env")
+    machine = C.coretools._read_env_file(C.coretools.machine_env_path())
+    out = {}
+    for k in CORE_KEYS:
+        for src, d in (("env", os.environ), ("core", own), ("mister.env", local), ("machine", machine)):
+            if d.get(k):
+                out[k] = {"value": d[k], "from": src}
+                break
+        else:
+            out[k] = {"value": None, "from": "unset"}
+    return {"core": C.coretools.core_name(root), "settings": out,
+            "file": str(C.coretools.machine_env_path())}
+
+
+@tool(ACT)
+def core_settings_set(core: str, key: str, value: str = "") -> dict:
+    """Set one of a core's tool settings in ~/.mister-core.env as <core>.<KEY>=value, which wins
+    over the core's mister.env and the machine-wide value (e.g. a core that follows a newer MAME:
+    MAME_DIR, MAME_EXE, MAME_SRC). An empty value removes it. Directories and files must exist."""
+    root = C.resolve(core)
+    if key not in CORE_KEYS:
+        raise ToolError(f"key is one of {', '.join(CORE_KEYS)}")
+    value = value.strip()
+    if value:
+        p = Path(value)
+        if key.endswith(("_DIR", "_BIN", "_SRC")) and not p.exists():
+            raise ToolError(f"{value} does not exist")
+        if key.endswith("_EXE"):
+            d = Path(C.coretools.core_settings(root).get("MAME_DIR") or C.coretools.setting("MAME_DIR", "", root))
+            if not (p if p.is_absolute() else d / p).exists():
+                raise ToolError(f"{value} is not in MAME_DIR ({d}); set MAME_DIR first")
+    name = f"{C.coretools.core_name(root)}.{key}"
+    path = C.coretools.machine_env_path()
+    lines = path.read_text(encoding="utf-8").splitlines() if path.exists() else []
+    kept = [ln for ln in lines if ln.split("=", 1)[0].strip() != name]
+    if value:
+        kept.append(f"{name}={value}")
+    path.write_text("\n".join(kept) + "\n", encoding="utf-8")
+    return {"set": name, "value": value or None, "file": str(path),
+            "now": _core_settings(root)["settings"][key]}
+
+
 @tool(RO)
 def calls_log(limit: int = 50, tool: str = "", errors_only: bool = False, since: str = "") -> dict:
     """Recent tool calls from every session, newest last: time, tool, arguments, seconds,
@@ -290,7 +345,7 @@ def build_project(core: str, project: str, rev: str = "", seed: int | None = Non
     sp = Path(tempfile.mkdtemp(prefix="qproject_")) / "spec.json"
     sp.write_text(json.dumps(spec), encoding="utf-8")
     argv = [C.python_exe(), str(Path(__file__).with_name("qproject.py")), str(sp)]
-    env = dict(os.environ, CORE_ROOT=str(root), PYTHONIOENCODING="utf-8")
+    env = dict(os.environ, **C.coretools.core_settings(root), CORE_ROOT=str(root), PYTHONIOENCODING="utf-8")
     jid = J.start("project", root.name, argv, root, env, {"rev": r, "work": str(work), "qpf": str(qpf)})
     st = J.wait(jid, wait_s)
     if st["state"] not in ("starting", "running"):
@@ -807,7 +862,7 @@ def probe_sequence(core: str, steps: list[dict], wait_s: int = 120) -> dict:
     sp = Path(tempfile.mkdtemp(prefix="issp_seq_")) / "spec.json"
     sp.write_text(json.dumps(spec), encoding="utf-8")
     argv = [C.python_exe(), str(Path(__file__).with_name("issp_seq.py")), str(sp)]
-    env = dict(os.environ, CORE_ROOT=str(root), PYTHONIOENCODING="utf-8")
+    env = dict(os.environ, **C.coretools.core_settings(root), CORE_ROOT=str(root), PYTHONIOENCODING="utf-8")
     jid = J.start("probe_seq", root.name, argv, root, env, {"steps": len(steps)})
     st = J.wait(jid, wait_s)
     if st["state"] in ("starting", "running"):

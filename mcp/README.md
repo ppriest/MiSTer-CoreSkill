@@ -53,8 +53,11 @@ copy of. The home directory is not redirected.
 `mister-mcp.exe --stdio` runs a private copy
 over stdio (the MCP Inspector, tests).
 
-Settings come from the same places as the scripts': the environment, then `~/.mister-core.env`,
-with a core's `mister.env` over both for core tools. The exception is the MiSTer connection
+Settings come from the same places as the scripts', in order: the environment; the core's own keys
+in `~/.mister-core.env`, written `<core>.<KEY>=value` (`Gaelco3D.MAME_EXE=gaelco3d.exe`; set them
+with `core_settings_set`, see them with `core_settings`); the core's `mister.env`; the rest of
+`~/.mister-core.env`. Scripts the server runs get a core's keys as environment variables, so a
+core's older `coretools.py`, which ignores dotted keys, still sees them. The exception is the MiSTer connection
 (`MISTER_HOST`, `MISTER_USER`, `MISTER_PASSWORD`): the environment or `~/.mister-core.env`
 only, read on every call. Beyond the scripts' own (`MISTER_HOST`,
 `MISTER_USER`, `MISTER_PASSWORD`, `MAME_DIR`, `MAME_SRC`, `QUARTUS_BIN`...):

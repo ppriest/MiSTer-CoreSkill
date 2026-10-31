@@ -108,7 +108,9 @@ def git_bash():
 def command(root, name, *args):
     """argv and env for running scripts/<name> on this core."""
     path, tpl = script(root, name)
-    env = dict(os.environ, CORE_ROOT=str(root), PYTHONIOENCODING="utf-8", MSYS_NO_PATHCONV="1")
+    # the core's <core>.<KEY> machine settings as environment: its own coretools copy may predate them
+    env = dict(os.environ, **coretools.core_settings(root), CORE_ROOT=str(root), PYTHONIOENCODING="utf-8",
+               MSYS_NO_PATHCONV="1")
     if path.suffix == ".py":
         argv = [python_exe(), str(path), *map(str, args)]
     elif path.suffix == ".sh":

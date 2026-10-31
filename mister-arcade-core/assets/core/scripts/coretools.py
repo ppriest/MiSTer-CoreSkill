@@ -13,7 +13,9 @@ The core root is the parent of this scripts/ directory (or CORE_ROOT). From it:
                  machine, overridden by <core>/mister.env (gitignored).
 
 Tool locations and the MiSTer connection, in order: the environment, the core's
-mister.env, the per-machine file, then a default.
+own keys in the per-machine file (<core>.<KEY>=..., e.g. Gaelco3D.MAME_EXE=gaelco3d.exe;
+<core> is the repository name without Arcade- and _MiSTer), the core's mister.env,
+the per-machine file, then a default.
 
     QUARTUS_BIN    .../intelFPGA_lite/17.0/quartus/bin64
     MODELSIM_BIN   defaults to <quartus root>/modelsim_ase/win32aloem
@@ -25,6 +27,7 @@ mister.env, the per-machine file, then a default.
 `python scripts/coretools.py` prints what it resolved.
 """
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -115,11 +118,27 @@ def load_env(root=None, path=None, require=()):
     return env
 
 
+def core_name(root=None):
+    """The name per-core keys use: Arcade-Gaelco3D_MiSTer -> Gaelco3D."""
+    return re.sub(r"_MiSTer$", "", re.sub(r"^Arcade-", "", Path(root or core_root()).name))
+
+
+def core_settings(root=None):
+    """This core's own keys in the machine file, <core>.<KEY>=VALUE, as {KEY: VALUE}.
+
+    They keep a core's settings (its MAME build, say) with the machine's rather than in a
+    per-repository file; a copy of this module that predates them ignores the dotted keys."""
+    pre = core_name(root) + "."
+    return {k[len(pre):]: v for k, v in _read_env_file(machine_env_path()).items()
+            if k.startswith(pre) and v}
+
+
 def setting(name, default=None, root=None):
-    """A setting: environment, then the core's mister.env, then the machine file, then the default."""
+    """A setting: environment, then the core's keys in the machine file, then the core's
+    mister.env, then the machine file, then the default."""
     if os.environ.get(name):
         return os.environ[name]
-    v = load_env(root).get(name)
+    v = core_settings(root).get(name) or load_env(root).get(name)
     return v if v else default
 
 
