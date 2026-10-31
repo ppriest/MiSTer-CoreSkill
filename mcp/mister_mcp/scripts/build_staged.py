@@ -61,6 +61,8 @@ QUARTUS_BIN = None
 #   takes a whole video chain out and the build reports TIMING MET). Slack alone
 #   cannot catch that; presence is asserted separately. Add each name in the commit
 #   that adds the module it names ("fx68k", "sdram", "arcade_video", ...).
+# required_instances_by_rev: {revision: [names]} in place of required_instances for
+#   a revision that is not the core (Gaelco3D_fmax, a standalone CPU timing harness).
 # required_macros: VERILOG_MACROs the design needs in the .qsf, and what breaks
 #   without each. Presence is not connection: a module can stay in the netlist with
 #   its ports bound to implicitly declared wires because a macro went missing.
@@ -81,10 +83,11 @@ def run(cmd, **kw):
 
 
 def read_slacks(summary):
-    """Print every clock's setup slack; return the ones that fail.
+    """Print clk_sys's setup and hold slack; return every check that fails.
 
-    All of them, not clk_sys alone: a violation on any clock is a violation,
-    and scripts/build.sh gates on exactly the same rule.
+    Every type (Setup, Hold, Recovery, Removal, Minimum Pulse Width) on every
+    clock, not clk_sys setup alone: a violation anywhere is a violation, and
+    scripts/build.sh gates on exactly the same rule.
     """
     out = []
     if not os.path.exists(summary):
@@ -92,18 +95,19 @@ def read_slacks(summary):
         return out
     lines = open(summary, errors="replace").read().splitlines()
     for i, ln in enumerate(lines):
-        if not ln.startswith("Type  : Setup ") or i + 2 >= len(lines):
+        if not ln.startswith("Type  : ") or i + 2 >= len(lines):
             continue
-        clk = ln.split("Setup ", 1)[1].strip().strip("'")
+        kind, _, clk = ln.split(":", 1)[1].strip().partition(" '")
+        clk = clk.rstrip("'")
         try:
             slack = float(lines[i + 1].split(":", 1)[1])
         except (IndexError, ValueError):
             continue
         tns = lines[i + 2].split(":", 1)[1].strip()
-        if "emu|pll" in clk:
-            print("worst clk_sys setup: Slack : %.3f / TNS   : %s" % (slack, tns))
+        if "emu|pll" in clk and kind in ("Setup", "Hold"):
+            print("worst clk_sys %s: Slack : %.3f / TNS   : %s" % (kind.lower(), slack, tns))
         if slack < 0:
-            out.append((clk[-58:], slack, tns))
+            out.append(("%s %s" % (kind, clk[-50:]), slack, tns))
     return out
 
 
@@ -140,8 +144,9 @@ def check_present(stage):
     except OSError:
         print("  (no fit report at %s -- cannot check)" % rpt)
         return []
-    missing = [n for n in REQUIRED_INSTANCES if n not in text]
-    for n in REQUIRED_INSTANCES:
+    required = _CFG["required_instances_by_rev"].get(REV, REQUIRED_INSTANCES)
+    missing = [n for n in required if n not in text]
+    for n in required:
         print("  %-18s %s" % (n, "present" if n in text else "MISSING"))
     return missing
 

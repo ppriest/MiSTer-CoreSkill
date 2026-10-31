@@ -239,13 +239,15 @@ One testbench: scripts/run_sim.sh (ModelSim; fresh library, one at a time per co
 
 *acts*
 
-scripts/compare_boot_trace.py replay|compare <set>: the RTL's boot against MAME's trace.
+scripts/compare_boot_trace.py replay|compare|dups <set>: the RTL's boot against MAME's trace. sys_trace: against mame_sys_trace's debug/<set>-sys/<set>_sys.trace instead of the boot trace. rtl: the RTL trace, relative to the core (default <set>_rtl.trace beside MAME's). dups counts the RTL's writes repeated back to back.
 
 | Argument | Type | Default |
 |---|---|---|
 | `core` | string | required |
 | `set` | string | required |
 | `cmd` | string | `"compare"` |
+| `sys_trace` | boolean | `false` |
+| `rtl` | string | `""` |
 | `wait_s` | integer | `300` |
 
 ### `sim_sweep`
@@ -275,7 +277,7 @@ The MAME binary's version against `git describe` of MAME_SRC. A mismatch means t
 
 *acts*
 
-scripts/mame_capture.py: RAM/region dumps and reference.png at a frame, with a manifest. dips are NAME=SETTING. Output in debug/<set>-<name or frame>.
+scripts/mame_capture.py: RAM/region dumps and reference.png at a frame, with a manifest. dips are NAME=SETTING. coin: insert a coin at this frame, press Start and play (regions.json "inputs" name the ports). regions: a profile in scripts/mame/ other than regions.json. Output in debug/<set>-<name or frame>.
 
 | Argument | Type | Default |
 |---|---|---|
@@ -285,6 +287,8 @@ scripts/mame_capture.py: RAM/region dumps and reference.png at a frame, with a m
 | `dips` | list[string] or null | `null` |
 | `name` | string | `""` |
 | `seconds` | integer or null | `null` |
+| `coin` | integer | `0` |
+| `regions` | string | `""` |
 | `wait_s` | integer | `300` |
 
 ### `mame_boot_trace`

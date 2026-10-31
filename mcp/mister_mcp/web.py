@@ -94,7 +94,29 @@ def _registration(root):
         st = REG.status(root)
     except Exception as e:                   # a broken record must not take the page down
         return {"error": str(e)}
-    return {k: st[k] for k in ("registered", "files", "stale", "needed")}
+    out = {k: st[k] for k in ("registered", "files", "stale", "needed")}
+    if st["registered"]:
+        # what the core changed from the defaults, and its probe tables: rows per instance id
+        dflt = dict(C.coretools.CONFIG_DEFAULTS, mra_folder="_" + C.coretools.project(root))
+        out["params"] = {k: v for k, v in st["config"].items() if dflt.get(k) != v}
+        out["tables"] = st["tables"]
+    return out
+
+
+def _regions(root):
+    """The core's MAME regions profiles (scripts/mame/regions*.json): mame_capture's --regions
+    picks one other than regions.json; "sets" lays per-set values over the top level."""
+    out = []
+    for p in sorted((root / "scripts" / "mame").glob("regions*.json")):
+        try:
+            r = json.loads(p.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as e:
+            out.append({"file": p.name, "error": str(e)})
+            continue
+        out.append({"file": p.name, "sets": sorted(r.get("sets", {})),
+                    "data_cache": bool(r.get("trace", {}).get("data_cache")),
+                    "mame_args": r.get("mame_args", [])})
+    return out
 
 
 def _branch(root):
@@ -199,6 +221,7 @@ def routes(core_settings, calls_path):
                                           if (root / "scripts" / p.name).exists()),
                     "core_json": (root / "scripts" / "core.json").exists(),
                     "registration": _registration(root),
+                    "regions": _regions(root),
                     "active": active.get(name, []),
                     "last_call": max((last.get(k, "") for k in (name, short, str(root))), default="") or None})
         held = hwlock.read_marker()

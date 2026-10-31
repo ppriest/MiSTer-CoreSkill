@@ -13,7 +13,7 @@ scripts, write_timing), and run with `CORE_ROOT` set to the core. They import `c
 
 | File | Keys |
 |---|---|
-| `scripts/core.json` | `mra_folder` (default `_<project>`), `held_back_sets`, `required_instances` (default `["hps_io"]`), `required_macros`, `stage_copies`, `probe_default_instance` (default `F`), `sta_clock` (default the framework's emu PLL output 0); defaults in `coretools.CONFIG_DEFAULTS` |
+| `scripts/core.json` | `mra_folder` (default `_<project>`), `held_back_sets`, `required_instances` (default `["hps_io"]`), `required_instances_by_rev`, `required_macros`, `stage_copies`, `probe_default_instance` (default `F`), `sta_clock` (default the framework's emu PLL output 0); defaults in `coretools.CONFIG_DEFAULTS` |
 | `scripts/issp_fields.tcl` | `set fields_<id> {{name lo hi format} ...}` per probe instance; `set fields_B $fields_A` to share one; `fields_<id>_w<bits>` for a build whose bus has that width |
 | `scripts/floorplan.json`, `scripts/mame/regions.json` | floorplan groups; MAME regions to capture, trace and sweep |
 

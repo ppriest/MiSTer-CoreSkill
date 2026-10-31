@@ -23,7 +23,8 @@ commit and seed are recorded in `build/BUILT_COMMIT` beside the log.
 Three properties that must survive any port:
 
 - **Refuses a dirty tree.** "What was in that build?" has to be answerable.
-- **Gates on negative slack on every clock**, not on the Fitter's opinion. Quartus reports "Fitter
+- **Gates on negative slack on every clock and check** (setup, hold, recovery, removal, minimum
+  pulse width), not on the Fitter's opinion. Quartus reports "Fitter
   was successful" on a design that grossly fails timing. (Evidence: a sibling shipped an `.rbf` at
   −8.879 ns setup slack with every log line saying "successful".)
 - **Keeps `output_files/` and the log under `build/`**, so a failed build cannot be mistaken for the

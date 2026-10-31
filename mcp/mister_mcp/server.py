@@ -473,12 +473,22 @@ def sim_run(core: str, bench: str, simulator: str = "modelsim", args: list[str] 
 
 
 @tool(ACT)
-def sim_compare_boot(core: str, set: str, cmd: str = "compare", wait_s: int = 300) -> dict:
-    """scripts/compare_boot_trace.py replay|compare <set>: the RTL's boot against MAME's trace."""
+def sim_compare_boot(core: str, set: str, cmd: str = "compare", sys_trace: bool = False,
+                     rtl: str = "", wait_s: int = 300) -> dict:
+    """scripts/compare_boot_trace.py replay|compare|dups <set>: the RTL's boot against MAME's trace.
+    sys_trace: against mame_sys_trace's debug/<set>-sys/<set>_sys.trace instead of the boot trace.
+    rtl: the RTL trace, relative to the core (default <set>_rtl.trace beside MAME's). dups counts
+    the RTL's writes repeated back to back."""
     root = C.resolve(core)
-    if cmd not in ("replay", "compare"):
-        raise ToolError("cmd is replay or compare")
-    return _job("compare", root, "compare_boot_trace.py", [cmd, set], wait_s)
+    if cmd not in ("replay", "compare", "dups"):
+        raise ToolError("cmd is replay, compare or dups")
+    args = [cmd, set] + (["--sys"] if sys_trace else [])
+    if rtl:
+        p = (root / rtl).resolve()
+        if not p.is_relative_to(root.resolve()) or not p.is_file():
+            raise ToolError(f"no RTL trace {rtl} in {root.name}")
+        args += ["--rtl", str(p)]
+    return _job("compare", root, "compare_boot_trace.py", args, wait_s)
 
 
 @tool(ACT)
@@ -559,12 +569,18 @@ def _capture_result(jid):
 
 @tool(ACT)
 def mame_capture(core: str, set: str, frame: int = 1200, dips: list[str] | None = None,
-                 name: str = "", seconds: int | None = None, wait_s: int = 300) -> dict:
+                 name: str = "", seconds: int | None = None, coin: int = 0, regions: str = "",
+                 wait_s: int = 300) -> dict:
     """scripts/mame_capture.py: RAM/region dumps and reference.png at a frame, with a manifest.
-    dips are NAME=SETTING. Output in debug/<set>-<name or frame>."""
+    dips are NAME=SETTING. coin: insert a coin at this frame, press Start and play (regions.json
+    "inputs" name the ports). regions: a profile in scripts/mame/ other than regions.json.
+    Output in debug/<set>-<name or frame>."""
     root = C.resolve(core)
+    if regions and not re.fullmatch(r"[\w.-]+\.json", regions):
+        raise ToolError("regions is a file name in scripts/mame/, e.g. regions_de156.json")
     args = [set, "--frame", frame] + (["--name", name] if name else []) + \
-        (["--seconds", seconds] if seconds else [])
+        (["--seconds", seconds] if seconds else []) + (["--coin", coin] if coin else []) + \
+        (["--regions", regions] if regions else [])
     for d in dips or []:
         args += ["--dip", d]
     out = root / "debug" / f"{set}-{name or frame}"

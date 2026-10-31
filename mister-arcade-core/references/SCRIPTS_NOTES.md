@@ -10,7 +10,9 @@ core keep theirs under a `# --- core-specific: edit for this core ---` marker; t
 share one per-core file, `scripts/mame/regions.json`.
 
 `scripts/core.json` keys: `mra_folder` (default `_<project>`), `held_back_sets`,
-`required_instances` (default `["hps_io"]`), `required_macros` (`{macro: what breaks}`),
+`required_instances` (default `["hps_io"]`), `required_instances_by_rev` (`{revision: [names]}` in
+place of `required_instances` for a revision that is not the core, such as a timing harness),
+`required_macros` (`{macro: what breaks}`),
 `stage_copies` (`[[src, dst]]`), `probe_default_instance` (default `F`), `sta_clock` (default the
 framework's emu PLL output 0).
 
@@ -55,15 +57,22 @@ nearest sibling's.
 The `.lua` files and `regions.json` stay in the core's `scripts/mame/`; the Python drivers are in
 the MCP server. All read `scripts/mame/regions.json`: CPU tag, address space, bus width and endianness,
 `read` regions (dumped through the CPU's view), `wtap` regions (write-only registers rebuilt
-from writes), `sweep` (regions the write sweep counts), `trace` (address top, I/O range,
-vector table, interrupt-mask field, ROM and RAM ranges), `inputs` (field names for play).
+from writes), `read_extra` (`{name: {cpu, space, range}}`, reads in another CPU's space),
+`prev`/`linelog`/`scanline` (capture.lua's previous-frame and per-line logs), `sweep` (regions the
+write sweep counts), `trace` (address top, I/O range, vector table, interrupt-mask field, ROM and
+RAM ranges; for `compare_boot_trace`, `internal` ranges dropped from both traces, `vectors`,
+`irq_pushes` and `data_cache`: see its docstring), `inputs` (field names for play: `coin`, `start`,
+`hold`, `pulse` and any a core's Lua reads, passed as `CORE_IN_<NAME>`), `mame_args` (extra MAME
+options, such as `-nodrc` where a recompiler bypasses the Lua write taps). `sets` holds per-set
+values laid over the top level (`{"<set>": {"trace": ...}}`). A second profile beside it
+(`regions_<name>.json`) is picked with `mame_capture`'s `regions`.
 
 | Script | Does | Source |
 |---|---|---|
 | `mame_capture.py` (MCP: `mame_capture`) + `mame/capture.lua` | state at frame N: dumps, rebuilt registers, screenshot, manifest | KonamiGX; banked-memory tracking left out (see the Lua header) |
 | `mame_boot_trace.py` (MCP: `mame_boot_trace`) + `mame/boottrace.lua` | first N bus accesses from reset | KonamiGX, from MS32, from Seta |
 | `mame_sys_trace.py` (MCP: `mame_sys_trace`) + `mame/systrace.lua` | writes, I/O reads, vector reads per frame, with interrupt mask | KonamiGX |
-| `compare_boot_trace.py` (MCP: `sim_compare_boot`) | RTL boot trace vs MAME's: writes strict, I/O reads in order, ROM reads as a superset; `replay` makes the I/O replay file for the bench | KonamiGX |
+| `compare_boot_trace.py` (MCP: `sim_compare_boot`) | RTL boot trace vs MAME's: writes strict, I/O reads in order up to the last write on both sides, ROM reads as a superset; `replay` makes the I/O replay file (and with `vectors` the interrupt points) for the bench; `sys_trace` compares against the system trace; `dups` counts back-to-back repeated RTL writes | KonamiGX; `--sys` from Gaelco3D, `--rtl` from Cischeat, `internal`/`vectors`/`data_cache`/`dups` from DecoMLC |
 | `write_timing.py` (MCP: `mame_write_timing`) + `mame/wtiming.lua` | video writes by scanline relative to vblank; attract or play | Seta |
 | `mame/mark_time.lua` | emulated time at two marking writes, for CPI | KonamiGX |
 | `parse_mame_trace.py` | debugger trace to an expected-fetch list | Fuuki |

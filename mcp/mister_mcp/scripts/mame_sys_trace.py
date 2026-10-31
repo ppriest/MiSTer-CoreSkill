@@ -17,7 +17,7 @@ import sys
 from pathlib import Path
 
 REPO = Path(os.environ.get("CORE_ROOT") or Path(__file__).resolve().parent.parent)  # the MCP sets CORE_ROOT
-sys.path.insert(0, str(REPO / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))   # mame_capture beside this one
 from mame_boot_trace import check, run_traced  # noqa: E402
 
 

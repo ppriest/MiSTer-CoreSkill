@@ -85,6 +85,7 @@ CONFIG_DEFAULTS = {
     "mra_folder": None,                # the .mra folder under /media/fat/_Arcade; default _<project>
     "held_back_sets": [],              # .mra stems built but not copied to the device
     "required_instances": ["hps_io"],  # blocks that must survive to the fitted netlist
+    "required_instances_by_rev": {},   # revision -> its own required_instances (a test harness)
     "required_macros": {},             # VERILOG_MACRO name -> what breaks without it
     "stage_copies": [],                # [source, destination] copied into build/ before Quartus runs
     "probe_default_instance": "F",     # the ISSP instance probe reads and clears by default

@@ -57,6 +57,15 @@ def validate(root):
     for k in ("held_back_sets", "required_instances"):
         if not (isinstance(cfg[k], list) and all(isinstance(x, str) and x for x in cfg[k])):
             problems.append(f"{k}: a list of strings")
+    byrev = cfg["required_instances_by_rev"]
+    if not (isinstance(byrev, dict) and all(
+            isinstance(r, str) and isinstance(v, list) and all(isinstance(x, str) and x for x in v)
+            for r, v in byrev.items())):
+        problems.append("required_instances_by_rev: {revision: [instance, ...]}")
+    else:
+        revs = {q.stem for q in root.glob("*.qsf")}
+        for r in sorted(set(byrev) - revs):
+            warnings.append(f"required_instances_by_rev: no {r}.qsf in the repository")
     if not (isinstance(cfg["required_macros"], dict)
             and all(isinstance(k, str) and isinstance(v, str) for k, v in cfg["required_macros"].items())):
         problems.append("required_macros: {macro: what breaks without it}")

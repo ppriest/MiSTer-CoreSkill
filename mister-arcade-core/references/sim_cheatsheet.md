@@ -24,14 +24,16 @@ The driver source is `MAME_SRC`; `mame.exe`, not a fork build.
 ## MAME: references for benches
 
 ```
-mame_capture(core, set, frame=1200[, name="title"])
+mame_capture(core, set, frame=1200[, name="title", coin=600, regions="regions_<name>.json"])
     debug/<set>-<name>/: a .bin per regions.json "read" region, reg_<chip>.bin per "wtap"
-    region, MAME's screenshot, a manifest. The bench loads these.
+    region, MAME's screenshot, a manifest. The bench loads these. coin: coin up and play from
+    that frame; regions: another profile in scripts/mame/.
 
 mame_boot_trace(core, set, n=20000)
     debug/<set>-boot/<set>_boot.trace: the first N main-CPU bus accesses, read and write.
-sim_compare_boot(core, set, cmd="compare")
-    diffs the RTL CPU bench's log against it; "replay" feeds the I/O reads back in.
+sim_compare_boot(core, set, cmd="compare"[, sys_trace=True, rtl="path"])
+    diffs the RTL CPU bench's log against it; "replay" feeds the I/O reads back in; "dups"
+    counts RTL writes repeated back to back. sys_trace: against mame_sys_trace's trace.
 
 mame_sys_trace(core, set, frames=120)
     every write, I/O read and interrupt-vector read for N frames, with the mask.

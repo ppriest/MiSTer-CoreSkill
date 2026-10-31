@@ -41,8 +41,29 @@ def mame_paths():
     return mame_dir, exe
 
 
-def regions():
-    return json.loads((LUA_DIR / "regions.json").read_text(encoding="utf-8"))
+def regions(game=None):
+    """scripts/mame/regions.json, or the profile CORE_REGIONS names (DecoMLC's DE156 sets use
+    regions_de156.json), with its "sets" entry for `game` laid over the top level (Gaelco3D)."""
+    r = json.loads((LUA_DIR / os.environ.get("CORE_REGIONS", "regions.json")).read_text(encoding="utf-8"))
+    return {**r, **r.pop("sets", {}).get(game or "", {})}
+
+
+INPUT_DEFAULTS = {"coin": "Coin 1", "start": "1 Player Start", "hold": "P1 Right", "pulse": "P1 Button 1"}
+
+
+def input_env(r, prefix="CORE_IN_"):
+    """regions.json "inputs" over INPUT_DEFAULTS, as <prefix><NAME>: the port fields the Lua presses
+    for --coin (coin, start, hold, pulse) and any others a core's Lua reads."""
+    return {prefix + k.upper(): v for k, v in {**INPUT_DEFAULTS, **r.get("inputs", {})}.items()}
+
+
+def extra_read_spec(table):
+    """regions.json "read_extra": reads in another CPU's address space, for capture.lua
+    (CORE_READ_EXTRA = name:cpu:space:lo:hi,...)."""
+    return ",".join(
+        f"{name}:{e['cpu'].lstrip(':')}:{e.get('space', 'program')}:"
+        f"{int(e['range'][0], 16):x}:{int(e['range'][1], 16):x}"
+        for name, e in table.items())
 
 
 def spec(table, names=None):
@@ -79,10 +100,12 @@ def mame_cmd(exe, game, lua, mame_dir, extra=()):
     # -nodebug/-nowindow explicit: a mame.ini with `debug 1` halts in the debugger
     # while the autoboot script still loads and prints, so it looks alive.
     # -autoboot_script points at run.lua, not at `lua`: see lua_runner_env().
+    # regions.json "mame_args" adds per-core options: -nodrc where the main CPU has a
+    # recompiler, because its fastram paths bypass the Lua write taps.
     return [str(exe), game, "-nodebug", "-nowindow", "-video", "none", "-sound", "none",
             "-skip_gameinfo", "-nothrottle", "-autoboot_delay", "0",
             "-autoboot_script", str(LUA_DIR / "run.lua"),
-            "-rompath", rompath(mame_dir), *extra]
+            "-rompath", rompath(mame_dir), *regions(game).get("mame_args", []), *extra]
 
 
 def rompath(mame_dir):
@@ -171,10 +194,16 @@ def main():
                          "setting is an error, never a silent default.")
     ap.add_argument("--keep-going", action="store_true",
                     help="do not delete a previous capture of the same name")
+    ap.add_argument("--coin", type=int, default=0,
+                    help="insert a coin at this frame, press Start and play (as write_timing.py)")
+    ap.add_argument("--regions", default=None,
+                    help="regions profile in scripts/mame/ (default regions.json; sets CORE_REGIONS)")
     a = ap.parse_args()
+    if a.regions:
+        os.environ["CORE_REGIONS"] = a.regions
 
     mame_dir, exe = mame_paths()
-    r = regions()
+    r = regions(a.set)
     out = Path(a.out) if a.out else REPO / "debug" / f"{a.set}-{a.name or a.frame}"
     if out.exists() and not a.keep_going:
         shutil.rmtree(out)
@@ -187,7 +216,11 @@ def main():
     cmd = mame_cmd(exe, a.set, "capture.lua", mame_dir, extra)
     env = dict(os.environ, **lua_env(r), **lua_runner_env("capture.lua"),
                CORE_OUT=out.as_posix(), CORE_FRAME=str(a.frame),
-               CORE_READ=spec(r.get("read", {})), CORE_WTAP=spec(r.get("wtap", {})))
+               CORE_READ=spec(r.get("read", {})), CORE_WTAP=spec(r.get("wtap", {})),
+               CORE_READ_EXTRA=extra_read_spec(r.get("read_extra", {})),
+               CORE_PREV=spec(r.get("prev", {})), CORE_LINELOG=spec(r.get("linelog", {})),
+               CORE_SCANLINE=str(r.get("scanline", "0")).replace("0x", ""),
+               CORE_COIN=str(a.coin), **input_env(r))
     print(f"{a.set} frame {a.frame} -> {out}")
     p = subprocess.run(cmd, cwd=mame_dir, env=env, capture_output=True, text=True, **NO_WINDOW)
     blob = p.stdout + p.stderr

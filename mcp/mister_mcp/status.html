@@ -203,6 +203,13 @@ function jobRow(j) {
     `<span class="mono muted">${esc(m.script || "")}${m.rev ? " " + esc(m.rev) : ""}${m.tag ? " " + esc(m.tag) : ""}</span>`,
     `<a href="/download/jobs/${esc(j.id)}/log.txt">log</a>`];
 }
+function regTip(r) {
+  // the registered files, the parameters that differ from the defaults, the probe tables
+  const p = Object.entries(r.params || {}).map(([k, v]) => `${k}: ${JSON.stringify(v)}`);
+  const t = Object.entries(r.tables || {}).map(([k, n]) => `fields_${k} (${n})`);
+  return [`scripts/${r.files.join(", scripts/")}`, ...(p.length ? p : ["all parameters at their defaults"]),
+          t.length ? `ISSP tables: ${t.join(", ")}` : ""].filter(Boolean).join("\n");
+}
 function setting(s, key) {
   const x = s[key] || {};
   if (!x.value) return `<span class="muted">–</span>`;
@@ -252,10 +259,17 @@ function render() {
   $("ncores").textContent = `${cores.length}${cq ? " of " + d.cores.length : ""}`;
   const reg = r => r.error ? `<span class="chip warn" title="${esc(r.error)}">error</span>`
     : r.stale && r.stale.length ? `<span class="chip warn" title="changed since ${esc(r.registered)}: ${esc(r.stale.join(", "))}; call core_register">stale</span>`
-    : r.registered ? `<span class="muted nw" title="scripts/${esc(r.files.join(", scripts/"))}">${esc(r.registered.slice(5, 16))}</span>`
+    : r.registered ? `<span class="muted nw" title="${esc(regTip(r))}">${esc(r.registered.slice(5, 16))}</span>`
     : r.needed ? `<span class="chip warn" title="has ${esc(r.files.join(", "))}; call core_register">not registered</span>`
     : `<span class="muted">defaults</span>`;
-  $("cores").innerHTML = table(["Core", "Path", "Branch", "Busy", "Last call", "MAME_DIR", "MAME_EXE", "MAME_SRC", "MAME_ROMPATH", "Registered", "Scripts"],
+  const regions = rs => !rs.length ? `<span class="muted">–</span>`
+    : rs.map(p => p.error ? `<span class="chip warn" title="${esc(p.error)}">${esc(p.file)}</span>`
+      : `<span class="mono nw" title="${esc([p.sets.length ? "per-set values: " + p.sets.join(", ") : "",
+          p.data_cache ? "trace: data_cache (RAM reads compared as a superset)" : "",
+          p.mame_args.length ? "MAME options: " + p.mame_args.join(" ") : ""].filter(Boolean).join("\n") || "no per-set values")}">${
+          esc(p.file.replace(/\.json$/, ""))}${p.sets.length ? ` <span class="muted">+${p.sets.length}</span>` : ""}${
+          p.data_cache ? ' <span class="chip">cache</span>' : ""}</span>`).join("<br>");
+  $("cores").innerHTML = table(["Core", "Path", "Branch", "Busy", "Last call", "MAME_DIR", "MAME_EXE", "MAME_SRC", "MAME_ROMPATH", "Registered", "Scripts", "Regions"],
     cores.map(c => [`<b>${esc(c.short)}</b>${c.duplicate ? ' <span class="chip warn" title="this name is in two cores dirs">dup</span>' : ""}`,
       `<span class="mono muted">${esc(c.path)}</span>`, `<span class="mono">${esc(c.branch || "")}</span>`,
       c.active.map(a => `<span class="chip s-running">${esc(a.split(" ")[0])}</span>`).join(" "),
@@ -264,7 +278,8 @@ function render() {
       setting(c.settings, "MAME_ROMPATH"), reg(c.registration),
       c.own_scripts.length
         ? `<span class="chip warn" title="runs its own copy of: ${esc(c.own_scripts.join(", "))}">${c.own_scripts.length} own</span>`
-        : `<span class="muted" title="${c.core_json ? "scripts/core.json" : "no scripts/core.json: defaults"}">server${c.core_json ? "" : " (defaults)"}</span>`]));
+        : `<span class="muted" title="${c.core_json ? "scripts/core.json" : "no scripts/core.json: defaults"}">server${c.core_json ? "" : " (defaults)"}</span>`,
+      regions(c.regions || [])]));
 
   const jq = $("jobfilter").value;
   const jobs = d.jobs.filter(j => match(jq, j.id, j.kind, j.core, j.state, JSON.stringify(j.meta)));
