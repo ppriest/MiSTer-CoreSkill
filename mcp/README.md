@@ -39,7 +39,10 @@ renamed tool needs that reconnect in any case:
 powershell -Command "Stop-ScheduledTask mister-mcp; Start-ScheduledTask mister-mcp"
 ```
 
-The log is `%LOCALAPPDATA%/mister_mcp/server.log`. `mister-mcp.exe --stdio` runs a private copy
+Every tool call, from every session, is a line in `%LOCALAPPDATA%/mister_mcp/calls.jsonl`
+(time, tool, arguments, seconds, ok/error, job id); `calls_log` reads it. The HTTP log is
+`%LOCALAPPDATA%/mister_mcp/server.log`, which the boot task's process has not been seen to
+write. `mister-mcp.exe --stdio` runs a private copy
 over stdio (the MCP Inspector, tests).
 
 Settings come from the same places as the scripts': the environment, then `~/.mister-core.env`,
@@ -66,7 +69,8 @@ only, read on every call. Beyond the scripts' own (`MISTER_HOST`,
   `.mra` folder) hold. Otherwise the skill's template copy runs with `CORE_ROOT` set.
 - **Long runs are jobs.** Builds, simulations, MAME runs, STA and probe reads start a detached
   runner, so a job survives the session that started it.
-  - The tool waits up to `wait_s`, then returns the job id.
+  - The tool waits up to `wait_s` (at most 240 s: Claude Code drops a call silent for 300 s),
+    then returns the job id.
   - `jobs_status` gives the state, log tail and parsed `result`.
   - `jobs_cancel` kills the whole process tree.
 - **Board access is the listed operations only.**
@@ -91,7 +95,7 @@ npx @modelcontextprotocol/inspector E:/MiSTer-CoreSkill/mcp/.venv/Scripts/mister
 
 | Group | Tools |
 |---|---|
-| jobs | `cores_list`, `jobs_list`, `jobs_status`, `jobs_log`, `jobs_cancel`, `locks_status` |
+| jobs | `cores_list`, `calls_log`, `jobs_list`, `jobs_status`, `jobs_log`, `jobs_cancel`, `locks_status` |
 | build | `build_start`, `build_report`, `build_worst_paths`, `build_floorplan` |
 | sim | `sim_list`, `sim_run`, `sim_compare_boot`, `sim_sweep` |
 | MAME | `mame_version`, `mame_capture`, `mame_boot_trace`, `mame_sys_trace`, `mame_run_lua`, `mame_listxml` |

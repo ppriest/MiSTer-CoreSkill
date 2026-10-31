@@ -12,6 +12,39 @@
   }
  },
  {
+  "name": "calls_log",
+  "description": "Recent tool calls from every session, newest last: time, tool, arguments, seconds,\nok/error, and the job id and state where the tool returned one. Filter by tool name\n(substring), errors_only, or since (\"YYYY-MM-DD HH:MM:SS\" prefix, e.g. \"2026-10-31 10:4\").",
+  "inputSchema": {
+   "properties": {
+    "limit": {
+     "default": 50,
+     "title": "Limit",
+     "type": "integer"
+    },
+    "tool": {
+     "default": "",
+     "title": "Tool",
+     "type": "string"
+    },
+    "errors_only": {
+     "default": false,
+     "title": "Errors Only",
+     "type": "boolean"
+    },
+    "since": {
+     "default": "",
+     "title": "Since",
+     "type": "string"
+    }
+   },
+   "title": "calls_logArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
   "name": "jobs_list",
   "description": "Jobs from every session, newest first.",
   "inputSchema": {

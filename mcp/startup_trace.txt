@@ -1,0 +1,31 @@
+10:32:30 pid=37836 import LOCALAPPDATA=C:\Users\tourn\AppData\Local USERPROFILE=C:\Users\tourn HOME=None
+10:32:31 pid=37836 mcp imported
+10:32:31 pid=37836 args parsed
+10:32:33 pid=37836 port free, BASE=C:\Users\tourn\AppData\Local\mister_mcp\jobs
+10:33:08 pid=25580 import LOCALAPPDATA=C:\Users\tourn\AppData\Local USERPROFILE=C:\Users\tourn HOME=None
+10:33:08 pid=25580 mcp imported
+10:33:08 pid=25580 args parsed
+10:33:10 pid=25580 port free, BASE=C:\Users\tourn\AppData\Local\mister_mcp\jobs
+10:33:10 pid=25580 log opened
+10:33:10 pid=25580 logging configured, running
+10:33:40 pid=28596 import LOCALAPPDATA=C:\Users\tourn\AppData\Local USERPROFILE=C:\Users\tourn HOME=None
+10:33:40 pid=28596 mcp imported
+10:33:40 pid=28596 args parsed
+10:33:42 pid=28596 port free, BASE=C:\Users\tourn\AppData\Local\mister_mcp\jobs
+10:33:42 pid=28596 log opened
+10:33:42 pid=28596 logging configured, running
+Timeout (0:00:20)!
+Thread 0x000069f0 (most recent call first):
+  File "C:\Users\tourn\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\windows_events.py", line 775 in _poll
+  File "C:\Users\tourn\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\windows_events.py", line 446 in select
+  File "C:\Users\tourn\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\base_events.py", line 2008 in _run_once
+  File "C:\Users\tourn\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\base_events.py", line 677 in run_forever
+  File "C:\Users\tourn\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\base_events.py", line 706 in run_until_complete
+  File "C:\Users\tourn\AppData\Local\Python\pythoncore-3.14-64\Lib\asyncio\runners.py", line 127 in run
+  File "E:\MiSTer-CoreSkill\mcp\.venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 2548 in run
+  File "E:\MiSTer-CoreSkill\mcp\.venv\Lib\site-packages\anyio\_core\_eventloop.py", line 83 in run
+  File "E:\MiSTer-CoreSkill\mcp\.venv\Lib\site-packages\mcp\server\mcpserver\server.py", line 425 in run
+  File "E:\MiSTer-CoreSkill\mcp\mister_mcp\server.py", line 618 in main
+  File "E:\MiSTer-CoreSkill\mcp\.venv\Scripts\mister-mcp.exe\__main__.py", line 6 in <module>
+  File "<frozen runpy>", line 88 in _run_code
+  File "<frozen runpy>", line 198 in _run_module_as_main

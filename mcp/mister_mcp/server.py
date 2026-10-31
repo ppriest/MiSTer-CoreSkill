@@ -24,7 +24,7 @@ from .cores import ToolError
 
 server = MCPServer(name="mister", instructions=(
     "Tools for MiSTer arcade cores. Long runs (build_start, sim_run, mame_*) are jobs: they wait "
-    "up to wait_s seconds, then return a job id for jobs_status. JTAG (probe_*) and Quartus/ModelSim "
+    "up to wait_s seconds (at most 240), then return a job id for jobs_status. JTAG (probe_*) and Quartus/ModelSim "
     "exclude each other machine-wide; locks_status says who holds what. Use Bash for anything "
     "these tools do not cover."))
 
@@ -33,20 +33,51 @@ ACT = ToolAnnotations(readOnlyHint=False, destructiveHint=False)
 DESTRUCTIVE = ToolAnnotations(readOnlyHint=False, destructiveHint=True)
 
 
+CALLS = J.BASE.parent / "calls.jsonl"
+CALLS_MAX = 10 * 1024 * 1024                  # then calls.jsonl -> calls.1.jsonl
+
+
+def _record(entry):
+    """Append one call to calls.jsonl, opening and closing the file each time: a handle held
+    open by the boot task's process was never seen to reach the disk (server.log)."""
+    try:
+        if CALLS.exists() and CALLS.stat().st_size > CALLS_MAX:
+            CALLS.replace(CALLS.with_name("calls.1.jsonl"))
+        with open(CALLS, "a", encoding="utf-8") as f:
+            f.write(json.dumps(entry, default=str) + "\n")
+    except OSError:
+        pass                                  # the log must never fail a call
+
+
 def tool(annotations=ACT):
     """Register a tool. Every failure reaches the caller as text: the SDK hides an unexpected
-    exception's message, and coretools reports missing settings with sys.exit."""
+    exception's message, and coretools reports missing settings with sys.exit. Every call is
+    recorded in calls.jsonl (calls_log reads it)."""
     def deco(fn):
         @functools.wraps(fn)
         def wrapped(*a, **kw):
+            t0 = time.time()
+            entry = {"t": time.strftime("%Y-%m-%d %H:%M:%S"), "tool": fn.__name__, "args": kw}
             try:
-                return fn(*a, **kw)
-            except ToolError:
+                out = fn(*a, **kw)
+                entry["ok"] = True
+                if isinstance(out, dict):
+                    entry.update({k: out[k] for k in ("id", "state", "returncode") if k in out})
+                return out
+            except ToolError as e:
+                entry.update(ok=False, error=str(e))
                 raise
             except SystemExit as e:
-                raise ToolError(str(e.code) if e.code not in (None, 0) else "exited") from None
+                msg = str(e.code) if e.code not in (None, 0) else "exited"
+                entry.update(ok=False, error=msg)
+                raise ToolError(msg) from None
             except Exception as e:
+                entry.update(ok=False, error=f"{type(e).__name__}: {e}")
                 raise ToolError(f"{type(e).__name__}: {e}") from e
+            finally:
+                entry["s"] = round(time.time() - t0, 2)
+                if fn.__name__ != "calls_log":
+                    _record(entry)
         return server.tool(annotations=annotations)(wrapped)
     return deco
 
@@ -66,6 +97,29 @@ def _job(kind, root, script, args, wait_s, meta=None, result=None):
 def cores_list() -> dict:
     """Core repositories and their paths, from MiSTer-Cores and MiSTer-Devel (MISTER_CORES_DIR)."""
     return {"cores_dirs": [str(d) for d in C.cores_dirs()], "cores": C.list_cores()}
+
+
+@tool(RO)
+def calls_log(limit: int = 50, tool: str = "", errors_only: bool = False, since: str = "") -> dict:
+    """Recent tool calls from every session, newest last: time, tool, arguments, seconds,
+    ok/error, and the job id and state where the tool returned one. Filter by tool name
+    (substring), errors_only, or since ("YYYY-MM-DD HH:MM:SS" prefix, e.g. "2026-10-31 10:4")."""
+    rows = []
+    for p in (CALLS.with_name("calls.1.jsonl"), CALLS):
+        if p.exists():
+            for ln in p.read_text(encoding="utf-8", errors="replace").splitlines():
+                try:
+                    r = json.loads(ln)
+                except ValueError:
+                    continue
+                if tool and tool not in r.get("tool", ""):
+                    continue
+                if errors_only and r.get("ok", True):
+                    continue
+                if since and r.get("t", "") < since:
+                    continue
+                rows.append(r)
+    return {"path": str(CALLS), "calls": rows[-limit:]}
 
 
 @tool(RO)

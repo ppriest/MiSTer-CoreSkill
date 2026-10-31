@@ -81,11 +81,18 @@ def log(jid):
     return (d / "log.txt").read_text(encoding="utf-8", errors="replace") if (d / "log.txt").exists() else ""
 
 
+# Claude Code drops a call that sends nothing for 300 s, so no wait may come near that
+MAX_WAIT = 240
+
+
 def wait(jid, seconds):
-    deadline = time.time() + max(0, seconds)
+    capped = seconds > MAX_WAIT
+    deadline = time.time() + min(max(0, seconds), MAX_WAIT)
     while True:
         s = status(jid, log_lines=0)
         if s["state"] not in ("starting", "running") or time.time() >= deadline:
+            if capped and s["state"] in ("starting", "running"):
+                s["note"] = f"waited the maximum {MAX_WAIT} s; call jobs_status again"
             return s
         time.sleep(2)
 
