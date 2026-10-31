@@ -64,8 +64,8 @@ def _job(kind, root, script, args, wait_s, meta=None, result=None):
 
 @tool(RO)
 def cores_list() -> dict:
-    """Core repositories found under the cores directory (MISTER_CORES_DIR)."""
-    return {"cores_dir": str(C.cores_dir()), "cores": C.list_cores()}
+    """Core repositories and their paths, from MiSTer-Cores and MiSTer-Devel (MISTER_CORES_DIR)."""
+    return {"cores_dirs": [str(d) for d in C.cores_dirs()], "cores": C.list_cores()}
 
 
 @tool(RO)
@@ -238,7 +238,7 @@ def sim_sweep(kill: bool = False) -> dict:
                        capture_output=True, text=True, **C.NO_WINDOW)
     procs = [ln.split(None, 1) for ln in r.stdout.splitlines() if ln.strip()]
     running = [j for j in J.listing(50, True) if j["kind"] == "sim"]
-    locks = [str(p) for c in C.list_cores() for p in (C.cores_dir() / c).glob("**/work/_lock")
+    locks = [str(p) for ds in C.all_cores().values() for d in ds for p in d.glob("**/work/_lock")
              if "node_modules" not in str(p)]
     out = {"processes": [{"pid": int(p), "name": n} for p, n in procs], "running_sim_jobs":
            [j["id"] for j in running], "stale_locks": locks if not running else [],

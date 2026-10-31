@@ -35,7 +35,7 @@ with a core's `mister.env` over both for core tools. Beyond the scripts' own (`M
 
 | Setting | Default |
 |---|---|
-| `MISTER_CORES_DIR` | the directory holding this repository |
+| `MISTER_CORES_DIR` | `MiSTer-Cores` and `MiSTer-Devel` beside this repository; several dirs joined by `;`. A core name found in two is refused: pass the path |
 | `PYTHON` | the interpreter the venv was made from (the scripts need Pillow) |
 | `GIT_BASH` | `C:\Program Files\Git\bin\bash.exe`; never WSL's `bash` |
 

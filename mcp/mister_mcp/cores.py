@@ -25,16 +25,26 @@ def machine_setting(name, default=None):
             or default)
 
 
-def cores_dir():
-    """MISTER_CORES_DIR, else MiSTer-Cores beside this repository, else its parent.
-    Looked up per call, so moving the repositories needs no server restart."""
+def cores_dirs():
+    """Where core repositories live: MISTER_CORES_DIR (several joined by ';'), else MiSTer-Cores
+    (the user's own) and MiSTer-Devel (cores moved to that org) beside this repository, else its
+    parent. Looked up per call, so moving a repository needs no server restart."""
     v = machine_setting("MISTER_CORES_DIR")
     if v:
-        return Path(v)
-    for d in (SKILL.parents[1] / "MiSTer-Cores", SKILL.parents[1]):
-        if any(d.glob("*_MiSTer/*.qpf")):
-            return d
-    return SKILL.parents[1]
+        return [Path(x) for x in v.split(";") if x.strip()]
+    found = [d for d in (SKILL.parents[1] / "MiSTer-Cores", SKILL.parents[1] / "MiSTer-Devel")
+             if any(d.glob("*_MiSTer/*.qpf"))]
+    return found or [SKILL.parents[1]]
+
+
+def all_cores():
+    """{repository name: path} across cores_dirs(); a name in two places maps to a list."""
+    out = {}
+    for base in cores_dirs():
+        for d in sorted(base.glob("*_MiSTer")):
+            if any(d.glob("*.qpf")):
+                out.setdefault(d.name, []).append(d.resolve())
+    return out
 
 
 class ToolError(_SdkToolError):
@@ -45,22 +55,25 @@ def resolve(core):
     """The core's root directory."""
     if not core:
         raise ToolError("name the core: a repository directory, a short name or a path")
-    base = cores_dir()
     p = Path(core)
-    cands = [p] if p.is_absolute() else [base / core, base / f"Arcade-{core}_MiSTer",
-                                         base / f"{core}_MiSTer"]
-    for c in cands:
-        if c.is_dir() and any(c.glob("*.qpf")):
-            return c.resolve()
-    hits = [d for d in base.glob("*_MiSTer") if d.name.lower() == f"arcade-{core}_mister".lower()
-            or d.name.lower() == str(core).lower()]
+    if p.is_absolute():
+        if p.is_dir() and any(p.glob("*.qpf")):
+            return p.resolve()
+        raise ToolError(f"{p} is not a core (no .qpf)")
+    names = {n.lower(): n for n in (core, f"Arcade-{core}_MiSTer", f"{core}_MiSTer")}
+    cores = all_cores()
+    hits = [(n, d) for n, ds in cores.items() if n.lower() in names for d in ds]
+    if len(hits) == 1:
+        return hits[0][1]
     if hits:
-        return hits[0].resolve()
-    raise ToolError(f"no core '{core}' under {base} (a directory with a .qpf); set MISTER_CORES_DIR")
+        raise ToolError(f"'{core}' is in more than one place: " + ", ".join(str(d) for _, d in hits)
+                        + "; pass the path")
+    raise ToolError(f"no core '{core}' under {', '.join(map(str, cores_dirs()))} (a directory with "
+                    "a .qpf); set MISTER_CORES_DIR")
 
 
 def list_cores():
-    return sorted(d.name for d in cores_dir().glob("*_MiSTer") if any(d.glob("*.qpf")))
+    return {n: [str(d) for d in ds] if len(ds) > 1 else str(ds[0]) for n, ds in all_cores().items()}
 
 
 def script(root, name):

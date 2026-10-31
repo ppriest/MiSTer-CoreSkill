@@ -1,7 +1,7 @@
 [
  {
   "name": "cores_list",
-  "description": "Core repositories found under the cores directory (MISTER_CORES_DIR).",
+  "description": "Core repositories and their paths, from MiSTer-Cores and MiSTer-Devel (MISTER_CORES_DIR).",
   "inputSchema": {
    "properties": {},
    "title": "cores_listArguments",
