@@ -53,6 +53,18 @@ A job's log: the last `lines` lines, or the lines matching the regex `grep`.
 | `grep` | string | `""` |
 | `lines` | integer | `200` |
 
+### `jobs_stream_url`
+
+*read-only*
+
+The WebSocket URL that streams a job's log, for Claude Code's Monitor tool (Monitor(ws={url}, ...)): one frame per log line matching the regex `grep`, then `END {state, returncode}` on every terminal state, then close. start: end (new lines only), start, or a line number.
+
+| Argument | Type | Default |
+|---|---|---|
+| `job` | string | required |
+| `grep` | string | `""` |
+| `start` | string | `"end"` |
+
 ### `jobs_cancel`
 
 *acts*
@@ -108,6 +120,22 @@ quartus_sta with scripts/report_worst_paths.tcl on the compiled database (no rec
 | `core` | string | required |
 | `rev` | string | `""` |
 | `wait_s` | integer | `300` |
+
+### `build_project`
+
+*acts*
+
+Compile a standalone Quartus project in the core (a synth harness such as rtl/synth_check, not a revision of the core) as a job, under the hwlock rule. `project` is its .qpf or directory, relative to the core. With no seed or clocks it compiles in place. With either, it compiles a copy in build/<project dir>/<tag or s<seed>>/: the .qsf's paths outside the project are made absolute, SEED is set, and each create_clock named in `clocks` (clock -name or port; "*" for all) gets that -period in ns. Result: slack per clock and fit totals.
+
+| Argument | Type | Default |
+|---|---|---|
+| `core` | string | required |
+| `project` | string | required |
+| `rev` | string | `""` |
+| `seed` | integer or null | `null` |
+| `clocks` | dict[str, number] or null | `null` |
+| `tag` | string | `""` |
+| `wait_s` | integer | `5` |
 
 ### `build_floorplan`
 
@@ -234,7 +262,7 @@ scripts/mame_sys_trace.py <set> <frames>.
 
 *acts*
 
-Run a Lua script headless under scripts/mame/run.lua, so a Lua error comes back as `lua_error` instead of a hidden modal dialog. `script` is a file under scripts/mame/ or a path. CORE_OUT is a fresh directory, returned with what the script wrote there.
+Run a Lua script headless under scripts/mame/run.lua, so a Lua error comes back as `lua_error` instead of a hidden modal dialog. `script` is a file under scripts/mame/ or a path; `env` reaches the script (CORE_FRAMES, CORE_EVENTS...). CORE_OUT is `out` (a directory in the core, e.g. debug/<set>-boot, emptied first if `clean`) or else a fresh one. NVRAM and cfg are fresh per run, in CORE_OUT/nvram and /cfg; `nvram` seeds the NVRAM from a directory (its <set>/ if it has one), also kept as CORE_OUT/nvram_start. `debug` runs with -debug -debugger none, for scripts that use the debugger. `fail_on` is a regex: matching log lines come back as `fail_lines`. `seconds` is MAME's -seconds_to_run, with no cap.
 
 | Argument | Type | Default |
 |---|---|---|
@@ -244,6 +272,11 @@ Run a Lua script headless under scripts/mame/run.lua, so a Lua error comes back 
 | `env` | dict[str, string] or null | `null` |
 | `seconds` | integer | `60` |
 | `extra_args` | list[string] or null | `null` |
+| `out` | string | `""` |
+| `clean` | boolean | `false` |
+| `nvram` | string | `""` |
+| `debug` | boolean | `false` |
+| `fail_on` | string | `""` |
 | `wait_s` | integer | `120` |
 
 ### `mame_listxml`
@@ -418,4 +451,16 @@ scripts/read_issp.py <instance> [clear|set <v>|pulse <v>]: decode an instance, o
 | `instance` | string | required |
 | `action` | string | `""` |
 | `value` | string | `""` |
+| `wait_s` | integer | `120` |
+
+### `probe_sequence`
+
+*acts*
+
+ISSP steps in one quartus_stp session, under the machine-wide JTAG lock, so a clear, a timed run and a read are one measurement. Steps, in order: {"clear": id}, {"set": id, "value": n}, {"pulse": id, "value": n}, {"sleep": seconds}, {"read": id}. Each read returns t_ms (since the session started), the raw bits, and fields decoded with the instance's table in the core's scripts/read_issp.tcl. `tag` is <core>|<build>|<set>| from the device.
+
+| Argument | Type | Default |
+|---|---|---|
+| `core` | string | required |
+| `steps` | list[dict[str, any]] | required |
 | `wait_s` | integer | `120` |

@@ -83,6 +83,13 @@ only, read on every call. Beyond the scripts' own (`MISTER_HOST`,
     then returns the job id.
   - `jobs_status` gives the state, log tail and parsed `result`.
   - `jobs_cancel` kills the whole process tree.
+  - A job's log streams over a WebSocket, `ws://127.0.0.1:8770/jobs/<id>/log?grep=<regex>&from=end|start|<line>`:
+    one frame per line, then `END {"state", "returncode"}` on every terminal state, then close.
+    `jobs_stream_url` returns it, for Claude Code's `Monitor(ws={url})`. Connections with a
+    browser `Origin` that is not localhost are refused.
+  - Runners leave the scheduled task's job object where Windows allows it, so a restart does not
+    kill them. Whether it does allow it under the task is not checked yet: do not restart the
+    server while a build runs.
 - **Board access is the listed operations only.**
   - No general shell.
   - `mister_get`/`mister_put` are limited to `/media/fat/{_Arcade,games,config,screenshots}`.
@@ -105,12 +112,12 @@ npx @modelcontextprotocol/inspector E:/MiSTer-CoreSkill/mcp/.venv/Scripts/mister
 
 | Group | Tools |
 |---|---|
-| jobs | `cores_list`, `calls_log`, `jobs_list`, `jobs_status`, `jobs_log`, `jobs_cancel`, `locks_status` |
-| build | `build_start`, `build_report`, `build_worst_paths`, `build_floorplan` |
+| jobs | `cores_list`, `calls_log`, `jobs_list`, `jobs_status`, `jobs_log`, `jobs_stream_url`, `jobs_cancel`, `locks_status` |
+| build | `build_start`, `build_project`, `build_report`, `build_worst_paths`, `build_floorplan` |
 | sim | `sim_list`, `sim_run`, `sim_compare_boot`, `sim_sweep` |
 | MAME | `mame_version`, `mame_capture`, `mame_boot_trace`, `mame_sys_trace`, `mame_run_lua`, `mame_listxml` |
 | MiSTer | `mister_state`, `mister_check_mra`, `mister_deploy`, `mister_launch`, `mister_screenshot`, `mister_playing`, `mister_osd`, `mister_ls`, `mister_get`, `mister_put`, `mister_devmem`, `mister_reboot` |
-| probes | `probe_read`, `probe_issp` |
+| probes | `probe_read`, `probe_issp`, `probe_sequence` |
 
 Checks the tools add over the scripts:
 
@@ -121,7 +128,12 @@ Checks the tools add over the scripts:
   - Both the `<name>_` and `Arcade-<name>_` forms are counted.
   - It refuses when nothing matches, when another file outranks the `3xxxxxxx` deploys, or when
     zips are missing.
-- **`mame_run_lua`** always runs through `run.lua` and returns `lua_error.txt`.
+- **`mame_run_lua`** always runs through `run.lua` and returns `lua_error.txt`. NVRAM and cfg
+  are the run's own (in the output directory), never MAME's installed ones; `nvram` seeds them.
+- **`build_project`** compiles a standalone harness project (not a core revision), in place or as
+  a copy with SEED and `create_clock -period` changed, under the hwlock rule.
+- **`probe_sequence`** runs clear/set/pulse/sleep/read steps in one `quartus_stp` session, with
+  millisecond times, decoded with the core's `read_issp.tcl` field tables.
 - **`sim_run`** flags `$readmem` warnings, and refuses a second ModelSim job on the same core.
 
 ## Tested
@@ -132,7 +144,11 @@ Run by hand against this machine, with no compile and no JTAG:
 - `mame_version`;
 - `mister_state`, `mister_ls` and `mister_check_mra` on BallySente and KonamiHornet;
 - the path and confirm refusals;
-- job start, exit code, cancel.
+- job start, exit code, cancel;
+- the WebSocket stream (grep, `from=start`, `END` on a failed job, origin refusal, unknown job);
+- `mame_run_lua` with `out`, `clean`, `nvram`, `debug`, `fail_on` and `env` on BallySente;
+- `build_project`'s copy (paths, SEED, clock periods) and `probe_sequence`'s step and field
+  decoding, offline.
 
-Not run yet: `build_start`, `sim_run`, the `mame_*` jobs, `mister_deploy`, `mister_launch`,
-`mister_screenshot`, the `probe_*` tools.
+Not run yet: `build_project` and `probe_sequence` against Quartus and the board, `mister_deploy`,
+`mister_screenshot`, the other `probe_*` tools.

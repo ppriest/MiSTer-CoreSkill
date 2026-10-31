@@ -141,6 +141,36 @@
   }
  },
  {
+  "name": "jobs_stream_url",
+  "description": "The WebSocket URL that streams a job's log, for Claude Code's Monitor tool\n(Monitor(ws={url}, ...)): one frame per log line matching the regex `grep`, then\n`END {state, returncode}` on every terminal state, then close. start: end (new lines only),\nstart, or a line number.",
+  "inputSchema": {
+   "properties": {
+    "job": {
+     "title": "Job",
+     "type": "string"
+    },
+    "grep": {
+     "default": "",
+     "title": "Grep",
+     "type": "string"
+    },
+    "start": {
+     "default": "end",
+     "title": "Start",
+     "type": "string"
+    }
+   },
+   "required": [
+    "job"
+   ],
+   "title": "jobs_stream_urlArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": true
+  }
+ },
+ {
   "name": "jobs_cancel",
   "description": "Kill a job's whole process tree (quartus_fit, vsimk, mame).",
   "inputSchema": {
@@ -270,6 +300,74 @@
     "core"
    ],
    "title": "build_worst_pathsArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "destructiveHint": false
+  }
+ },
+ {
+  "name": "build_project",
+  "description": "Compile a standalone Quartus project in the core (a synth harness such as rtl/synth_check,\nnot a revision of the core) as a job, under the hwlock rule. `project` is its .qpf or\ndirectory, relative to the core. With no seed or clocks it compiles in place. With either,\nit compiles a copy in build/<project dir>/<tag or s<seed>>/: the .qsf's paths outside the\nproject are made absolute, SEED is set, and each create_clock named in `clocks` (clock -name\nor port; \"*\" for all) gets that -period in ns. Result: slack per clock and fit totals.",
+  "inputSchema": {
+   "properties": {
+    "core": {
+     "title": "Core",
+     "type": "string"
+    },
+    "project": {
+     "title": "Project",
+     "type": "string"
+    },
+    "rev": {
+     "default": "",
+     "title": "Rev",
+     "type": "string"
+    },
+    "seed": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Seed"
+    },
+    "clocks": {
+     "anyOf": [
+      {
+       "additionalProperties": {
+        "type": "number"
+       },
+       "type": "object"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Clocks"
+    },
+    "tag": {
+     "default": "",
+     "title": "Tag",
+     "type": "string"
+    },
+    "wait_s": {
+     "default": 5,
+     "title": "Wait S",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "core",
+    "project"
+   ],
+   "title": "build_projectArguments",
    "type": "object"
   },
   "annotations": {
@@ -616,7 +714,7 @@
  },
  {
   "name": "mame_run_lua",
-  "description": "Run a Lua script headless under scripts/mame/run.lua, so a Lua error comes back as\n`lua_error` instead of a hidden modal dialog. `script` is a file under scripts/mame/ or a\npath. CORE_OUT is a fresh directory, returned with what the script wrote there.",
+  "description": "Run a Lua script headless under scripts/mame/run.lua, so a Lua error comes back as\n`lua_error` instead of a hidden modal dialog. `script` is a file under scripts/mame/ or a\npath; `env` reaches the script (CORE_FRAMES, CORE_EVENTS...). CORE_OUT is `out` (a directory\nin the core, e.g. debug/<set>-boot, emptied first if `clean`) or else a fresh one.\nNVRAM and cfg are fresh per run, in CORE_OUT/nvram and /cfg; `nvram` seeds the NVRAM from a\ndirectory (its <set>/ if it has one), also kept as CORE_OUT/nvram_start. `debug` runs with\n-debug -debugger none, for scripts that use the debugger. `fail_on` is a regex: matching log\nlines come back as `fail_lines`. `seconds` is MAME's -seconds_to_run, with no cap.",
   "inputSchema": {
    "properties": {
     "core": {
@@ -665,6 +763,31 @@
      ],
      "default": null,
      "title": "Extra Args"
+    },
+    "out": {
+     "default": "",
+     "title": "Out",
+     "type": "string"
+    },
+    "clean": {
+     "default": false,
+     "title": "Clean",
+     "type": "boolean"
+    },
+    "nvram": {
+     "default": "",
+     "title": "Nvram",
+     "type": "string"
+    },
+    "debug": {
+     "default": false,
+     "title": "Debug",
+     "type": "boolean"
+    },
+    "fail_on": {
+     "default": "",
+     "title": "Fail On",
+     "type": "string"
     },
     "wait_s": {
      "default": 120,
@@ -1167,6 +1290,41 @@
     "instance"
    ],
    "title": "probe_isspArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "destructiveHint": false
+  }
+ },
+ {
+  "name": "probe_sequence",
+  "description": "ISSP steps in one quartus_stp session, under the machine-wide JTAG lock, so a clear, a\ntimed run and a read are one measurement. Steps, in order: {\"clear\": id}, {\"set\": id,\n\"value\": n}, {\"pulse\": id, \"value\": n}, {\"sleep\": seconds}, {\"read\": id}. Each read returns\nt_ms (since the session started), the raw bits, and fields decoded with the instance's table\nin the core's scripts/read_issp.tcl. `tag` is <core>|<build>|<set>| from the device.",
+  "inputSchema": {
+   "properties": {
+    "core": {
+     "title": "Core",
+     "type": "string"
+    },
+    "steps": {
+     "items": {
+      "additionalProperties": true,
+      "type": "object"
+     },
+     "title": "Steps",
+     "type": "array"
+    },
+    "wait_s": {
+     "default": 120,
+     "title": "Wait S",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "core",
+    "steps"
+   ],
+   "title": "probe_sequenceArguments",
    "type": "object"
   },
   "annotations": {

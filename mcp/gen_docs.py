@@ -16,6 +16,8 @@ GROUPS = [("jobs", "Jobs and locks", ("cores_", "jobs_", "locks_")), ("build", "
 
 
 def type_of(p):
+    if not isinstance(p, dict):               # additionalProperties: true
+        return "any"
     if "anyOf" in p:
         return " or ".join(type_of(x) for x in p["anyOf"])
     t = p.get("type", "any")

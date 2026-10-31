@@ -1,13 +1,14 @@
 """MCP server for MiSTer arcade core work: builds, simulation, MAME and the board.
 
-One stdio process per Claude session. What sessions share lives on disk: jobs under
-%LOCALAPPDATA%/mister_mcp/jobs and hwlock's JTAG markers, which the core's own scripts take.
+One HTTP server for the machine (README). What sessions share lives on disk under ~/.mister:
+jobs, the call log and hwlock's JTAG markers, which the core's own scripts take.
 Every tool takes `core` (repository directory, short name or path) where a core is involved.
 """
 import functools
 import json
 import os
 import re
+import shutil
 import subprocess
 import tempfile
 import time
@@ -151,6 +152,24 @@ def jobs_log(job: str, grep: str = "", lines: int = 200) -> str:
     return "\n".join(text[-lines:])
 
 
+@tool(RO)
+def jobs_stream_url(job: str, grep: str = "", start: str = "end") -> dict:
+    """The WebSocket URL that streams a job's log, for Claude Code's Monitor tool
+    (Monitor(ws={url}, ...)): one frame per log line matching the regex `grep`, then
+    `END {state, returncode}` on every terminal state, then close. start: end (new lines only),
+    start, or a line number."""
+    J._dir(job)
+    try:
+        re.compile(grep)
+    except re.error as e:
+        raise ToolError(f"grep: {e}")
+    from urllib.parse import urlencode
+    port = int(C.machine_setting("MISTER_MCP_PORT", "8770"))
+    qs = urlencode({k: v for k, v in (("grep", grep), ("from", start)) if v})
+    return {"url": f"ws://127.0.0.1:{port}/jobs/{job}/log" + (f"?{qs}" if qs else ""),
+            "state": J.status(job, 0)["state"]}
+
+
 @tool(ACT)
 def jobs_cancel(job: str) -> dict:
     """Kill a job's whole process tree (quartus_fit, vsimk, mame)."""
@@ -215,6 +234,67 @@ def build_worst_paths(core: str, rev: str = "", wait_s: int = 300) -> dict:
     st = J.wait(jid, wait_s)
     if st["state"] == "done":
         st["result"] = _sta_result(jid)
+    return st
+
+
+def _qpf_revision(qpf):
+    m = re.search(r'PROJECT_REVISION\s*=\s*"([^"]+)"', qpf.read_text(errors="replace"))
+    return m.group(1) if m else qpf.stem
+
+
+def _project_result(jid):
+    m = J.meta(jid)["meta"]
+    o = Path(m["work"]) / "output_files"
+    res = {"work": m["work"], "rev": m["rev"]}
+    s, f = o / f"{m['rev']}.sta.summary", o / f"{m['rev']}.fit.summary"
+    if s.exists():
+        res["sta"] = R.sta(s)
+        setup = [b["slack"] for b in res["sta"] if "Setup" in b["type"]]
+        res["worst_setup"] = min(setup) if setup else None
+    if f.exists():
+        fit = R.fit(f)
+        res["fit"] = {k: v for k, v in fit.items() if k.startswith(("Logic utilization", "Total"))}
+    return res
+
+
+@tool(ACT)
+def build_project(core: str, project: str, rev: str = "", seed: int | None = None,
+                  clocks: dict[str, float] | None = None, tag: str = "", wait_s: int = 5) -> dict:
+    """Compile a standalone Quartus project in the core (a synth harness such as rtl/synth_check,
+    not a revision of the core) as a job, under the hwlock rule. `project` is its .qpf or
+    directory, relative to the core. With no seed or clocks it compiles in place. With either,
+    it compiles a copy in build/<project dir>/<tag or s<seed>>/: the .qsf's paths outside the
+    project are made absolute, SEED is set, and each create_clock named in `clocks` (clock -name
+    or port; "*" for all) gets that -period in ns. Result: slack per clock and fit totals."""
+    root = C.resolve(core)
+    p = (root / project).resolve()
+    qpf = p if p.suffix == ".qpf" else next(iter(sorted(p.glob("*.qpf"))), None) if p.is_dir() else None
+    if not qpf or not qpf.exists() or root not in qpf.parents:
+        raise ToolError(f"no .qpf at {project} in {root.name}")
+    if qpf.parent == root:
+        raise ToolError("that is the core's own project; use build_start")
+    r = rev or _qpf_revision(qpf)
+    dest = None
+    if seed is not None or clocks:
+        name = tag or "_".join([f"s{seed}" if seed is not None else "s-"] +
+                               [f"{k}{v:g}".replace("*", "all") for k, v in (clocks or {}).items()])
+        dest = root / "build" / qpf.parent.name / re.sub(r"[^\w.-]", "_", name)
+    work = dest or qpf.parent
+    for j in J.listing(limit=50, active_only=True):
+        if j["kind"] == "project" and j["meta"].get("work") == str(work):
+            raise ToolError(f"job {j['id']} is already compiling {work}")
+    tpl = C.TEMPLATE_SCRIPTS
+    scripts = [str(d) for d in (root / "scripts", tpl) if d.is_dir()]
+    spec = {"root": str(root), "scripts": scripts, "qpf": str(qpf), "rev": r,
+            "dest": str(dest) if dest else None, "seed": seed, "clocks": clocks or {}}
+    sp = Path(tempfile.mkdtemp(prefix="qproject_")) / "spec.json"
+    sp.write_text(json.dumps(spec), encoding="utf-8")
+    argv = [C.python_exe(), str(Path(__file__).with_name("qproject.py")), str(sp)]
+    env = dict(os.environ, CORE_ROOT=str(root), PYTHONIOENCODING="utf-8")
+    jid = J.start("project", root.name, argv, root, env, {"rev": r, "work": str(work), "qpf": str(qpf)})
+    st = J.wait(jid, wait_s)
+    if st["state"] not in ("starting", "running"):
+        st["result"] = _project_result(jid)
     return st
 
 
@@ -369,10 +449,14 @@ def _capture_result(jid):
         return None
     o = Path(out)
     err = o / "lua_error.txt"
-    return {"out": out, "lua_error": err.read_text(errors="replace").strip() if err.exists() else None,
-            "error": (o / "ERROR.txt").read_text(errors="replace").strip()
-            if (o / "ERROR.txt").exists() else None,
-            "manifest": R.manifest(o), "files": sorted(p.name for p in o.glob("*"))[:60]}
+    res = {"out": out, "lua_error": err.read_text(errors="replace").strip() if err.exists() else None,
+           "error": (o / "ERROR.txt").read_text(errors="replace").strip()
+           if (o / "ERROR.txt").exists() else None,
+           "manifest": R.manifest(o), "files": sorted(p.name for p in o.glob("*"))[:60]}
+    if m["meta"].get("fail_on"):
+        rx = re.compile(m["meta"]["fail_on"])
+        res["fail_lines"] = [ln for ln in J.log(jid).splitlines() if rx.search(ln)][:50]
+    return res
 
 
 @tool(ACT)
@@ -405,10 +489,17 @@ def mame_sys_trace(core: str, set: str, frames: int, seconds: int = 120, wait_s:
 
 @tool(ACT)
 def mame_run_lua(core: str, set: str, script: str, env: dict[str, str] | None = None,
-                 seconds: int = 60, extra_args: list[str] | None = None, wait_s: int = 120) -> dict:
+                 seconds: int = 60, extra_args: list[str] | None = None, out: str = "",
+                 clean: bool = False, nvram: str = "", debug: bool = False, fail_on: str = "",
+                 wait_s: int = 120) -> dict:
     """Run a Lua script headless under scripts/mame/run.lua, so a Lua error comes back as
     `lua_error` instead of a hidden modal dialog. `script` is a file under scripts/mame/ or a
-    path. CORE_OUT is a fresh directory, returned with what the script wrote there."""
+    path; `env` reaches the script (CORE_FRAMES, CORE_EVENTS...). CORE_OUT is `out` (a directory
+    in the core, e.g. debug/<set>-boot, emptied first if `clean`) or else a fresh one.
+    NVRAM and cfg are fresh per run, in CORE_OUT/nvram and /cfg; `nvram` seeds the NVRAM from a
+    directory (its <set>/ if it has one), also kept as CORE_OUT/nvram_start. `debug` runs with
+    -debug -debugger none, for scripts that use the debugger. `fail_on` is a regex: matching log
+    lines come back as `fail_lines`. `seconds` is MAME's -seconds_to_run, with no cap."""
     root = C.resolve(core)
     lua_dir = root / "scripts" / "mame"
     run_lua = lua_dir / "run.lua" if (lua_dir / "run.lua").exists() else C.TEMPLATE_SCRIPTS / "mame" / "run.lua"
@@ -418,17 +509,46 @@ def mame_run_lua(core: str, set: str, script: str, env: dict[str, str] | None = 
                    if p.exists()), None)
     if not sp or not sp.exists():
         raise ToolError(f"no Lua script {script}")
+    try:
+        re.compile(fail_on)
+    except re.error as e:
+        raise ToolError(f"fail_on: {e}")
     md = C.coretools.mame_dir(root)
     exe = C.coretools.mame_exe(root)
-    out = root / "debug" / "lua" / f"{set}-{sp.stem}-{time.strftime('%H%M%S')}"
+    if out:
+        o = (root / out).resolve()
+        if root not in o.parents:
+            raise ToolError(f"out must be inside {root.name}")
+        for j in J.listing(limit=50, active_only=True):
+            if j["kind"] == "mame" and j["meta"].get("out") == str(o):
+                raise ToolError(f"job {j['id']} is already writing {out}")
+        if clean and o.exists():
+            shutil.rmtree(o)
+        out = o
+    else:
+        out = root / "debug" / "lua" / f"{set}-{sp.stem}-{time.strftime('%H%M%S')}"
     out.mkdir(parents=True, exist_ok=True)
-    argv = [str(exe), set, "-nodebug", "-nowindow", "-video", "none", "-sound", "none",
+    # NVRAM and cfg are the run's own, so MAME's installed ones are neither read nor written
+    for d in ("nvram", "nvram_start", "cfg"):
+        if (out / d).exists():
+            shutil.rmtree(out / d)
+    if nvram:
+        src = Path(nvram) if Path(nvram).is_absolute() else root / nvram
+        if not src.is_dir():
+            raise ToolError(f"no NVRAM directory {nvram}")
+        src = src / set if (src / set).is_dir() else src
+        shutil.copytree(src, out / "nvram" / set)
+        shutil.copytree(src, out / "nvram_start")
+    argv = [str(exe), set, *(["-debug", "-debugger", "none"] if debug else ["-nodebug"]),
+            "-nowindow", "-video", "none", "-sound", "none",
             "-skip_gameinfo", "-nothrottle", "-autoboot_delay", "0",
             "-autoboot_script", str(run_lua), "-rompath", C.coretools.rompath(root),
+            "-nvram_directory", (out / "nvram").as_posix(), "-cfg_directory", (out / "cfg").as_posix(),
             "-seconds_to_run", str(seconds), *(extra_args or [])]
     e = dict(os.environ, CORE_ROOT=str(root), CORE_SCRIPT=str(sp), CORE_OUT=out.as_posix(),
              **(env or {}))
-    jid = J.start("mame", root.name, argv, md, e, {"out": str(out), "script": str(sp)})
+    jid = J.start("mame", root.name, argv, md, e, {"out": str(out), "script": str(sp),
+                                                   "fail_on": fail_on})
     st = J.wait(jid, wait_s)
     if st["state"] not in ("starting", "running"):
         st["result"] = _capture_result(jid)
@@ -654,7 +774,51 @@ def probe_issp(core: str, instance: str, action: str = "", value: str = "",
     return _probe_job(root, "read_issp.py", args, wait_s)
 
 
-RESULTS = {"build": _build_result, "sim": _sim_result, "mame": _capture_result, "sta": _sta_result}
+def _sequence_result(jid):
+    for ln in reversed(J.log(jid).splitlines()):
+        if ln.startswith("{"):
+            try:
+                return json.loads(ln)
+            except ValueError:
+                break
+    return None
+
+
+@tool(ACT)
+def probe_sequence(core: str, steps: list[dict], wait_s: int = 120) -> dict:
+    """ISSP steps in one quartus_stp session, under the machine-wide JTAG lock, so a clear, a
+    timed run and a read are one measurement. Steps, in order: {"clear": id}, {"set": id,
+    "value": n}, {"pulse": id, "value": n}, {"sleep": seconds}, {"read": id}. Each read returns
+    t_ms (since the session started), the raw bits, and fields decoded with the instance's table
+    in the core's scripts/read_issp.tcl. `tag` is <core>|<build>|<set>| from the device."""
+    root = C.resolve(core)
+    if not steps or len(steps) > 1000:
+        raise ToolError("steps: 1 to 1000")
+    for s in steps:
+        k = next((k for k in ("read", "set", "pulse", "clear", "sleep") if k in s), None)
+        if not k or (k in ("set", "pulse") and "value" not in s):
+            raise ToolError(f"bad step {s}")
+        if k != "sleep" and not re.fullmatch(r"\w+", str(s[k])):
+            raise ToolError(f"bad instance id in {s}")
+    tcl, _ = C.script(root, "read_issp.tcl")
+    spec = {"root": str(root), "scripts": [str(d) for d in (root / "scripts", C.TEMPLATE_SCRIPTS)
+                                           if d.is_dir()],
+            "tcl": str(tcl), "here_tcl": str(Path(__file__).with_name("issp_seq.tcl")), "steps": steps}
+    sp = Path(tempfile.mkdtemp(prefix="issp_seq_")) / "spec.json"
+    sp.write_text(json.dumps(spec), encoding="utf-8")
+    argv = [C.python_exe(), str(Path(__file__).with_name("issp_seq.py")), str(sp)]
+    env = dict(os.environ, CORE_ROOT=str(root), PYTHONIOENCODING="utf-8")
+    jid = J.start("probe_seq", root.name, argv, root, env, {"steps": len(steps)})
+    st = J.wait(jid, wait_s)
+    if st["state"] in ("starting", "running"):
+        st["note"] = "waiting for the JTAG lock or quartus_stp; poll jobs_status"
+    else:
+        st["result"] = _sequence_result(jid)
+    return st
+
+
+RESULTS = {"build": _build_result, "sim": _sim_result, "mame": _capture_result, "sta": _sta_result,
+           "project": _project_result, "probe_seq": _sequence_result}
 
 
 def merge_deploy_log(old=None):
@@ -707,7 +871,16 @@ def main():
     log.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} server starting, pid {os.getpid()}, "
               f"port {a.port}\n")
     log.flush()
-    server.run(transport="streamable-http", host="127.0.0.1", port=a.port)
+    import uvicorn
+    from starlette.routing import WebSocketRoute
+    from .stream import job_log
+    app = server.streamable_http_app(host="127.0.0.1")
+    app.router.routes.append(WebSocketRoute("/jobs/{id}/log", lambda ws: job_log(ws, _ws_record)))
+    uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=a.port, log_level="info")).run()
+
+
+def _ws_record(entry):
+    _record({"t": time.strftime("%Y-%m-%d %H:%M:%S"), "ok": True, **entry})
 
 
 if __name__ == "__main__":

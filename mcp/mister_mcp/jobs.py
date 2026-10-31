@@ -33,9 +33,16 @@ def start(kind, core, argv, cwd, env, meta=None):
            "meta": meta or {}, "started": time.time()}
     (d / "job.json").write_text(json.dumps(job, indent=1), encoding="utf-8")
     full_env = dict(env)
-    subprocess.Popen([sys.executable, str(RUNNER), str(d)], cwd=cwd, env=full_env,
-                     creationflags=DETACH, close_fds=True,
-                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    # Out of the scheduled task's job object where it allows that, so that stopping the task
+    # (a server restart) does not kill a running build; refused breakaway raises, so retry inside
+    def spawn(flags):
+        subprocess.Popen([sys.executable, str(RUNNER), str(d)], cwd=cwd, env=full_env,
+                         creationflags=flags, close_fds=True, stdin=subprocess.DEVNULL,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    try:
+        spawn(DETACH | (subprocess.CREATE_BREAKAWAY_FROM_JOB if os.name == "nt" else 0))
+    except PermissionError:
+        spawn(DETACH)
     for _ in range(50):                       # the runner writes status.json at once
         if (d / "status.json").exists():
             break
