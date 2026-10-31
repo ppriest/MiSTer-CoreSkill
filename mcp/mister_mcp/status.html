@@ -170,7 +170,7 @@ function jobRow(j) {
   const t = j.started || j.id.replace(/^(\d{4})(\d\d)(\d\d)-(\d\d)(\d\d)(\d\d).*/, "$1-$2-$3 $4:$5:$6");
   return [`<span class="mono muted" title="${esc(t)}">${esc(t.slice(5, 16))}</span>`,
     `<a href="#" data-job="${esc(j.id)}" class="mono">${esc(j.id)}</a>`, esc(j.kind), esc(j.core),
-    state(j.state), j.returncode ?? "", dur(j.elapsed_s),
+    state(j.state), dur(j.elapsed_s),
     `<span class="mono muted">${esc(m.script || "")}${m.rev ? " " + esc(m.rev) : ""}${m.tag ? " " + esc(m.tag) : ""}</span>`,
     `<a href="/download/jobs/${esc(j.id)}/log.txt">log</a>`];
 }
@@ -199,7 +199,7 @@ function render() {
 
   const act = d.jobs.filter(j => j.state === "running" || j.state === "starting");
   $("nactive").textContent = act.length;
-  $("active").innerHTML = table(["Started", "Job", "Kind", "Core", "State", "rc", "Elapsed", "Script", ""], act.map(jobRow));
+  $("active").innerHTML = table(["Started", "Job", "Kind", "Core", "State", "Elapsed", "Script", ""], act.map(jobRow));
 
   const cq = $("corefilter").value;
   const cores = d.cores.filter(c => match(cq, c.name, c.path, c.branch, JSON.stringify(c.settings)));
@@ -216,7 +216,7 @@ function render() {
   const jq = $("jobfilter").value;
   const jobs = d.jobs.filter(j => match(jq, j.id, j.kind, j.core, j.state, JSON.stringify(j.meta)));
   $("njobs").textContent = jobs.length;
-  $("jobs").innerHTML = table(["Started", "Job", "Kind", "Core", "State", "rc", "Elapsed", "Script", ""], jobs.map(jobRow));
+  $("jobs").innerHTML = table(["Started", "Job", "Kind", "Core", "State", "Elapsed", "Script", ""], jobs.map(jobRow));
 
   const kq = $("callfilter").value, eo = $("errsonly").checked;
   const calls = d.calls.filter(c => (!eo || c.ok === false) && match(kq, c.tool, JSON.stringify(c.args), c.error, c.id));
@@ -224,13 +224,12 @@ function render() {
   // Status: error if the call failed; for a job, its state now (from the jobs list), else the
   // state the call returned with, marked "at return"; otherwise ok.
   const byId = Object.fromEntries(d.jobs.map(j => [j.id, j]));
-  $("calls").innerHTML = table(["Time", "Tool", "Arguments", "Took", "Status", "rc", "Job / error"],
+  $("calls").innerHTML = table(["Time", "Tool", "Arguments", "Took", "Status", "Job / error"],
     calls.map(c => { const j = c.id && byId[c.id]; return [`<span class="mono muted">${esc((c.t || "").slice(5))}</span>`, `<b>${esc(c.tool)}</b>`,
       `<div class="args mono" title="${esc(JSON.stringify(c.args))}">${esc(JSON.stringify(c.args || {}))}</div>`,
       c.s == null ? "" : `<span title="${c.s} s">${c.s < 10 ? c.s.toFixed(1) + "s" : dur(Math.round(c.s))}</span>`,
       c.ok === false ? `<span class="err">error</span>` : j ? state(j.state)
         : c.state ? `${state(c.state)} <span class="muted">at return</span>` : `<span class="ok">ok</span>`,
-      (j ? j.returncode : c.returncode) ?? "",
       c.ok === false ? `<span class="err">${esc(c.error)}</span>`
         : c.id ? `<a href="#" data-job="${esc(c.id)}" class="mono">${esc(c.id)}</a>` : ""]; }));
 
