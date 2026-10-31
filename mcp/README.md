@@ -150,5 +150,8 @@ Run by hand against this machine, with no compile and no JTAG:
 - `build_project`'s copy (paths, SEED, clock periods) and `probe_sequence`'s step and field
   decoding, offline.
 
+Run through the boot-task server: `build_start` on DecoMLC (job done in 917 s, result parsed with
+commit, timing and `.rbf`), and kept running through a server restart.
+
 Not run yet: `build_project` and `probe_sequence` against Quartus and the board, `mister_deploy`,
 `mister_screenshot`, the other `probe_*` tools.
