@@ -15,10 +15,9 @@ hold the same bytes. reference.png is MAME's rendering; where the driver is
 MACHINE_IMPERFECT_GRAPHICS a pixel difference is a question, not a verdict, and is
 settled in docs/MAME_KLUDGES.md.
 
-Also the shared loader for regions.json and the MAME command line (write_timing.py).
+The MAME helpers (regions.json, the command line, run.lua) are in coretools.
 """
 import argparse
-import json
 import os
 import shutil
 import subprocess
@@ -27,91 +26,15 @@ from pathlib import Path
 
 REPO = Path(os.environ.get("CORE_ROOT") or Path(__file__).resolve().parent.parent)  # the MCP sets CORE_ROOT
 LUA_DIR = REPO / "scripts" / "mame"
-NO_WINDOW = {"creationflags": 0x08000000} if os.name == "nt" else {}
-
-from coretools import setting  # noqa: E402  (the skill's template, on PYTHONPATH)
-
-
-def mame_paths():
-    mame_dir = Path(setting("MAME_DIR", "", REPO))
-    exe = mame_dir / setting("MAME_EXE", "mame.exe", REPO)
-    if not exe.exists():
-        sys.exit(f"MAME not found at {exe}; set MAME_DIR/MAME_EXE with core_settings_set "
-                 f"or in ~/.mister-core.env")
-    return mame_dir, exe
+# The MAME helpers are coretools' (the skill's template, on PYTHONPATH), where a core's own
+# scripts import them too; re-exported for the MCP's other MAME scripts.
+from coretools import (NO_WINDOW, check_lua_error, extra_read_spec, input_env,  # noqa: E402,F401
+                       lua_env, lua_runner_env, mame_cmd, mame_paths, regions, spec)
+from coretools import rompath as _rompath  # noqa: E402
 
 
-def regions(game=None):
-    """scripts/mame/regions.json, or the profile CORE_REGIONS names (DecoMLC's DE156 sets use
-    regions_de156.json), with its "sets" entry for `game` laid over the top level (Gaelco3D)."""
-    r = json.loads((LUA_DIR / os.environ.get("CORE_REGIONS", "regions.json")).read_text(encoding="utf-8"))
-    return {**r, **r.pop("sets", {}).get(game or "", {})}
-
-
-INPUT_DEFAULTS = {"coin": "Coin 1", "start": "1 Player Start", "hold": "P1 Right", "pulse": "P1 Button 1"}
-
-
-def input_env(r, prefix="CORE_IN_"):
-    """regions.json "inputs" over INPUT_DEFAULTS, as <prefix><NAME>: the port fields the Lua presses
-    for --coin (coin, start, hold, pulse) and any others a core's Lua reads."""
-    return {prefix + k.upper(): v for k, v in {**INPUT_DEFAULTS, **r.get("inputs", {})}.items()}
-
-
-def extra_read_spec(table):
-    """regions.json "read_extra": reads in another CPU's address space, for capture.lua
-    (CORE_READ_EXTRA = name:cpu:space:lo:hi,...)."""
-    return ",".join(
-        f"{name}:{e['cpu'].lstrip(':')}:{e.get('space', 'program')}:"
-        f"{int(e['range'][0], 16):x}:{int(e['range'][1], 16):x}"
-        for name, e in table.items())
-
-
-def spec(table, names=None):
-    """{"name": [lo, hi]} -> "name:lo:hi,..." for the Lua side."""
-    return ",".join(f"{n}:{int(lo, 16):x}:{int(hi, 16):x}"
-                    for n, (lo, hi) in table.items() if names is None or n in names)
-
-
-def lua_env(r):
-    return {"CORE_CPU": r["cpu"], "CORE_SPACE": r["space"],
-            "CORE_BYTES": str(r["bus_bytes"]), "CORE_BIG": "1" if r["big_endian"] else "0"}
-
-
-def lua_runner_env(lua):
-    """Every Lua script runs under scripts/mame/run.lua, which names the real
-    script in CORE_SCRIPT. Merge this into the subprocess environment.
-
-    Without it, MAME reports a Lua syntax or runtime error as a MODAL DIALOG and
-    the process sits there: the output directory looks untouched and the only
-    symptom is that nothing happened. run.lua catches both classes and writes
-    them to lua_error.txt; check_lua_error() reads it back.
-    """
-    return {"CORE_SCRIPT": str(LUA_DIR / lua)}
-
-
-def check_lua_error(out):
-    """Turn a Lua failure into a printed error. Call before blaming the capture."""
-    err = Path(out) / "lua_error.txt"
-    if err.exists():
-        sys.exit("Lua failed: " + err.read_text().strip())
-
-
-def mame_cmd(exe, game, lua, mame_dir, extra=()):
-    # -nodebug/-nowindow explicit: a mame.ini with `debug 1` halts in the debugger
-    # while the autoboot script still loads and prints, so it looks alive.
-    # -autoboot_script points at run.lua, not at `lua`: see lua_runner_env().
-    # regions.json "mame_args" adds per-core options: -nodrc where the main CPU has a
-    # recompiler, because its fastram paths bypass the Lua write taps.
-    return [str(exe), game, "-nodebug", "-nowindow", "-video", "none", "-sound", "none",
-            "-skip_gameinfo", "-nothrottle", "-autoboot_delay", "0",
-            "-autoboot_script", str(LUA_DIR / "run.lua"),
-            "-rompath", rompath(mame_dir), *regions(game).get("mame_args", []), *extra]
-
-
-def rompath(mame_dir):
-    """roms/ in the repo, MAME's own roms/, then MAME_ROMPATH."""
-    extra = setting("MAME_ROMPATH", "", REPO)
-    return ";".join(p for p in [str(REPO / "roms"), str(mame_dir / "roms"), extra] if p)
+def rompath(mame_dir=None):
+    return _rompath(REPO)
 
 
 def seed_dips(exe, mame_dir, game, dips, out):

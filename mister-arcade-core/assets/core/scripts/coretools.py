@@ -224,15 +224,14 @@ def rompath(root=None):
     md = mame_dir(root)
     paths = [str(root / "roms")]
     ini = md / "mame.ini"
-    if ini.exists():
-        for line in ini.read_text(errors="replace").splitlines():
-            if line.strip().startswith("rompath"):
-                for part in line.split(None, 1)[1].split(";"):
-                    part = part.strip()
-                    if part:
-                        q = Path(part)
-                        paths.append(str(q if q.is_absolute() else md / q))
-                break
+    lines = ini.read_text(errors="replace").splitlines() if ini.exists() else []
+    ini_paths = next((ln.split(None, 1)[1] for ln in lines
+                      if ln.strip().startswith("rompath") and len(ln.split(None, 1)) == 2), "roms")
+    for part in ini_paths.split(";"):               # MAME's own default is roms/ beside it
+        part = part.strip()
+        if part:
+            q = Path(part)
+            paths.append(str(q if q.is_absolute() else md / q))
     paths += [str(Path(p.strip())) for p in (setting("MAME_ROMPATH", "", root) or "").split(";") if p.strip()]
     seen, out = set(), []
     for q in paths:
@@ -240,6 +239,88 @@ def rompath(root=None):
             seen.add(q)
             out.append(q)
     return ";".join(out)
+
+
+# --- running MAME headless: shared by the MCP's MAME scripts and a core's own -----------
+# Every Lua script runs under scripts/mame/run.lua, which names the real one in CORE_SCRIPT.
+# Without it MAME reports a Lua error as a MODAL DIALOG and the process sits there: the
+# output directory looks untouched and nothing says why. run.lua writes lua_error.txt.
+
+def mame_paths(root=None):
+    """(MAME_DIR, the executable in it); exits when it is not there."""
+    exe = mame_exe(root)
+    if not exe.exists():
+        sys.exit(f"MAME not found at {exe}; set MAME_DIR/MAME_EXE with core_settings_set "
+                 f"or in ~/.mister-core.env")
+    return exe.parent, exe
+
+
+def lua_dir(root=None):
+    return (root or core_root()) / "scripts" / "mame"
+
+
+def regions(game=None, root=None):
+    """scripts/mame/regions.json, or the profile CORE_REGIONS names (regions_<name>.json), with
+    its "sets" entry for `game` laid over the top level."""
+    p = lua_dir(root) / os.environ.get("CORE_REGIONS", "regions.json")
+    r = __import__("json").loads(p.read_text(encoding="utf-8"))
+    return {**r, **r.pop("sets", {}).get(game or "", {})}
+
+
+def spec(table, names=None):
+    """{"name": [lo, hi]} -> "name:lo:hi,..." for the Lua side."""
+    return ",".join(f"{n}:{int(lo, 16):x}:{int(hi, 16):x}"
+                    for n, (lo, hi) in table.items() if names is None or n in names)
+
+
+def extra_read_spec(table):
+    """regions.json "read_extra" ({name: {cpu, space, range}}): reads in another CPU's space,
+    as CORE_READ_EXTRA = name:cpu:space:lo:hi,..."""
+    return ",".join(
+        f"{name}:{e['cpu'].lstrip(':')}:{e.get('space', 'program')}:"
+        f"{int(e['range'][0], 16):x}:{int(e['range'][1], 16):x}"
+        for name, e in table.items())
+
+
+def lua_env(r):
+    """The main CPU's tag, space, bus width and endianness from regions.json, for the Lua."""
+    return {"CORE_CPU": r["cpu"], "CORE_SPACE": r["space"],
+            "CORE_BYTES": str(r["bus_bytes"]), "CORE_BIG": "1" if r["big_endian"] else "0"}
+
+
+INPUT_DEFAULTS = {"coin": "Coin 1", "start": "1 Player Start", "hold": "P1 Right", "pulse": "P1 Button 1"}
+
+
+def input_env(r, prefix="CORE_IN_"):
+    """regions.json "inputs" over INPUT_DEFAULTS, as <prefix><NAME>: the port fields a Lua
+    presses to coin up and play (coin, start, hold, pulse) and any others it reads."""
+    return {prefix + k.upper(): v for k, v in {**INPUT_DEFAULTS, **r.get("inputs", {})}.items()}
+
+
+def lua_runner_env(lua, root=None):
+    """Merge into the MAME process's environment: run.lua runs `lua` (in scripts/mame/)."""
+    return {"CORE_SCRIPT": str(lua_dir(root) / lua)}
+
+
+def check_lua_error(out):
+    """Exit with the Lua error run.lua wrote to <out>/lua_error.txt, if there is one."""
+    err = Path(out) / "lua_error.txt"
+    if err.exists():
+        sys.exit("Lua failed: " + err.read_text().strip())
+
+
+def mame_cmd(exe, game, lua, mame_dir=None, extra=(), root=None):
+    """The headless MAME command line running scripts/mame/<lua> under run.lua.
+
+    -nodebug/-nowindow explicit: a mame.ini with `debug 1` halts in the debugger while the
+    autoboot script still loads and prints, so it looks alive. regions.json "mame_args" adds
+    per-core options: -nodrc where the main CPU has a recompiler, because its fastram paths
+    bypass the Lua write taps. `lua` is unused (run.lua reads CORE_SCRIPT) and kept so the
+    call names the script it runs; mame_dir is unused (rompath() finds it)."""
+    return [str(exe), game, "-nodebug", "-nowindow", "-video", "none", "-sound", "none",
+            "-skip_gameinfo", "-nothrottle", "-autoboot_delay", "0",
+            "-autoboot_script", str(lua_dir(root) / "run.lua"),
+            "-rompath", rompath(root), *regions(game, root).get("mame_args", []), *extra]
 
 
 def find_putty(name):

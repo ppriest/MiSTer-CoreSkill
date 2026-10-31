@@ -25,7 +25,7 @@ framework's emu PLL output 0).
 | `report_worst_paths.tcl` (MCP: `build_worst_paths`) | worst setup paths on the main clock | Psikyo | `core.json` `sta_clock`, if the core's main clock is not the framework PLL output 0 |
 | `sta_failing_paths.tcl`, `sta_all_fail.tcl` | the same, run by hand with `quartus_sta -t` | Psikyo | clock name, if the core's main clock is not the framework PLL output 0 |
 | `floorplan.py`, `floorplan.tcl` (MCP: `build_floorplan`) | placement PNG coloured by block; `list_depth` prints hierarchy counts | skill | `scripts/floorplan.json` groups (start from `floorplan.example.json`, Fuuki's); without it, automatic groups by instance |
-| `coretools.py` | resolves core root, project, revision, tool paths | MiSTer-CoreTools | none |
+| `coretools.py` | resolves core root, project, revision, tool paths; the MAME helpers (`mame_paths`, `rompath()`, `regions`, `spec`, `lua_env`, `input_env`, `lua_runner_env`, `check_lua_error`, `mame_cmd`, `NO_WINDOW`) that the MCP's MAME scripts and a core's own MAME scripts share | MiSTer-CoreTools | none |
 | `hwlock.py` | refuses JTAG during a Quartus or ModelSim run and the reverse; JTAG has priority, so a waiting probe's reservation blocks new builds; `--status` shows the holder, the queue and what is compiling | KonamiGX | none |
 
 ## Hardware
