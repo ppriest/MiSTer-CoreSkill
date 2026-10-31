@@ -657,6 +657,29 @@ def probe_issp(core: str, instance: str, action: str = "", value: str = "",
 RESULTS = {"build": _build_result, "sim": _sim_result, "mame": _capture_result, "sta": _sta_result}
 
 
+def merge_deploy_log(old=None):
+    """Fold %LOCALAPPDATA%/mister_deployed.tsv into ~/.mister/mister_deployed.tsv: lines from
+    both, once each, in time order (identity.lookup takes the last match). Repeating it is
+    harmless, so it runs at every start and catches a core whose identity.py still writes there."""
+    old = Path(old) if old else Path(os.environ.get("LOCALAPPDATA") or Path.home()) / "mister_deployed.tsv"
+    new = J.STATE / "mister_deployed.tsv"
+    if not old.exists():
+        return 0
+    rows = []
+    for p in (new, old):
+        if p.exists():
+            rows += [ln.rstrip("\r") for ln in p.read_text(encoding="utf-8", errors="replace").splitlines()]
+    seen, out = set(), []
+    for ln in rows:
+        if ln.strip() and ln not in seen:
+            seen.add(ln)
+            out.append(ln)
+    out.sort(key=lambda ln: (ln.split("\t") + ["", "", "", ""])[3])
+    new.parent.mkdir(parents=True, exist_ok=True)
+    new.write_text("\n".join(out) + "\n", encoding="utf-8")
+    return len(out)
+
+
 def main():
     """The machine's one server: streamable HTTP on 127.0.0.1 (MISTER_MCP_PORT, default 8770),
     started at boot by the scheduled task from install_service.ps1. --stdio runs a private copy
@@ -676,6 +699,7 @@ def main():
             raise SystemExit(f"port {a.port} is already serving; not starting a second server")
     import sys
     J.BASE.mkdir(parents=True, exist_ok=True)
+    merge_deploy_log()
     log = open(J.BASE.parent / "server.log", "a", encoding="utf-8", buffering=1)
     sys.stdout = sys.stderr = log             # a scheduled task has no console
     logging.basicConfig(stream=log, level=logging.INFO, force=True,

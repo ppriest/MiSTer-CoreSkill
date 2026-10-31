@@ -39,10 +39,18 @@ renamed tool needs that reconnect in any case:
 powershell -Command "Stop-ScheduledTask mister-mcp; Start-ScheduledTask mister-mcp"
 ```
 
-Every tool call, from every session, is a line in `%LOCALAPPDATA%/mister_mcp/calls.jsonl`
-(time, tool, arguments, seconds, ok/error, job id); `calls_log` reads it. The HTTP log is
-`%LOCALAPPDATA%/mister_mcp/server.log`, which the boot task's process has not been seen to
-write. `mister-mcp.exe --stdio` runs a private copy
+Every tool call, from every session, is a line in `~/.mister/mcp/calls.jsonl` (time, tool,
+arguments, seconds, ok/error, job id); `calls_log` reads it. The HTTP log is
+`~/.mister/mcp/server.log`.
+
+**State lives in `~/.mister` (`MISTER_STATE_DIR`), never `%LOCALAPPDATA%`.** The Claude desktop
+app is a packaged (MSIX) app: Windows gives every process it starts, including Claude Code and
+whatever a session runs from Bash, a private copy of `AppData\Local`
+(`AppData\Local\Packages\Claude_*\LocalCache\Local`). Files written there are invisible to
+this server, which runs outside the package, and the reverse for files the session has its own
+copy of. The home directory is not redirected.
+
+`mister-mcp.exe --stdio` runs a private copy
 over stdio (the MCP Inspector, tests).
 
 Settings come from the same places as the scripts': the environment, then `~/.mister-core.env`,
@@ -56,14 +64,16 @@ only, read on every call. Beyond the scripts' own (`MISTER_HOST`,
 | `MISTER_CORES_DIR` | `MiSTer-Cores` and `MiSTer-Devel` beside this repository; several dirs joined by `;`. A core name found in two is refused: pass the path |
 | `PYTHON` | the interpreter the venv was made from (the scripts need Pillow) |
 | `MISTER_MCP_PORT` | `8770` |
+| `MISTER_STATE_DIR` | `~/.mister`: JTAG markers, deploy log, jobs, call log. Read from the environment only (hwlock does not read the settings file) |
 | `GIT_BASH` | `C:\Program Files\Git\bin\bash.exe`; never WSL's `bash` |
 
 ## How it runs
 
 - **One process for the machine.** A second start exits while the port is served. State is on
   disk, so a server restart loses nothing:
-  - jobs in `%LOCALAPPDATA%/mister_mcp/jobs/<id>/` (`job.json`, `log.txt`, `status.json`);
-  - hwlock's JTAG markers in `%LOCALAPPDATA%`, which the core scripts take themselves.
+  - jobs in `~/.mister/mcp/jobs/<id>/` (`job.json`, `log.txt`, `status.json`);
+  - hwlock's JTAG markers and identity's deploy log in `~/.mister`, which the core scripts
+    use themselves.
 - **Tools run in a thread pool**, so a call waiting on `wait_s` holds up only its own caller.
 - **The core's own `scripts/` run** when it has the script, so per-core edits (probe instance,
   `.mra` folder) hold. Otherwise the skill's template copy runs with `CORE_ROOT` set.

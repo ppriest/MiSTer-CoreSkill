@@ -1,6 +1,6 @@
 """Long runs (builds, simulations, MAME captures) as jobs on disk.
 
-Each job is a directory under %LOCALAPPDATA%/mister_mcp/jobs/<id>: job.json (what and how),
+Each job is a directory under ~/.mister/mcp/jobs/<id>: job.json (what and how),
 log.txt (stdout and stderr), status.json (written by the runner). The runner is a detached
 process, so a job outlives the session that started it and every session sees every job.
 """
@@ -14,7 +14,10 @@ from pathlib import Path
 
 from .cores import NO_WINDOW, ToolError, tail
 
-BASE = Path(os.environ.get("LOCALAPPDATA") or Path.home()) / "mister_mcp" / "jobs"
+# ~/.mister, as hwlock and identity use: the Claude desktop app's processes see a private copy of
+# %LOCALAPPDATA%, so state kept there is not shared with this server or anything it starts
+STATE = Path(os.environ.get("MISTER_STATE_DIR") or Path.home() / ".mister")
+BASE = STATE / "mcp" / "jobs"
 RUNNER = Path(__file__).with_name("jobrun.py")
 DETACH = (subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
           | subprocess.CREATE_NO_WINDOW) if os.name == "nt" else 0

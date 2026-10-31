@@ -90,7 +90,7 @@ several of either at once. Verilator is outside the lock entirely.
 
 Two properties that must survive any port:
 
-- **The marker is machine-wide, not per-repo** — `%LOCALAPPDATA%/mister_jtag_running`, so every
+- **The marker is machine-wide, not per-repo** — `~/.mister/mister_jtag_running`, so every
   core repository on the PC agrees on the same file. A marker under `build/` would let one core's
   compile start while another's probe was reading.
 - **A stale marker whose pid is gone is cleared automatically.** A crashed tool must not wedge every
@@ -208,7 +208,7 @@ sessions share one MiSTer, so the core that answers a JTAG read is whatever is l
 necessarily the repository that asked. `read_issp.py` and `probe.py` prefix every line from
 `scripts/identity.py`: the core file and set come from the device (`/tmp/RBFNAME`,
 `/tmp/CORENAME`), the commit from a machine-wide deploy log that `deploy.py` appends to
-(`%LOCALAPPDATA%/mister_deployed.tsv`). A field that cannot be established prints `?`, and when
+(`~/.mister/mister_deployed.tsv`). A field that cannot be established prints `?`, and when
 the loaded core is not this repository's, a warning goes to stderr. Quote readings with their
 prefix in notes, commit messages and messages to other sessions.
 
