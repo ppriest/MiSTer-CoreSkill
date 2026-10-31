@@ -128,6 +128,13 @@ only, read on every call. Beyond the scripts' own (`MISTER_HOST`,
     `/tmp` is the board's RAM (246 MB), so `mister_get` deletes a dump once copied (`keep=true`
     leaves it), and the monitor deletes any in `/tmp/mcp` older than 10 minutes. Nothing else
     writes to `/tmp/mcp`.
+  - `mister_install_main` writes only `/media/fat/MiSTer_<name>` (an alternate Main a
+    `MiSTer.ini` section's `main=` names), never `/media/fat/MiSTer`. It refuses anything but
+    a 32-bit ARM ELF, uploads to `.MiSTer_<name>.new`, checks the md5 on the board, keeps the old
+    binary as `.prev` and renames over it; `restore=true` puts `.prev` back. A running copy keeps
+    its inode and its `/proc/<pid>/exe` then reads `<path> (deleted)` (checked on the board's
+    exFAT), so Main's path comparison (`user_io.cpp`) re-execs the new binary at the next launch
+    of a core in that section. 1.3 MB installed in 3.8 s.
   - `mister_reboot` needs `confirm=true`.
 
 ## Status page

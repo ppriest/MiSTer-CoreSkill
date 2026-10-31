@@ -1279,6 +1279,37 @@
   }
  },
  {
+  "name": "mister_install_main",
+  "description": "Install an alternate Main binary, /media/fat/<name> (MiSTer_<something>, the file a\nMiSTer.ini section's main= names; never MiSTer itself). local: a 32-bit ARM ELF; it is\nuploaded to a temporary name, its md5 checked on the board, the old binary kept as\n<name>.prev and the new one renamed over it. restore=True puts <name>.prev back instead.\nReturns the md5 on the board and the Main binaries running before. Main re-execs the binary\nwhen the running one's path differs from the core's main= (user_io.cpp), and a replaced\nrunning binary reads as '<path> (deleted)', so the next launch of a core in that section\nstarts the new one.",
+  "inputSchema": {
+   "properties": {
+    "name": {
+     "title": "Name",
+     "type": "string"
+    },
+    "local": {
+     "default": "",
+     "title": "Local",
+     "type": "string"
+    },
+    "restore": {
+     "default": false,
+     "title": "Restore",
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "name"
+   ],
+   "title": "mister_install_mainArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "destructiveHint": true
+  }
+ },
+ {
   "name": "mister_devmem",
   "description": "Read HPS physical memory with devmem (DDR3 shared blocks, bridges). Read only.",
   "inputSchema": {

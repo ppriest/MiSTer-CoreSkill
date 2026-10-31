@@ -70,7 +70,7 @@ deleted.
 | ModelSim / Verilator bench; stray simulators | `sim_list`, `sim_run`, `sim_compare_boot`; `sim_sweep` |
 | MAME version check, frame capture, traces, video-write sweep, Lua | `mame_version`, `mame_capture`, `mame_boot_trace`, `mame_sys_trace`, `mame_write_timing`, `mame_run_lua`, `mame_listxml` |
 | deploy, check an `.mra`, launch, screenshot | `mister_deploy`, `mister_check_mra`, `mister_launch`, `mister_screenshot` |
-| board state, files, memory, reboot | `mister_state`, `mister_playing`, `mister_osd`, `mister_ls`, `mister_get`, `mister_put`, `mister_devmem`, `mister_memdump` (DDR3 ranges to a file), `mister_reboot` |
+| board state, files, memory, reboot | `mister_state`, `mister_playing`, `mister_osd`, `mister_ls`, `mister_get`, `mister_put`, `mister_devmem`, `mister_memdump` (DDR3 ranges to a file), `mister_install_main` (an alternate Main, `/media/fat/MiSTer_<name>`), `mister_reboot` |
 | ISSP probes | `probe_read`, `probe_issp`, `probe_sequence` |
 | JTAG and Quartus/ModelSim state | `locks_status` |
 | a core's tool paths | `core_settings`, `core_settings_set` |

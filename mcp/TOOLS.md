@@ -457,6 +457,18 @@ Copy a local file to the device, into _Arcade, games, config or screenshots. Ove
 | `local` | string | required |
 | `remote` | string | required |
 
+### `mister_install_main`
+
+*destructive*
+
+Install an alternate Main binary, /media/fat/<name> (MiSTer_<something>, the file a MiSTer.ini section's main= names; never MiSTer itself). local: a 32-bit ARM ELF; it is uploaded to a temporary name, its md5 checked on the board, the old binary kept as <name>.prev and the new one renamed over it. restore=True puts <name>.prev back instead. Returns the md5 on the board and the Main binaries running before. Main re-execs the binary when the running one's path differs from the core's main= (user_io.cpp), and a replaced running binary reads as '<path> (deleted)', so the next launch of a core in that section starts the new one.
+
+| Argument | Type | Default |
+|---|---|---|
+| `name` | string | required |
+| `local` | string | `""` |
+| `restore` | boolean | `false` |
+
 ### `mister_devmem`
 
 *read-only*

@@ -3,6 +3,7 @@
 No general shell: commands are built here from checked arguments, and file transfer is limited
 to the trees a core session needs.
 """
+import hashlib
 import json
 import os
 import re
@@ -26,7 +27,10 @@ ZIPS = "/media/fat/games/mame"
 DUMP_DIR = "/tmp/mcp"
 DUMP = re.compile(r"^/tmp/mcp/dump-[0-9]{8}-[0-9]{6}-[0-9a-f]{4}\.bin$")
 DUMP_TTL_MIN = 10
-DDR3_END = 0x40000000                         # the HPS DDR3; the FPGA bridges above it can hang a bulk read
+# Alternate Main binaries a MiSTer.ini section names with main=; never /media/fat/MiSTer itself,
+# which runs the menu.
+MAIN_NAME = re.compile(r"^MiSTer_[A-Za-z0-9_-]+$")
+DDR3_END = 0x40000000                        # the HPS DDR3; the FPGA bridges above it can hang a bulk read
 PAGE = 4096
 # Run on the MiSTer: read() on /dev/mem above the kernel's memory fails with EFAULT, mmap works.
 # Copies in 1 MB slices so a 40 MB range does not need 40 MB of Python memory; writes to .part,
@@ -173,6 +177,53 @@ class Board:
             raise ToolError(err.strip() or "devmem failed")
         vals = [v.strip() for v in out.splitlines() if v.strip()]
         return [{"addr": f"0x{a + i * step:08x}", "value": v} for i, v in enumerate(vals)]
+
+    def running_mains(self):
+        """The Main binaries running now, from /proc/<pid>/exe (' (deleted)' once replaced)."""
+        _, out, _ = self.sh("for p in /proc/[0-9]*; do readlink $p/exe; done 2>/dev/null"
+                            " | grep '^/media/fat/MiSTer' | sort -u")
+        return [ln for ln in out.splitlines() if ln.strip()]
+
+    def install_main(self, local, name):
+        """Copy an ARM Main binary to /media/fat/<name>: upload to a temporary name, check the md5,
+        keep the old one as <name>.prev, rename over it. A running copy keeps its old inode."""
+        if not MAIN_NAME.match(name):
+            raise ToolError(f"{name}: an alternate Main is /media/fat/MiSTer_<name>, never MiSTer itself")
+        src = Path(local)
+        if not src.is_file():
+            raise ToolError(f"no file {local}")
+        head = src.read_bytes()[:20]
+        # ELF, 32-bit, little-endian, e_machine 40 (ARM)
+        if head[:4] != b"\x7fELF" or head[4] != 1 or head[5] != 1 or head[18:20] != b"\x28\x00":
+            raise ToolError(f"{local} is not a 32-bit ARM ELF")
+        md5 = hashlib.md5(src.read_bytes()).hexdigest()
+        dst, tmp = f"/media/fat/{name}", f"/media/fat/.{name}.new"
+        before = self.running_mains()
+        self.scp(str(src), self.remote(tmp))
+        rc, out, err = self.sh(f"md5sum {shlex.quote(tmp)}")
+        got = out.split()[0] if out.split() else ""
+        if got != md5:
+            self.sh(f"rm -f {shlex.quote(tmp)}")
+            raise ToolError(f"md5 on the board {got or err.strip()} != {md5}; nothing replaced")
+        q, qt, qp = shlex.quote(dst), shlex.quote(tmp), shlex.quote(dst + ".prev")
+        rc, out, err = self.sh(f"chmod +x {qt} && if [ -e {q} ]; then cp -p {q} {qp}; fi && mv -f {qt} {q} && sync"
+                               f" && md5sum {q} && ls -l {q}* ")
+        if rc:
+            raise ToolError(f"install failed: {(err or out).strip()}")
+        lines = out.splitlines()
+        return {"remote": dst, "md5": lines[0].split()[0], "bytes": src.stat().st_size,
+                "previous": dst + ".prev" if any(ln.endswith(".prev") for ln in lines) else None,
+                "running_before": before}
+
+    def restore_main(self, name):
+        """Put /media/fat/<name>.prev back as <name> (the .prev stays)."""
+        if not MAIN_NAME.match(name):
+            raise ToolError(f"{name}: an alternate Main is /media/fat/MiSTer_<name>")
+        q, qp, qt = (shlex.quote(f"/media/fat/{name}{s}") for s in ("", ".prev", ".new"))
+        rc, out, err = self.sh(f"[ -e {qp} ] && cp -p {qp} {qt} && mv -f {qt} {q} && sync && md5sum {q}")
+        if rc:
+            raise ToolError(f"no /media/fat/{name}.prev, or the restore failed: {(err or out).strip()}")
+        return {"remote": f"/media/fat/{name}", "md5": out.split()[0], "restored_from": f"/media/fat/{name}.prev"}
 
     def sweep_dumps(self, minutes=DUMP_TTL_MIN):
         """Remove dumps (and .part files of failed ones) older than `minutes`."""
