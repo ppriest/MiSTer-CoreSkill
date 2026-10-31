@@ -904,13 +904,18 @@
  },
  {
   "name": "mister_state",
-  "description": "What the MiSTer is running (/tmp/RBFNAME, CORENAME, FULLPATH) and, given a core, whether it\nis that core's build.",
+  "description": "What the MiSTer is running (/tmp/RBFNAME, CORENAME, FULLPATH) and, given a core, whether it\nis that core's build. The server reads it every 10 s on its one SSH connection, and this\nreturns that reading (`checked`, `age_s`; `since` is when this core was first seen) without\ntouching the board. live=True reads the board now.",
   "inputSchema": {
    "properties": {
     "core": {
      "default": "",
      "title": "Core",
      "type": "string"
+    },
+    "live": {
+     "default": false,
+     "title": "Live",
+     "type": "boolean"
     }
    },
    "title": "mister_stateArguments",

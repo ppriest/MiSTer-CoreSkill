@@ -333,11 +333,12 @@ mame -listxml <set>, optionally cut to one element type (rom, chip, display, dip
 
 *read-only*
 
-What the MiSTer is running (/tmp/RBFNAME, CORENAME, FULLPATH) and, given a core, whether it is that core's build.
+What the MiSTer is running (/tmp/RBFNAME, CORENAME, FULLPATH) and, given a core, whether it is that core's build. The server reads it every 10 s on its one SSH connection, and this returns that reading (`checked`, `age_s`; `since` is when this core was first seen) without touching the board. live=True reads the board now.
 
 | Argument | Type | Default |
 |---|---|---|
 | `core` | string | `""` |
+| `live` | boolean | `false` |
 
 ### `mister_check_mra`
 

@@ -22,6 +22,7 @@ from . import cores as C
 from . import jobs as J
 from . import reports as R
 from .cores import ToolError
+from .link import MONITOR, POLL as MONITOR_POLL
 
 server = MCPServer(name="mister", instructions=(
     "Tools for MiSTer arcade cores. Long runs (build_start, sim_run, mame_*) are jobs: they wait "
@@ -645,12 +646,17 @@ def _mra_check(b, mra_text):
 
 
 @tool(RO)
-def mister_state(core: str = "") -> dict:
+def mister_state(core: str = "", live: bool = False) -> dict:
     """What the MiSTer is running (/tmp/RBFNAME, CORENAME, FULLPATH) and, given a core, whether it
-    is that core's build."""
+    is that core's build. The server reads it every 10 s on its one SSH connection, and this
+    returns that reading (`checked`, `age_s`; `since` is when this core was first seen) without
+    touching the board. live=True reads the board now."""
     root = C.resolve(core) if core else None
-    b = B.Board(root)
-    s = b.state()
+    snap = MONITOR.snapshot()
+    if live or snap["age_s"] is None or snap["age_s"] > 3 * MONITOR_POLL:
+        MONITOR.read()                        # no monitor (--stdio) or stale: read now
+        snap = MONITOR.snapshot()
+    s = {k: snap[k] for k in ("rbf", "setname", "path", "checked", "age_s", "since")}
     if root:
         mine = C.coretools.project(root)
         s["is_this_core"] = bool(s["rbf"]) and re.sub(r"^Arcade-|_\d{8}.*$", "", s["rbf"]) == mine
@@ -722,6 +728,7 @@ def mister_launch(core: str, mra: str, bounce: bool = True, check: bool = True) 
     m = re.search(r"<setname>\s*([^<\s]+)\s*</setname>", text)
     res["launched"] = path
     res["setname"] = b.launch(path, bounce, m.group(1) if m else None)
+    MONITOR.poke()
     return res
 
 
@@ -790,6 +797,7 @@ def mister_reboot(confirm: bool = False) -> str:
     if not confirm:
         raise ToolError("pass confirm=true to reboot the MiSTer")
     B.Board().sh("(sleep 1; reboot) >/dev/null 2>&1 &", timeout=20)
+    MONITOR.poke()
     return "rebooting"
 
 
@@ -935,6 +943,7 @@ def main():
     app = server.streamable_http_app(host="127.0.0.1")
     app.router.routes.append(WebSocketRoute("/jobs/{id}/log", lambda ws: job_log(ws, _ws_record)))
     app.router.routes.extend(web.routes(_core_settings, CALLS))
+    MONITOR.start()
     uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=a.port, log_level="info")).run()
 
 

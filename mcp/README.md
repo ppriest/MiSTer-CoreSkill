@@ -93,6 +93,13 @@ only, read on every call. Beyond the scripts' own (`MISTER_HOST`,
   - A server restart does not kill running jobs: two builds started by the previous server kept
     running through a `Stop-ScheduledTask`/`Start-ScheduledTask`. Runners also ask to leave the
     task's job object. Sessions see the server as disconnected for a few seconds.
+- **One SSH connection to the MiSTer** (`link.py`, paramiko), opened on first use and again
+  after it drops; every board command runs on it instead of a `plink` login each. File copies
+  still use `pscp` (the MiSTer serves no SFTP). Host key: `~/.mister/known_hosts`, the first
+  one seen is kept and a changed one refused.
+- **The core on the MiSTer is read every 10 s** on that connection (slower, up to 120 s, while
+  the board does not answer). `mister_state` returns that reading with its age, so asking costs
+  the board nothing; `live=true` reads now. Launches and reboots trigger a read.
 - **Board access is the listed operations only.**
   - No general shell.
   - `mister_get`/`mister_put` are limited to `/media/fat/{_Arcade,games,config,screenshots}`.
@@ -108,7 +115,7 @@ Hardware sits above four tabs; the open tab is in the URL (`#jobs`, `#calls`, `#
 
 | Where | What it shows |
 |---|---|
-| Hardware | who holds the JTAG cable (USB-Blaster), who is queued for it, running Quartus/ModelSim processes. "Check now" logs in to the MiSTer over SSH once and reads the core and set it has loaded; it is not part of the auto refresh |
+| Hardware | who holds the JTAG cable (USB-Blaster), who is queued for it, running Quartus/ModelSim processes. the core and set the MiSTer has loaded, from the server's 10 s monitor, with when it was read, since when that core has been up and whether the SSH connection is open; hover for the last 20 cores seen. "Read now" reads the board at once |
 | Jobs | active jobs, then the last 60 from every session: start time, kind, core, state, elapsed, script. The tab's badge counts the running ones |
 | Calls | the last 150 tool calls from every session: how long the call took, status (`error`, `ok`, or for a call that started a job the job's state now; "at return" when the job is older than the jobs list), the job id or the error. "errors only" for failures; the tab's badge counts them |
 | Deploys | the last 30 lines of `mister_deployed.tsv` |
@@ -180,7 +187,9 @@ Run by hand against this machine, with no compile and no JTAG:
   decoding, offline.
 
 The status page: `/api/state`, downloads, the Host/Origin refusal, the log drawer following a
-running build, "Check now" against the board.
+running build. The SSH link (connect, commands on the open connection, reconnect after a
+dropped connection) and the 10 s monitor, through the boot-task server: `mister_state` answers
+from the monitor in 0.01 s, `live=true` in 0.1 s.
 
 Run through the boot-task server: `build_start` on DecoMLC (job done in 917 s, result parsed with
 commit, timing and `.rbf`), and kept running through a server restart.

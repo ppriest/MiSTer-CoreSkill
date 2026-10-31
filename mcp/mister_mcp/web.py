@@ -3,13 +3,14 @@ Quartus/ModelSim state, jobs, deploys and recent calls; logs download from it.
 
     /                         the page (status.html)
     /api/state                everything on the page, as JSON
-    /api/board                what the MiSTer is running (asked on demand: it goes over SSH)
+    /api/board                read what the MiSTer is running now (/api/state has the monitor's last reading)
     /api/jobs/<id>            a job's status and log tail
     /download/jobs/<id>/log.txt, /download/<file>   files, as attachments
 
 Read-only. Requests whose Host or Origin is not this machine are refused, so a web page
 elsewhere cannot read this one through DNS rebinding.
 """
+import hashlib
 import json
 import os
 import subprocess
@@ -21,10 +22,10 @@ from urllib.parse import urlparse
 from starlette.responses import FileResponse, JSONResponse, PlainTextResponse, StreamingResponse
 from starlette.routing import Route
 
-from . import board as B
 from . import cores as C
 from . import jobs as J
 from .cores import ToolError
+from .link import MONITOR
 
 LOCAL = {"127.0.0.1", "localhost", "::1", "[::1]"}
 PAGE = Path(__file__).with_name("status.html")
@@ -46,20 +47,28 @@ def _commit():
 
 
 # What this process has loaded: a change here needs a restart. The page itself is read per
-# request, and the job runners and the core scripts start fresh for every job.
-LOADED = ["mcp/mister_mcp/*.py", ":(exclude)mcp/mister_mcp/jobrun.py",
-          ":(exclude)mcp/mister_mcp/qproject.py", ":(exclude)mcp/mister_mcp/issp_seq.py",
-          "mister-arcade-core/assets/core/scripts/coretools.py",
-          "mister-arcade-core/assets/core/scripts/hwlock.py"]
+# request, and the job runners and the core scripts start fresh for every job. Compared by
+# content against what was on disk at start, committed or not.
+RUNNERS = {"jobrun.py", "qproject.py", "issp_seq.py"}
+LOADED = sorted([p for p in Path(__file__).parent.glob("*.py") if p.name not in RUNNERS]
+                + [C.TEMPLATE_SCRIPTS / "coretools.py", C.TEMPLATE_SCRIPTS / "hwlock.py"])
 STARTED_COMMIT = _commit()
-STARTED_HEAD = _git("rev-parse", "HEAD")
+
+
+def _digest(p):
+    try:
+        return hashlib.sha1(p.read_bytes()).hexdigest()
+    except OSError:
+        return None
+
+
+AT_START = {p: _digest(p) for p in LOADED}
 
 
 def _changed_since_start():
-    """Loaded files that differ from what was checked out at start, committed or not."""
-    if not STARTED_HEAD:
-        return []
-    return (_git("diff", "--name-only", STARTED_HEAD, "--", *LOADED) or "").splitlines()
+    """Loaded files whose content differs from what this process started with."""
+    root = C.SKILL.parent
+    return [str(p.relative_to(root)).replace("\\", "/") for p in LOADED if _digest(p) != AT_START[p]]
 
 
 def _local(request):
@@ -192,16 +201,16 @@ def routes(core_settings, calls_path):
             "locks": {"jtag_held": {"pid": held[0], "what": held[1]} if held else None,
                       "jtag_waiting": [{"pid": p, "what": w} for p, w in hwlock.waiting_sessions()],
                       "quartus_modelsim": hwlock.quartus_processes()},
-            "jobs": jobs, "cores": cores, "deploys": _deploys(30), "calls": calls[::-1],
+            "board": MONITOR.snapshot(), "jobs": jobs, "cores": cores, "deploys": _deploys(30), "calls": calls[::-1],
             "files": {k: {"size": p.stat().st_size} for k, p in files.items() if p.exists()}})
 
     def board(request):
-        t0 = time.time()
+        """Read the board now (the monitor reads it every POLL seconds anyway)."""
         try:
-            s = B.Board(None).state()
-        except (ToolError, SystemExit, OSError, subprocess.SubprocessError) as e:
-            return JSONResponse({"error": str(e) or type(e).__name__, "s": round(time.time() - t0, 1)})
-        return JSONResponse(dict(s, s=round(time.time() - t0, 1)))
+            MONITOR.read()
+        except (ToolError, SystemExit, OSError) as e:
+            MONITOR.error = str(e) or type(e).__name__
+        return JSONResponse(MONITOR.snapshot())
 
     def job(request):
         jid = request.path_params["id"]

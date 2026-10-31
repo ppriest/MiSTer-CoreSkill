@@ -104,9 +104,10 @@ a { color: var(--accent); }
       <div class="card"><div class="k">JTAG (USB-Blaster) held by</div><div class="v" id="jtag">–</div></div>
       <div class="card"><div class="k">Waiting for JTAG</div><div class="v" id="waiting">–</div></div>
       <div class="card"><div class="k">Quartus / ModelSim processes</div><div class="v" id="qproc">–</div></div>
-      <div class="card"><div class="k">Core loaded on the MiSTer
-        <button id="boardbtn" style="margin-left:6px" title="Logs in to the board over SSH and reads /tmp/RBFNAME and /tmp/CORENAME. Not part of the auto refresh.">Check now</button></div>
-        <div class="v" id="board"><span class="muted">not checked: each check is an SSH login to the board</span></div></div>
+      <div class="card"><div class="k">Core on the MiSTer
+        <button id="boardbtn" style="margin-left:6px" title="The server reads the board every 10 s on its SSH connection; this reads it now.">Read now</button></div>
+        <div class="v" id="board"><span class="muted">–</span></div>
+        <div class="k" id="boardmeta" style="margin-top:4px"></div></div>
     </div>
   </section>
 
@@ -211,6 +212,20 @@ function setting(s, key) {
   return `<span class="mono ${cls}" title="${tip}">${esc(x.value)}</span><span class="src" title="${esc(why)}">${esc(x.from)}</span>`;
 }
 
+function renderBoard(b) {
+  if (!b) return;
+  const l = b.link || {};
+  $("board").innerHTML = b.checked
+    ? `<span class="mono">${esc(b.rbf || "(menu)")}</span> <span class="muted">set ${esc(b.setname || "–")}</span>`
+    : `<span class="muted">not read yet</span>`;
+  $("board").title = (b.changes || []).map(c => `${c.t}  ${c.rbf || "(menu)"}  ${c.setname || ""}`).join("\n");
+  const parts = [];
+  if (b.checked) parts.push(`checked ${b.age_s}s ago`, `since ${esc((b.since || "").slice(11, 16))}`);
+  parts.push(l.connected ? `<span class="ok">SSH connected</span>` : `<span class="warn">SSH not connected</span>`);
+  if (b.error) parts.push(`<span class="err">${esc(b.error)}</span>`);
+  if (!b.running) parts.push(`<span class="warn">monitor not running</span>`);
+  $("boardmeta").innerHTML = parts.join(" · ");
+}
 function render() {
   const d = data, sv = d.server, L = d.locks;
   $("srv").innerHTML = `pid ${sv.pid} · port ${sv.port} · up ${dur(sv.uptime_s)} · <span class="mono">${esc(sv.commit_now || "")}</span>`;
@@ -221,6 +236,7 @@ function render() {
 
   $("jtag").innerHTML = L.jtag_held ? `<span class="warn">${esc(L.jtag_held.what)}</span> <span class="muted">pid ${L.jtag_held.pid}</span>` : `<span class="ok">free</span>`;
   $("waiting").innerHTML = L.jtag_waiting.length ? L.jtag_waiting.map(w => `<div>${esc(w.what)} <span class="muted">pid ${w.pid}</span></div>`).join("") : `<span class="muted">nobody</span>`;
+  renderBoard(d.board);
   const qp = {}; L.quartus_modelsim.forEach(p => qp[p] = (qp[p] || 0) + 1);
   $("qproc").innerHTML = L.quartus_modelsim.length ? Object.entries(qp).map(([p, n]) => `<span class="chip">${esc(p)}${n > 1 ? " ×" + n : ""}</span>`).join(" ") : `<span class="muted">none</span>`;
 
@@ -319,12 +335,9 @@ document.addEventListener("click", ev => {
 $("dclose").onclick = () => { $("drawer").classList.remove("open"); if (ws) { ws.close(); ws = null; } };
 document.addEventListener("keydown", ev => { if (ev.key === "Escape") $("dclose").click(); });
 $("boardbtn").onclick = async () => {
-  $("board").innerHTML = `<span class="muted">checking…</span>`;
-  try {
-    const b = await (await fetch("/api/board", {cache: "no-store"})).json();
-    $("board").innerHTML = b.error ? `<span class="err">${esc(b.error)}</span>`
-      : `<span class="mono">${esc(b.rbf || "(menu)")}</span> <span class="muted">set ${esc(b.setname || "–")} · checked ${new Date().toTimeString().slice(0, 8)}</span>`;
-  } catch (e) { $("board").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
+  $("boardmeta").textContent = "reading…";
+  try { const b = await (await fetch("/api/board", {cache: "no-store"})).json(); renderBoard(b); }
+  catch (e) { $("boardmeta").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
 };
 ["corefilter", "jobfilter", "callfilter"].forEach(id => $(id).addEventListener("input", () => data && render()));
 $("errsonly").onchange = () => data && render();

@@ -81,8 +81,11 @@ where it has them, the template's otherwise, so per-core edits still hold.
   core with its path, branch and MAME settings (a path that does not exist is struck through),
   who holds the JTAG cable and who is queued for it, Quartus/ModelSim processes, active and recent
   jobs, deploys and recent calls from every session. Click a job for its log, live while it runs;
-  job logs, the call log, the server log and the deploy log download from it. "Check now" reads
-  the core loaded on the MiSTer (one SSH login per click). `/api/state` is the same as JSON.
+  job logs, the call log, the server log and the deploy log download from it. `/api/state` is
+  the same as JSON.
+- **What the MiSTer is running:** the server reads it every 10 s on one held SSH connection, and
+  `mister_state` returns that reading (with `age_s`) at no cost to the board; ask it rather than
+  reading `/tmp/RBFNAME` yourself. `live=true` reads now.
 - **When the server lacks something you need, or a tool fails, do not edit `mcp/` from a core
   session.** Send the MCP server session (ListAgents names it) what you needed, the script or
   command you used instead with its arguments, and the tool's output if one failed.

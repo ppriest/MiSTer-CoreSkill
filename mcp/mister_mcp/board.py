@@ -1,4 +1,4 @@
-"""The MiSTer: plink/pscp and the Remote API, limited to the operations the tools offer.
+"""The MiSTer: one SSH connection (link.py), pscp and the Remote API, limited to the operations the tools offer.
 
 No general shell: commands are built here from checked arguments, and file transfer is limited
 to the trees a core session needs.
@@ -13,6 +13,7 @@ import urllib.request
 from pathlib import Path, PurePosixPath
 
 from .cores import NO_WINDOW, ToolError, coretools
+from .link import LINK
 
 ALLOWED = ("/media/fat/_Arcade", "/media/fat/games", "/media/fat/config", "/media/fat/screenshots")
 READ_ONLY = ("/tmp/RBFNAME", "/tmp/CORENAME", "/tmp/FULLPATH", "/tmp/STARTPATH")
@@ -58,13 +59,8 @@ class Board:
         self.api = f"http://{self.host}:8182/api"
 
     def sh(self, command, timeout=60):
-        try:
-            p = subprocess.run([_putty("plink.exe"), "-ssh", "-batch", "-pw", self.pw,
-                                f"{self.user}@{self.host}", command],
-                               capture_output=True, text=True, timeout=timeout, **NO_WINDOW)
-        except subprocess.TimeoutExpired:
-            raise ToolError(f"no answer from {self.host} in {timeout} s")
-        return p.returncode, p.stdout, p.stderr
+        """On the server's one SSH connection (link.py), not a plink login per command."""
+        return LINK.run(self.host, self.user, self.pw, command, timeout)
 
     def scp(self, src, dst, timeout=300):
         # -scp: pscp otherwise tries SFTP first, which the MiSTer does not serve
