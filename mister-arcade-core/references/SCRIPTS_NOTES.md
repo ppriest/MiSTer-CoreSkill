@@ -1,8 +1,9 @@
 # Scripts
 
 What `assets/core/scripts/` holds, where each came from, and what a new core fills in.
-Everything runs from the core's root. Connection and tool paths come from `mister.env`;
-project name and revision from the `.qpf` (`coretools.py`). Per-core constants sit under a
+Everything runs from the core's root; the MCP server's tools run these same scripts (the core's
+copy where it has one). Connection and tool paths come from `~/.mister-core.env`, with the
+core's `<core>.<KEY>` lines first; project name and revision from the `.qpf` (`coretools.py`). Per-core constants sit under a
 `# --- core-specific: edit for this core ---` marker; the MAME scripts share one per-core file,
 `scripts/mame/regions.json`.
 

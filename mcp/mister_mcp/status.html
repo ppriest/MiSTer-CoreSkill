@@ -92,8 +92,9 @@ a { color: var(--accent); }
       <div class="card"><div class="k">JTAG (USB-Blaster) held by</div><div class="v" id="jtag">–</div></div>
       <div class="card"><div class="k">Waiting for JTAG</div><div class="v" id="waiting">–</div></div>
       <div class="card"><div class="k">Quartus / ModelSim processes</div><div class="v" id="qproc">–</div></div>
-      <div class="card"><div class="k">MiSTer board <button id="boardbtn" style="margin-left:6px">Ask</button></div>
-        <div class="v" id="board"><span class="muted">not asked (goes over SSH)</span></div></div>
+      <div class="card"><div class="k">Core loaded on the MiSTer
+        <button id="boardbtn" style="margin-left:6px" title="Logs in to the board over SSH and reads /tmp/RBFNAME and /tmp/CORENAME. Not part of the auto refresh.">Check now</button></div>
+        <div class="v" id="board"><span class="muted">not checked: each check is an SSH login to the board</span></div></div>
     </div>
   </section>
 
@@ -271,11 +272,11 @@ document.addEventListener("click", ev => {
 $("dclose").onclick = () => { $("drawer").classList.remove("open"); if (ws) { ws.close(); ws = null; } };
 document.addEventListener("keydown", ev => { if (ev.key === "Escape") $("dclose").click(); });
 $("boardbtn").onclick = async () => {
-  $("board").innerHTML = `<span class="muted">asking…</span>`;
+  $("board").innerHTML = `<span class="muted">checking…</span>`;
   try {
     const b = await (await fetch("/api/board", {cache: "no-store"})).json();
     $("board").innerHTML = b.error ? `<span class="err">${esc(b.error)}</span>`
-      : `<span class="mono">${esc(b.rbf || "(menu)")}</span> <span class="muted">${esc(b.setname || "")} · ${b.s}s</span>`;
+      : `<span class="mono">${esc(b.rbf || "(menu)")}</span> <span class="muted">set ${esc(b.setname || "–")} · checked ${new Date().toTimeString().slice(0, 8)}</span>`;
   } catch (e) { $("board").innerHTML = `<span class="err">${esc(e.message)}</span>`; }
 };
 ["corefilter", "jobfilter", "callfilter"].forEach(id => $(id).addEventListener("input", () => data && render()));

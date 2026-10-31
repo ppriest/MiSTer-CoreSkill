@@ -8,7 +8,7 @@ Creates <root>/Arcade-<Name>_MiSTer:
      (or, with --no-github, a plain clone with history dropped)
   2. renames Template.{qpf,qsf,sdc,srf,sv} -> <Name>.*, adds the <Name>_stp revision, GPL-3.0 licence
   3. deletes the Quartus 13 project files
-  4. copies this skill's assets/core/ tree (docs, scripts, rtl/mame_keys.sv, .gitignore, CLAUDE.md, mister.env.example)
+  4. copies this skill's assets/core/ tree (docs, scripts, rtl/mame_keys.sv, .gitignore, CLAUDE.md)
   5. commits
 sys/ is never touched.
 """
@@ -179,7 +179,7 @@ def main():
          f"Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"], cwd=dest)
     # The pre-push guard: published .mra files only with their released core (check_release_mras.py).
     run(["git", "config", "core.hooksPath", "scripts/hooks"], cwd=dest)
-    print(f"\n{dest} ready. Next: fill mister.env from mister.env.example, then docs/ROADMAP.md.")
+    print(f"\n{dest} ready. Next: core_settings_set <Name> MAME_SRC <driver .cpp> (MCP server), then docs/ROADMAP.md.")
 
 
 if __name__ == "__main__":

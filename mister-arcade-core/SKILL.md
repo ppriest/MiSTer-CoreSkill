@@ -20,8 +20,12 @@ need changing; nothing else is Windows-specific by design.
 ## Settings
 
 Nothing here hardcodes a machine. Every path and name is read from the environment first,
-then the core's own gitignored `mister.env`, then a per-machine `~/.mister-core.env`
-(`MISTER_CORE_ENV` to move it; template: `mister-core.env.example`), then a probed default.
+then the core's own keys in the per-machine `~/.mister-core.env` (`<core>.<KEY>=value`, e.g.
+`Gaelco3D.MAME_DIR=...`; `<core>` is the repository name without `Arcade-` and `_MiSTer`), then
+the rest of that file (`MISTER_CORE_ENV` to move it; template: `mister-core.env.example`), then a
+probed default. With the MCP server connected, `core_settings` shows what a core resolves and
+where each value comes from, and `core_settings_set` writes its keys. Cores have no
+`mister.env`; do not create one.
 
 | Setting | What | Default |
 |---|---|---|
@@ -47,6 +51,42 @@ Read once before starting, and check the repository against them before a releas
 `gh` is found on `PATH`, else the standard per-user install. `python scripts/coretools.py` in a
 core prints what it resolved.
 
+## The `mister` MCP server
+
+One server for the machine (`mcp/` in this skill's repository; `http://127.0.0.1:8770/mcp`,
+tools `mcp__mister__*`; install and internals in `mcp/README.md`, every argument in
+`mcp/TOOLS.md`). **Use its tools in place of the scripts wherever it has one**; run a script only
+when it has no tool for the job or is not connected. The tools run the core's own `scripts/`
+where it has them, the template's otherwise, so per-core edits still hold.
+
+| Task | Tool |
+|---|---|
+| build a revision, a seed; a standalone harness project | `build_start`; `build_project` |
+| timing, utilisation, worst paths, floorplan | `build_report`, `build_worst_paths`, `build_floorplan` |
+| ModelSim / Verilator bench; stray simulators | `sim_list`, `sim_run`, `sim_compare_boot`; `sim_sweep` |
+| MAME version check, frame capture, traces, Lua | `mame_version`, `mame_capture`, `mame_boot_trace`, `mame_sys_trace`, `mame_run_lua`, `mame_listxml` |
+| deploy, check an `.mra`, launch, screenshot | `mister_deploy`, `mister_check_mra`, `mister_launch`, `mister_screenshot` |
+| board state, files, memory, reboot | `mister_state`, `mister_playing`, `mister_osd`, `mister_ls`, `mister_get`, `mister_put`, `mister_devmem`, `mister_reboot` |
+| ISSP probes | `probe_read`, `probe_issp`, `probe_sequence` |
+| JTAG and Quartus/ModelSim state | `locks_status` |
+| a core's tool paths | `core_settings`, `core_settings_set` |
+| jobs and the call log | `jobs_list`, `jobs_status`, `jobs_log`, `jobs_stream_url`, `jobs_cancel`, `calls_log` |
+
+- **Long runs are jobs.** Builds, simulations, MAME runs, STA and probe reads wait up to `wait_s`
+  (at most 240 s), then return a job id. Follow it with `jobs_status`, or stream its log:
+  `jobs_stream_url` gives a WebSocket URL for the Monitor tool (`Monitor(ws={url})`), one event
+  per log line (filter with `grep`) and an `END` line with the state. Do not poll with sleeps. A
+  job outlives the session that started it and a server restart.
+- **Status page: `http://127.0.0.1:8770/`**, for the user and for checking by eye. It shows every
+  core with its path, branch and MAME settings (a path that does not exist is struck through),
+  who holds the JTAG cable and who is queued for it, Quartus/ModelSim processes, active and recent
+  jobs, deploys and recent calls from every session. Click a job for its log, live while it runs;
+  job logs, the call log, the server log and the deploy log download from it. "Check now" reads
+  the core loaded on the MiSTer (one SSH login per click). `/api/state` is the same as JSON.
+- **When the server lacks something you need, or a tool fails, do not edit `mcp/` from a core
+  session.** Send the MCP server session (ListAgents names it) what you needed, the script or
+  command you used instead with its arguments, and the tool's output if one failed.
+
 ## Phases
 
 Each phase ends with a commit. Do not start hardware work before the roadmap is approved.
@@ -61,9 +101,10 @@ Creates a private GitHub repo from the template (`--public` to override), clones
 cores root as `Arcade-<Name>_MiSTer`, renames
 `Template.*` to `<Name>.*`, adds the `<Name>_stp` instrumented revision, deletes the
 Quartus 13 project, copies `assets/core/` (scripts, docs templates, `.gitignore`,
-`CLAUDE.md`, `docs/LESSONS_LEARNED.md`), commits. `sys/` is untouched, now and always. Then copy
-`mister.env.example` to `mister.env` for anything this core overrides; machine-wide settings
-belong in `~/.mister-core.env`. Move the session into the new repo.
+`CLAUDE.md`, `docs/LESSONS_LEARNED.md`), commits. `sys/` is untouched, now and always. If the
+Set the core's `MAME_SRC` (the driver `.cpp` it follows) with `core_settings_set`, and its
+`MAME_DIR` and `MAME_EXE` too if it drives a MAME build other than the machine's (a fork, a newer
+checkout). Move the session into the new repo.
 
 ### 1. Research
 
@@ -188,18 +229,14 @@ Per roadmap phase, typically CPU + ROM path, then video, then sound, then integr
 
 ### 4. Hardware
 
-- **Use the `mister` MCP server** (`mcp/` in this skill's repository; tools `mcp__mister__*`,
-  reference `mcp/TOOLS.md`) in place of the scripts wherever it has the tool: builds, reports,
-  simulation, MAME, deploy, launch, screenshots, board files, probes. Run a script only when the
-  server has no tool for it or is not connected.
-  - When it lacks something you need, or a tool fails, do not edit `mcp/` from a core session.
-    Send the MCP server session (ListAgents names it) what you needed, the script or command you
-    used instead with its arguments, and the tool's output if one failed.
-- Build with `scripts/build_staged.py` (snapshot of HEAD in a worktree, refuses a dirty
-  tree, gates on slack). Never compile in the tree.
-- `scripts/deploy.py` to the MiSTer; `scripts/hw.py` to launch a game, screenshot, reset.
-- ISSP probes only in the `_stp` revision, read through `scripts/read_issp.py`, always
-  under `hwlock.py`: JTAG during a Quartus compile has bugchecked the machine. Every reading is
+Through the MCP server (above); the scripts named are what its tools run.
+
+- Build with `build_start` (`scripts/build_staged.py`: snapshot of HEAD in a worktree, refuses a
+  dirty tree, gates on slack). Never compile in the tree.
+- `mister_deploy` to the MiSTer; `mister_launch`, `mister_screenshot` to run a game and see it.
+- ISSP probes only in the `_stp` revision, read with `probe_read`, `probe_issp` or
+  `probe_sequence`, which take `hwlock.py`: JTAG during a Quartus compile has bugchecked the
+  machine. Every reading is
   prefixed `<core>|<build>|<set>|` from the device and the deploy log (`scripts/identity.py`),
   because the core answering may be another session's; quote readings with that prefix.
 - Simulation passes and hardware fails: `LESSONS_LEARNED.md`, "When simulation passes and
@@ -238,12 +275,13 @@ Per roadmap phase, typically CPU + ROM path, then video, then sound, then integr
   load-bearing, no invented durations, no narrative.
 - `docs/` holds ROADMAP, HARDWARE_NOTES, WORKFLOW, HACKS, MAME_KLUDGES, LESSONS_LEARNED,
   RELEASE_PROCESS, memory maps, screenshots. `references/CONVENTIONS.md` has the full list.
-- `roms/` and `mister.env` are never committed. `releases/*.rbf` only when verified on
+- `roms/` is never committed. `releases/*.rbf` only when verified on
   hardware, added with `git add -f`.
 - Report hardware results with evidence: a screenshot path, a probe readout, a log line.
 - **Sharing the machine:** a build or simulation anywhere blocks JTAG everywhere, and **JTAG has
   priority** — a session waiting for the Blaster reserves it, and while that reservation stands no
-  new build or simulation starts, including yours (`scripts/hwlock.py --status` shows the queue).
+  new build or simulation starts, including yours (`locks_status` or the status page shows the
+  queue).
   Announce long compiles and their end; deploying to the MiSTer needs no coordination, but
   launching or resetting takes the board and is done only when asked; ask before killing another
   session's simulator (`references/WORKFLOW.md`, sections 2 and 2a).

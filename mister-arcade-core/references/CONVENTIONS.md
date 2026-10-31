@@ -54,7 +54,7 @@ What every core repository in this family shares. Terse by design; the reasons a
   `MAME_KLUDGES.md`, `HACKS.md`, `screenshots/<set>/`, plus per-subsystem design notes named
   `phaseN_<subsystem>.md` or `<subsystem>.md`.
 - Root: `README.md` (upper case), `LICENSE`, `THIRD-PARTY.md`, `.gitignore`, `.gitattributes`,
-  `clean.bat`, `mister.env` (gitignored), `CLAUDE.md`, `.claude/settings.json`.
+  `clean.bat`, `CLAUDE.md`, `.claude/settings.json`.
 - `roms/` your MAME sets, gitignored. `debug/` MAME reference captures, gitignored. `build/` the
   staged-build worktree, gitignored.
 
@@ -74,11 +74,13 @@ Verilator (`obj_verilator/`, `simout/`), vendored cores' simulation dumps (`/*.r
 `*.sh text eol=lf`; `scripts/**/*.tcl` and `scripts/**/*.lua` likewise (scoped so `sys/*.tcl` is
 left alone); one `<vendored dir>/** -text` line per vendored directory.
 
-## `mister.env`
+## Settings
 
-Gitignored; `mister.env.example` committed. Keys: `MISTER_HOST`, `MISTER_USER`, `MISTER_PASSWORD`,
-`MAME_DIR`, `MAME_EXE`, optionally `QUARTUS_BIN`, `MODELSIM_BIN`. Sourced with
-`set -a; . ./mister.env; set +a`. Absolute MiSTer paths need `MSYS_NO_PATHCONV=1` under Git bash.
+No `mister.env` in a core. Machine settings (`MISTER_HOST`, `MISTER_USER`, `MISTER_PASSWORD`,
+`QUARTUS_BIN`, `MODELSIM_BIN`, `MAME_DIR`, `MAME_EXE`, `MAME_SRC`, `MAME_ROMPATH`) live in
+`~/.mister-core.env`; a core that differs (its own MAME build, say) has `<core>.<KEY>=value` lines
+there, written with the MCP server's `core_settings_set`. `.gitignore` keeps `mister.env` so an
+old one is never committed. Absolute MiSTer paths need `MSYS_NO_PATHCONV=1` under Git bash.
 
 ## `THIRD-PARTY.md`
 

@@ -1,7 +1,10 @@
 # Simulation and reference cheatsheet
 
-Every command runs from the core's repository root. Settings: environment, then the core's
-`mister.env`, then `~/.mister-core.env`. Output lands under `debug/` (git-ignored) unless said
+With the `mister` MCP server connected, use its tools instead (`build_start`, `sim_run`,
+`mame_capture`, `mame_run_lua`, `mister_deploy`, `probe_read`...; the table is in `SKILL.md`);
+these are the commands they run. Every command runs from the core's repository root. Settings:
+environment, then the core's `<core>.<KEY>` lines in `~/.mister-core.env`, then the rest of that
+file. Output lands under `debug/` (git-ignored) unless said
 otherwise. What each script needs per core is in `SCRIPTS_NOTES.md`; what the arguments mean
 in detail is in each script's header.
 
@@ -98,7 +101,7 @@ be injected into a bench.
 ```
 bash scripts/build.sh --map                                  # elaborate only, in tree, minutes
 python scripts/build_staged.py [--rev <Name>_stp] [--seed N] # worktree at build/, HEAD only, slack-gated
-python scripts/hwlock.py --status                            # who holds JTAG, who is building
+python scripts/hwlock.py --status                            # who holds JTAG, who is building (MCP: locks_status)
 cd build && quartus_sta -t ../scripts/report_worst_paths.tcl <rev>   # worst clk_sys paths
 cd build && quartus_sta -t ../scripts/sta_failing_paths.tcl <rev>    # failing paths, detail
 cd build && quartus_sta -t ../scripts/sta_all_fail.tcl <rev>         # every failing endpoint, summary

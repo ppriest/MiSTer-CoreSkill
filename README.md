@@ -21,8 +21,19 @@ On Linux or macOS, `ln -s <this-clone>/mister-arcade-core ~/.claude/skills/miste
 
 Copy `mister-arcade-core/mister-core.env.example` to `~/.mister-core.env` and fill in what
 applies. Nothing in the skill hardcodes a machine: paths and names come from the environment,
-then a core's own gitignored `mister.env`, then that per-machine file, then a probed default.
-A new core needs no `mister.env` of its own unless it overrides something.
+then a core's own `<core>.<KEY>=value` lines in that file, then its plain keys, then a probed
+default. Cores have no `mister.env`.
+
+## MCP server
+
+`mcp/` is the `mister` MCP server: one per machine, on `http://127.0.0.1:8770/mcp`, started at
+boot by a scheduled task. Core sessions use its tools for builds, simulation, MAME, deploys,
+the board and probes instead of running the scripts; it runs the same scripts as jobs every
+session can see. Install and register it with the steps in [`mcp/README.md`](mcp/README.md);
+the tools are listed in [`mcp/TOOLS.md`](mcp/TOOLS.md).
+
+Its status page, `http://127.0.0.1:8770/`, shows the cores and their settings, the JTAG
+holder and queue, running and recent jobs with their logs, deploys and recent calls.
 
 Requires: Quartus 17.0 Lite with ModelSim, Verilator, MAME (binary and source), Python 3,
 `gh` (GitHub CLI), and a MiSTer on the network for hardware work.
@@ -43,4 +54,5 @@ mister-arcade-core/
   scripts/new_core.py       Template_MiSTer -> Arcade-<Name>_MiSTer
   references/               lessons learned, feature guides, tool guides
   assets/core/              copied verbatim into a new core (scripts/, docs/, .gitignore, ...)
+mcp/                        the mister MCP server and its status page
 ```

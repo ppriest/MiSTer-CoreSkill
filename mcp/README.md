@@ -50,13 +50,6 @@ whatever a session runs from Bash, a private copy of `AppData\Local`
 this server, which runs outside the package, and the reverse for files the session has its own
 copy of. The home directory is not redirected.
 
-**Status page: `http://127.0.0.1:8770/`.** Cores with their paths, branch and MAME settings
-(a path that does not exist is struck through), the JTAG holder and queue, Quartus/ModelSim
-processes, active and recent jobs (click one for its log, live while it runs), deploys, recent
-calls, and the MiSTer's current core on request. Job logs, `calls.jsonl`, `server.log` and
-`mister_deployed.tsv` download from it. `/api/state` is the same data as JSON. Read-only; a
-request whose Host or Origin is not this machine gets 403 (`web.py`).
-
 `mister-mcp.exe --stdio` runs a private copy
 over stdio (the MCP Inspector, tests).
 
@@ -104,6 +97,30 @@ only, read on every call. Beyond the scripts' own (`MISTER_HOST`,
   - No general shell.
   - `mister_get`/`mister_put` are limited to `/media/fat/{_Arcade,games,config,screenshots}`.
   - `mister_reboot` needs `confirm=true`.
+
+## Status page
+
+`http://127.0.0.1:8770/`, refreshed every 5 s (untick "auto refresh" to hold it still).
+Read-only; a request whose Host or Origin is not this machine gets 403 (`web.py`).
+
+| Panel | What it shows |
+|---|---|
+| Hardware | who holds the JTAG cable (USB-Blaster), who is queued for it, running Quartus/ModelSim processes. "Check now" logs in to the MiSTer over SSH once and reads the core and set it has loaded; it is not part of the auto refresh |
+| Active jobs | running jobs from every session: kind, core, elapsed, script |
+| Cores | every core: path, branch, running jobs, last tool call, `MAME_DIR`/`MAME_EXE`/`MAME_SRC`/`MAME_ROMPATH` with where each comes from (`core`, `machine`, `env`); a path that does not exist is struck through. Filter box searches all columns |
+| Recent jobs | the last 60, with state and return code |
+| Recent calls | the last 150 tool calls from every session; "errors only" for failures |
+| Deploys | the last 30 lines of `mister_deployed.tsv` |
+| Server and files | pid, uptime, commit, state dir; downloads |
+
+- **A job's log:** click its id (in jobs or calls). The drawer shows the last 400 lines and, while
+  the job runs, follows new lines over the WebSocket; untick "follow" to scroll back. "Download
+  log" saves the whole file.
+- **Downloads:** each job's `log.txt`, `calls.jsonl`, `server.log`, `mister_deployed.tsv`, as
+  they are at the moment of the click.
+- **A banner** appears when the skill repository has moved on since the server started: code
+  changes need a restart.
+- `/api/state` is the page's data as JSON; `/api/jobs/<id>?lines=N` one job with its log tail.
 
 ## Tools
 
@@ -159,6 +176,9 @@ Run by hand against this machine, with no compile and no JTAG:
 - `mame_run_lua` with `out`, `clean`, `nvram`, `debug`, `fail_on` and `env` on BallySente;
 - `build_project`'s copy (paths, SEED, clock periods) and `probe_sequence`'s step and field
   decoding, offline.
+
+The status page: `/api/state`, downloads, the Host/Origin refusal, the log drawer following a
+running build, "Check now" against the board.
 
 Run through the boot-task server: `build_start` on DecoMLC (job done in 917 s, result parsed with
 commit, timing and `.rbf`), and kept running through a server restart.

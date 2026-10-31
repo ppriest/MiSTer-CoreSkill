@@ -82,8 +82,9 @@ Three rules:
   waiting session publishes a reservation (`mister_jtag_wanted.<pid>` beside the marker), new
   builds stand off, the in-flight ones finish, and the probe goes first. `jtag_session(wait=True)`
   is the default, so a probe read now queues instead of refusing; the reservation is dropped on
-  its timeout so a hung tool cannot wedge every later build. `python scripts/hwlock.py --status`
-  prints the holder, the queue and what is compiling.
+  its timeout so a hung tool cannot wedge every later build. The MCP server's `locks_status`, or
+  its status page (`http://127.0.0.1:8770/`), shows the holder, the queue and what is compiling;
+  without the server, `python scripts/hwlock.py --status`.
 
 Quartus and ModelSim are not a hazard to each other: builds and simulations may run side by side,
 several of either at once. Verilator is outside the lock entirely.
@@ -110,7 +111,7 @@ sessions on different cores stepping on each other.
   another session's Quartus compile or ModelSim run stops your probe read, not just your own.
 - **JTAG takes priority over starting a build.** A session that wants the Blaster reserves it and
   waits; while that reservation stands, nobody starts a new build or simulation, including you.
-  Check with `python scripts/hwlock.py --status` before wondering why a build refuses, and let
+  Check with `locks_status` or the status page before wondering why a build refuses, and let
   the probe read go first: it is seconds, a compile is tens of minutes.
 - **Say what you are about to take, and for how long.** Before a long compile, tell the other
   sessions it has started and roughly how long it runs; tell them when it ends. Before reading a
@@ -120,8 +121,12 @@ sessions on different cores stepping on each other.
   board, takes it away from whoever is using it: do it only when the user asks, and say so.
 - **Ask before taking the board back**, and before killing another session's simulator: a stray
   `vsim`/`vsimk` may still be in use. Ask its owner; do not assume it is abandoned.
-- **Read probes only through `scripts/read_issp.py`** (or `probe.py`), never a bare `quartus_stp`
-  call: the bare call does not take the marker and silently defeats the lock.
+- **Read probes only through the MCP server's `probe_*` tools** (or `scripts/read_issp.py`,
+  `probe.py` without it), never a bare `quartus_stp` call: the bare call does not take the marker
+  and silently defeats the lock.
+- **Everything runs through the MCP server** (the skill's `SKILL.md`, "The `mister` MCP
+  server"): builds, simulations, MAME, deploys and probes are jobs every session can see, on the
+  status page and with `jobs_list`. A script run by hand is invisible there.
 - **Commit only the paths you changed** in any repository another session may also be working
   in, the skill's included: `git add <paths>`, never `git add -A` or `commit -a`, which sweep a
   peer's uncommitted work into your commit. Check `git status` first; leave anything that is not
