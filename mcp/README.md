@@ -87,9 +87,9 @@ only, read on every call. Beyond the scripts' own (`MISTER_HOST`,
     one frame per line, then `END {"state", "returncode"}` on every terminal state, then close.
     `jobs_stream_url` returns it, for Claude Code's `Monitor(ws={url})`. Connections with a
     browser `Origin` that is not localhost are refused.
-  - Runners leave the scheduled task's job object where Windows allows it, so a restart does not
-    kill them. Whether it does allow it under the task is not checked yet: do not restart the
-    server while a build runs.
+  - A server restart does not kill running jobs: two builds started by the previous server kept
+    running through a `Stop-ScheduledTask`/`Start-ScheduledTask`. Runners also ask to leave the
+    task's job object. Sessions see the server as disconnected for a few seconds.
 - **Board access is the listed operations only.**
   - No general shell.
   - `mister_get`/`mister_put` are limited to `/media/fat/{_Arcade,games,config,screenshots}`.
