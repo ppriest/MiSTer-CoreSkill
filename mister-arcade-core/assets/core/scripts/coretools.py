@@ -193,10 +193,12 @@ def mame_src(root=None):
 
 
 def rompath(root=None):
-    """This core's gitignored roms/ FIRST, then whatever mame.ini already had.
+    """This core's gitignored roms/ FIRST, then whatever mame.ini already had, then
+    MAME_ROMPATH (';'-separated).
 
     -rompath REPLACES the ini value rather than adding to it, so the ini's own
-    entries are read and appended."""
+    entries are read and appended. A core's own MAME build (its <core>.MAME_DIR)
+    usually has no mame.ini, so MAME_ROMPATH is what finds the sets there."""
     root = root or core_root()
     md = mame_dir(root)
     paths = [str(root / "roms")]
@@ -210,6 +212,7 @@ def rompath(root=None):
                         q = Path(part)
                         paths.append(str(q if q.is_absolute() else md / q))
                 break
+    paths += [str(Path(p.strip())) for p in (setting("MAME_ROMPATH", "", root) or "").split(";") if p.strip()]
     seen, out = set(), []
     for q in paths:
         if q not in seen:
