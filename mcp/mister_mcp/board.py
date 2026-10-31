@@ -4,6 +4,7 @@ No general shell: commands are built here from checked arguments, and file trans
 to the trees a core session needs.
 """
 import json
+import os
 import re
 import shlex
 import subprocess
@@ -20,9 +21,14 @@ ZIPS = "/media/fat/games/mame"
 
 
 def _env(root=None):
-    path = (Path(root) / "mister.env") if root else coretools.machine_env_path()
+    """The board's connection: the environment, then ~/.mister-core.env, never a core's mister.env.
+    There is one board, so per-core copies could only drift. Read per call: an edit to the file
+    applies at the next call. `root` is accepted and ignored."""
+    keys = ("MISTER_HOST", "MISTER_USER", "MISTER_PASSWORD")
     try:
-        return coretools.load_env(path=path, require=("MISTER_HOST", "MISTER_USER", "MISTER_PASSWORD"))
+        env = coretools.load_env(path=coretools.machine_env_path(), require=keys)
+        env.update({k: os.environ[k] for k in keys if os.environ.get(k)})
+        return env
     except SystemExit as e:
         raise ToolError(str(e))
 

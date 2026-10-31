@@ -43,7 +43,9 @@ The log is `%LOCALAPPDATA%/mister_mcp/server.log`. `mister-mcp.exe --stdio` runs
 over stdio (the MCP Inspector, tests).
 
 Settings come from the same places as the scripts': the environment, then `~/.mister-core.env`,
-with a core's `mister.env` over both for core tools. Beyond the scripts' own (`MISTER_HOST`,
+with a core's `mister.env` over both for core tools. The exception is the MiSTer connection
+(`MISTER_HOST`, `MISTER_USER`, `MISTER_PASSWORD`): the environment or `~/.mister-core.env`
+only, read on every call. Beyond the scripts' own (`MISTER_HOST`,
 `MISTER_USER`, `MISTER_PASSWORD`, `MAME_DIR`, `MAME_SRC`, `QUARTUS_BIN`...):
 
 | Setting | Default |
