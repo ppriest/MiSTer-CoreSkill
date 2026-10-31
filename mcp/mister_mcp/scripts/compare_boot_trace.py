@@ -30,10 +30,11 @@ The RTL trace is shorter than MAME's by design; it is compared up to the
 number of writes it reached.
 """
 import argparse
+import os
 import sys
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parent.parent
+REPO = Path(os.environ.get("CORE_ROOT") or Path(__file__).resolve().parent.parent)  # the MCP sets CORE_ROOT
 sys.path.insert(0, str(REPO / "scripts"))
 from mame_capture import regions  # noqa: E402
 

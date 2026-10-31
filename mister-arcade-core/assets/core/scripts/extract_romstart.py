@@ -6,7 +6,7 @@
     python scripts/extract_romstart.py --region gfx1 <set>
     python scripts/extract_romstart.py --driver path/to/driver.cpp --emit
 
-The driver is MAME_SRC (mister.env or the environment) unless --driver is given.
+The driver is MAME_SRC (core_settings_set, or the environment) unless --driver is given.
 
 WHY EXTRACT RATHER THAN TYPE
 ----------------------------

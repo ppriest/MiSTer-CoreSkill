@@ -176,13 +176,14 @@ Compile a standalone Quartus project in the core (a synth harness such as rtl/sy
 
 *acts*
 
-scripts/floorplan.py: placement image by hierarchy from the compiled database.
+scripts/floorplan.py: placement image by hierarchy from the compiled database (build/), grouped by the core's scripts/floorplan.json; debug/floorplan/<rev>.png and <rev>_groups.md. list_depth=N prints the hierarchy to that depth with resource counts instead, to write the groups from. reuse: the last atom dump, no Quartus run.
 
 | Argument | Type | Default |
 |---|---|---|
 | `core` | string | required |
 | `rev` | string | `""` |
 | `reuse` | boolean | `false` |
+| `list_depth` | integer | `0` |
 | `wait_s` | integer | `600` |
 
 <a id="sim"></a>
@@ -292,6 +293,23 @@ scripts/mame_sys_trace.py <set> <frames>.
 | `frames` | integer | required |
 | `seconds` | integer | `120` |
 | `wait_s` | integer | `180` |
+
+### `mame_write_timing`
+
+*acts*
+
+scripts/write_timing.py: when each set writes video RAM and registers relative to vblank, counted per scanline over `frames` frames after `skip` (regions.json "sweep", plus extra name:hexlo:hexhi,...). coin: frame to insert a coin at (0 none). Results in debug/wtiming/<set><tag>.txt; the report is the job's log.
+
+| Argument | Type | Default |
+|---|---|---|
+| `core` | string | required |
+| `sets` | list[string] | required |
+| `skip` | integer | `600` |
+| `frames` | integer | `1800` |
+| `coin` | integer | `0` |
+| `extra` | string | `""` |
+| `tag` | string | `""` |
+| `wait_s` | integer | `300` |
 
 ### `mame_run_lua`
 

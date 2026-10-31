@@ -37,7 +37,7 @@ PLLJ_PLLSPE_INFO.txt
 build_id.v
 c5_pin_model_dump.txt
 
-# Staged-build worktree (scripts/build_staged.py) and its logs
+# Staged-build worktree (the MCP's build_start) and its logs
 build/
 quartus_*.log
 q_*.log
@@ -83,9 +83,6 @@ cfg/
 nvram/
 snap/
 sta/
-
-# Local MiSTer connection settings
-mister.env
 
 # Only a verified build belongs in releases/: git add -f releases/<name>.rbf
 releases/*.rbf

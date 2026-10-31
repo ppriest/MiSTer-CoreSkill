@@ -428,7 +428,7 @@
  },
  {
   "name": "build_floorplan",
-  "description": "scripts/floorplan.py: placement image by hierarchy from the compiled database.",
+  "description": "scripts/floorplan.py: placement image by hierarchy from the compiled database (build/),\ngrouped by the core's scripts/floorplan.json; debug/floorplan/<rev>.png and <rev>_groups.md.\nlist_depth=N prints the hierarchy to that depth with resource counts instead, to write the\ngroups from. reuse: the last atom dump, no Quartus run.",
   "inputSchema": {
    "properties": {
     "core": {
@@ -444,6 +444,11 @@
      "default": false,
      "title": "Reuse",
      "type": "boolean"
+    },
+    "list_depth": {
+     "default": 0,
+     "title": "List Depth",
+     "type": "integer"
     },
     "wait_s": {
      "default": 600,
@@ -756,6 +761,65 @@
     "frames"
    ],
    "title": "mame_sys_traceArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "destructiveHint": false
+  }
+ },
+ {
+  "name": "mame_write_timing",
+  "description": "scripts/write_timing.py: when each set writes video RAM and registers relative to vblank,\ncounted per scanline over `frames` frames after `skip` (regions.json \"sweep\", plus extra\nname:hexlo:hexhi,...). coin: frame to insert a coin at (0 none). Results in\ndebug/wtiming/<set><tag>.txt; the report is the job's log.",
+  "inputSchema": {
+   "properties": {
+    "core": {
+     "title": "Core",
+     "type": "string"
+    },
+    "sets": {
+     "items": {
+      "type": "string"
+     },
+     "title": "Sets",
+     "type": "array"
+    },
+    "skip": {
+     "default": 600,
+     "title": "Skip",
+     "type": "integer"
+    },
+    "frames": {
+     "default": 1800,
+     "title": "Frames",
+     "type": "integer"
+    },
+    "coin": {
+     "default": 0,
+     "title": "Coin",
+     "type": "integer"
+    },
+    "extra": {
+     "default": "",
+     "title": "Extra",
+     "type": "string"
+    },
+    "tag": {
+     "default": "",
+     "title": "Tag",
+     "type": "string"
+    },
+    "wait_s": {
+     "default": 300,
+     "title": "Wait S",
+     "type": "integer"
+    }
+   },
+   "required": [
+    "core",
+    "sets"
+   ],
+   "title": "mame_write_timingArguments",
    "type": "object"
   },
   "annotations": {

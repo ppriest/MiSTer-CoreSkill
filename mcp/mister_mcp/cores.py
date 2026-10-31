@@ -1,8 +1,12 @@
 """Which core a call is about, and how to run its scripts.
 
 A tool names a core by repository directory (`Arcade-Seta_MiSTer`), short name (`Seta`) or path.
-Its own `scripts/` are run when they have the script, so the core's local edits (probe instance,
-.mra folder) stay in force; otherwise the skill's template copy runs with CORE_ROOT set to the core.
+The scripts the tools run (build, deploy, probes, MAME traces) are the server's own, in scripts/
+beside this file, run with CORE_ROOT set to the core; they read the core's values from its
+scripts/core.json and scripts/issp_fields.tcl. A core that still has its own copy of a script
+runs that copy instead: most older cores changed theirs, and those changes are folded in or
+dropped core by core. The skill's template scripts (coretools, hwlock, run_verilator.sh) are
+the shared library and the per-core sim harness.
 """
 import os
 import shutil
@@ -12,6 +16,7 @@ from pathlib import Path
 
 SKILL = Path(__file__).resolve().parents[2] / "mister-arcade-core"
 TEMPLATE_SCRIPTS = SKILL / "assets" / "core" / "scripts"
+MCP_SCRIPTS = Path(__file__).resolve().with_name("scripts")
 sys.path.insert(0, str(TEMPLATE_SCRIPTS))
 import coretools  # noqa: E402
 from mcp.server.mcpserver.exceptions import ToolError as _SdkToolError  # noqa: E402
@@ -77,14 +82,15 @@ def list_cores():
 
 
 def script(root, name):
-    """(path, from_template) for scripts/<name>."""
+    """(path, shared) for scripts/<name>: the core's own copy, else the server's, else the skill's
+    template. shared is False only for the core's own copy."""
     own = root / "scripts" / name
     if own.exists():
         return own, False
-    tpl = TEMPLATE_SCRIPTS / name
-    if tpl.exists():
-        return tpl, True
-    raise ToolError(f"{root.name} has no scripts/{name} and the skill has no template copy")
+    for d in (MCP_SCRIPTS, TEMPLATE_SCRIPTS):
+        if (d / name).exists():
+            return d / name, True
+    raise ToolError(f"no scripts/{name} in {root.name}, the server or the skill's template")
 
 
 def python_exe():
@@ -110,8 +116,10 @@ def command(root, name, *args):
     path, tpl = script(root, name)
     # the core's <core>.<KEY> machine settings as environment: its own coretools copy may predate them.
     # Unbuffered: stdout to a file is block-buffered, so a build's log stayed empty until it ended.
+    # PYTHONPATH: the server's scripts import coretools and hwlock from the skill's template.
     env = dict(os.environ, **coretools.core_settings(root), CORE_ROOT=str(root), PYTHONIOENCODING="utf-8",
-               PYTHONUNBUFFERED="1", MSYS_NO_PATHCONV="1")
+               PYTHONUNBUFFERED="1", MSYS_NO_PATHCONV="1",
+               PYTHONPATH=os.pathsep.join(filter(None, [str(TEMPLATE_SCRIPTS), os.environ.get("PYTHONPATH")])))
     if path.suffix == ".py":
         argv = [python_exe(), str(path), *map(str, args)]
     elif path.suffix == ".sh":

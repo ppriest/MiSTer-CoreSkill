@@ -25,7 +25,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parent.parent
+REPO = Path(os.environ.get("CORE_ROOT") or Path(__file__).resolve().parent.parent)  # the MCP sets CORE_ROOT
 LUA_DIR = REPO / "scripts" / "mame"
 NO_WINDOW = {"creationflags": 0x08000000} if os.name == "nt" else {}
 

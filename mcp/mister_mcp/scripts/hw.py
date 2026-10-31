@@ -41,17 +41,15 @@ import urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from coretools import core_root, project, load_env, find_putty   # noqa: E402
+from coretools import core_root, core_config, project, load_env, find_putty   # noqa: E402
 
 REPO = core_root()
 CORE_NAME = project(REPO)                 # the .qpf stem, which is the CONF_STR core name
 REMOTE_ARCADE = "/media/fat/_Arcade"
 REMOTE_SHOTS = "/media/fat/screenshots"
 
-# --- core-specific: edit for this core -------------------------------------
-# The folder the .mra files live in on the device; keep in step with deploy.py.
-REMOTE_ARCADE_DIR = f"{REMOTE_ARCADE}/_{CORE_NAME}"
-# ---------------------------------------------------------------------------
+# The folder the .mra files live in on the device: scripts/core.json mra_folder, as deploy.py.
+REMOTE_ARCADE_DIR = f"{REMOTE_ARCADE}/{core_config(REPO)['mra_folder']}"
 
 
 class Mister:

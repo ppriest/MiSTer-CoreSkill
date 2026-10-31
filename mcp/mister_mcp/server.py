@@ -286,7 +286,7 @@ def build_worst_paths(core: str, rev: str = "", wait_s: int = 300) -> dict:
     db = root / "build" if (root / "build" / "db").is_dir() else root
     sta = C.coretools.quartus_bin(root) / "quartus_sta.exe"
     argv = [str(sta), "-t", str(tcl), r]
-    env = dict(os.environ, CORE_ROOT=str(root))
+    env = dict(os.environ, CORE_ROOT=str(root), STA_CLOCK=C.coretools.core_config(root)["sta_clock"])
     jid = J.start("sta", root.name, argv, db, env, {"rev": r, "db": str(db)})
     st = J.wait(jid, wait_s)
     if st["state"] == "done":
@@ -367,10 +367,15 @@ def _sta_result(jid):
 
 
 @tool(ACT)
-def build_floorplan(core: str, rev: str = "", reuse: bool = False, wait_s: int = 600) -> dict:
-    """scripts/floorplan.py: placement image by hierarchy from the compiled database."""
+def build_floorplan(core: str, rev: str = "", reuse: bool = False, list_depth: int = 0,
+                    wait_s: int = 600) -> dict:
+    """scripts/floorplan.py: placement image by hierarchy from the compiled database (build/),
+    grouped by the core's scripts/floorplan.json; debug/floorplan/<rev>.png and <rev>_groups.md.
+    list_depth=N prints the hierarchy to that depth with resource counts instead, to write the
+    groups from. reuse: the last atom dump, no Quartus run."""
     root = C.resolve(core)
     args = (["--rev", rev] if rev else []) + (["--reuse"] if reuse else [])
+    args += ["--list", "--depth", int(list_depth)] if list_depth else []
     return _job("floorplan", root, "floorplan.py", args, wait_s)
 
 
@@ -543,6 +548,22 @@ def mame_sys_trace(core: str, set: str, frames: int, seconds: int = 120, wait_s:
     """scripts/mame_sys_trace.py <set> <frames>."""
     root = C.resolve(core)
     return _job("mame", root, "mame_sys_trace.py", [set, frames, "--seconds", seconds], wait_s)
+
+
+@tool(ACT)
+def mame_write_timing(core: str, sets: list[str], skip: int = 600, frames: int = 1800, coin: int = 0,
+                      extra: str = "", tag: str = "", wait_s: int = 300) -> dict:
+    """scripts/write_timing.py: when each set writes video RAM and registers relative to vblank,
+    counted per scanline over `frames` frames after `skip` (regions.json "sweep", plus extra
+    name:hexlo:hexhi,...). coin: frame to insert a coin at (0 none). Results in
+    debug/wtiming/<set><tag>.txt; the report is the job's log."""
+    root = C.resolve(core)
+    if not sets:
+        raise ToolError("name at least one set")
+    args = [*sets, "--skip", skip, "--frames", frames, "--coin", coin]
+    args += ["--extra", extra] if extra else []
+    args += ["--tag", tag] if tag else []
+    return _job("mame", root, "write_timing.py", args, wait_s)
 
 
 @tool(ACT)
@@ -889,8 +910,11 @@ def probe_sequence(core: str, steps: list[dict], wait_s: int = 120) -> dict:
             raise ToolError(f"bad step {s}")
         if k != "sleep" and not re.fullmatch(r"\w+", str(s[k])):
             raise ToolError(f"bad instance id in {s}")
-    tcl, _ = C.script(root, "read_issp.tcl")
-    spec = {"root": str(root), "scripts": [str(d) for d in (root / "scripts", C.TEMPLATE_SCRIPTS)
+    # field tables: the core's own read_issp.tcl if it still has one, else its issp_fields.tcl
+    tcl, shared = C.script(root, "read_issp.tcl")
+    if shared:
+        tcl = root / "scripts" / "issp_fields.tcl"
+    spec = {"root": str(root), "scripts": [str(d) for d in (root / "scripts", C.TEMPLATE_SCRIPTS, C.MCP_SCRIPTS)
                                            if d.is_dir()],
             "tcl": str(tcl), "here_tcl": str(Path(__file__).with_name("issp_seq.tcl")), "steps": steps}
     sp = Path(tempfile.mkdtemp(prefix="issp_seq_")) / "spec.json"

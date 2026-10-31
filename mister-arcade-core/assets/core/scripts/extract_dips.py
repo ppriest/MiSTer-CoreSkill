@@ -6,7 +6,7 @@
     python scripts/extract_dips.py --selftest
     python scripts/extract_dips.py --driver path/to/driver.cpp <set>
 
-The driver is MAME_SRC (mister.env or the environment) unless --driver is
+The driver is MAME_SRC (core_settings_set, or the environment) unless --driver is
 given. build_mra.py uses parse_ports.
 
 WHY EXTRACT RATHER THAN TYPE

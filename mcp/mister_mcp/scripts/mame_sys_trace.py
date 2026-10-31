@@ -12,10 +12,11 @@ when the game's behaviour from reset depends on it, and load the same file in th
 RTL bench.
 """
 import argparse
+import os
 import sys
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parent.parent
+REPO = Path(os.environ.get("CORE_ROOT") or Path(__file__).resolve().parent.parent)  # the MCP sets CORE_ROOT
 sys.path.insert(0, str(REPO / "scripts"))
 from mame_boot_trace import check, run_traced  # noqa: E402
 

@@ -18,18 +18,16 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from coretools import core_root, quartus_stp   # noqa: E402
+from coretools import core_root, core_config, quartus_stp   # noqa: E402
 from hwlock import jtag_session                # noqa: E402
 from identity import prefix                     # noqa: E402
 
 REPO = core_root()
 TCL = Path(__file__).resolve().parent / "read_issp.tcl"
 
-# --- core-specific: edit for this core -------------------------------------
-# The instance `clear` acts on (its source bit 0 is the counter clear), and
-# the one read when --instance is not given.
-DEFAULT_INSTANCE = "F"
-# ---------------------------------------------------------------------------
+# The instance `clear` acts on (its source bit 0 is the counter clear), and the one
+# read when --instance is not given: scripts/core.json probe_default_instance.
+DEFAULT_INSTANCE = core_config(REPO)["probe_default_instance"]
 
 
 def read(clear=False, instance=None):

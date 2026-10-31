@@ -22,7 +22,7 @@ On Linux or macOS, `ln -s <this-clone>/mister-arcade-core ~/.claude/skills/miste
 Copy `mister-arcade-core/mister-core.env.example` to `~/.mister-core.env` and fill in what
 applies. Nothing in the skill hardcodes a machine: paths and names come from the environment,
 then a core's own `<core>.<KEY>=value` lines in that file, then its plain keys, then a probed
-default. Cores have no `mister.env`.
+default.
 
 ## MCP server
 

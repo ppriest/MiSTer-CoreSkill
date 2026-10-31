@@ -15,11 +15,10 @@ create_timing_netlist
 read_sdc
 update_timing_netlist
 
-# --- core-specific: edit for this core -------------------------------------
-# The main core clock, as the STA names it. This is the MiSTer framework's
-# emu PLL output 0 and is the same on every core built from the template.
-set clk "emu|pll|pll_inst|altera_pll_i|general\[0\].gpll~PLL_OUTPUT_COUNTER|divclk"
-# ---------------------------------------------------------------------------
+# The main core clock, as the STA names it: STA_CLOCK, which the MCP sets from the
+# core's scripts/core.json sta_clock (default: the framework's emu PLL output 0, the
+# same on every core built from the template).
+set clk $env(STA_CLOCK)
 
 report_timing -setup -npaths 15 -detail full_path -from_clock $clk -to_clock $clk \
     -panel_name "Worst 15 setup paths (clk_sys)" -file "output_files/worst_paths_$rev.rpt"

@@ -257,7 +257,9 @@ function render() {
       `<span class="muted">${esc(c.last_call ? c.last_call.slice(5, 16) : "")}</span>`,
       setting(c.settings, "MAME_DIR"), setting(c.settings, "MAME_EXE"), setting(c.settings, "MAME_SRC"),
       setting(c.settings, "MAME_ROMPATH"),
-      c.own_scripts ? "own" : `<span class="muted">template</span>`]));
+      c.own_scripts.length
+        ? `<span class="chip warn" title="runs its own copy of: ${esc(c.own_scripts.join(", "))}">${c.own_scripts.length} own</span>`
+        : `<span class="muted" title="${c.core_json ? "scripts/core.json" : "no scripts/core.json: defaults"}">server${c.core_json ? "" : " (defaults)"}</span>`]));
 
   const jq = $("jobfilter").value;
   const jobs = d.jobs.filter(j => match(jq, j.id, j.kind, j.core, j.state, JSON.stringify(j.meta)));

@@ -43,21 +43,19 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from coretools import core_root, project, revision, load_env, find_putty   # noqa: E402
+from coretools import core_root, core_config, project, revision, load_env, find_putty   # noqa: E402
 
 REPO = core_root()
 PROJECT = project(REPO)
 REMOTE_CORES = "/media/fat/_Arcade/cores"
 SUCCESS = "Full Compilation was successful"
 
-# --- core-specific: edit for this core -------------------------------------
-# The folder the .mra files go to (clones in _alternatives beneath it). The
-# default is the project name; a display name is fine too ("_Konami System GX").
-REMOTE_ARCADE = "/media/fat/_Arcade/_%s" % PROJECT
-# Sets that are built but cannot yet run are held back from the device (name
-# the .mra stems). --all copies them anyway.
-HELD_BACK_SETS = ()
-# ---------------------------------------------------------------------------
+# From scripts/core.json: the folder the .mra files go to (clones in _alternatives
+# beneath it), _<project> unless mra_folder names another ("_Konami System GX"); and
+# held_back_sets, .mra stems built but not yet able to run, which --all copies anyway.
+_CFG = core_config(REPO)
+REMOTE_ARCADE = "/media/fat/_Arcade/" + _CFG["mra_folder"]
+HELD_BACK_SETS = tuple(_CFG["held_back_sets"])
 
 
 class Mister:

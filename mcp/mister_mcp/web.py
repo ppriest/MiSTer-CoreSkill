@@ -185,7 +185,10 @@ def routes(core_settings, calls_path):
                 cores.append({
                     "name": name, "short": short, "path": str(root), "duplicate": len(paths) > 1,
                     "branch": _branch(root), "settings": _checked(s["settings"]),
-                    "own_scripts": (root / "scripts" / "coretools.py").exists(),
+                    # copies of the server's scripts this core still runs instead (cores.py)
+                    "own_scripts": sorted(p.name for p in C.MCP_SCRIPTS.iterdir()
+                                          if (root / "scripts" / p.name).exists()),
+                    "core_json": (root / "scripts" / "core.json").exists(),
                     "active": active.get(name, []),
                     "last_call": max((last.get(k, "") for k in (name, short, str(root))), default="") or None})
         held = hwlock.read_marker()

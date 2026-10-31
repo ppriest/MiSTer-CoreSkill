@@ -12,16 +12,11 @@
 # Counters typically SATURATE and count per-cycle events, so they pin almost
 # immediately: `clear` first and read again for a rate.
 
-# --- core-specific: edit for this core -------------------------------------
-# One table per ISSP instance id, {name lo hi format}; format is dec, sdec
-# (signed 16), hex or bit. Bit numbers index the probe bus as the RTL
-# concatenates it. Add an entry to the `switch` further down for each table.
-# By convention source bit 0 pulsed is the counter clear.
-set fields_F {
-    {frames           0  15 dec}
-    {pll_locked     127 127 bit}
-}
-# ---------------------------------------------------------------------------
+# The field tables, `set fields_<id> {{name lo hi format} ...}`, are the core's
+# scripts/issp_fields.tcl (CORE_ROOT names the core).
+set tables [file join $env(CORE_ROOT) scripts issp_fields.tcl]
+if {![file exists $tables]} { puts "no $tables -- the core's probe field tables"; exit 1 }
+source $tables
 
 proc bits_to_int {s lo hi} {
     # read_probe_data returns the bus MSB-first, so index from the right.
@@ -84,17 +79,19 @@ if {$want ne ""} {
 
 # The field table belongs to the INSTANCE. An unrecognised id stops rather
 # than guesses.
-switch -- $inst_id {
-    F       { set fields $fields_F }
-    default {
-        puts "instance id '$inst_id' has no field table -- add one before reading it"
-        exit 1
-    }
+if {[info exists fields_$inst_id]} {
+    set fields [set fields_$inst_id]
+} else {
+    puts "instance id '$inst_id' has no field table in $tables -- add one before reading it"
+    exit 1
 }
 puts "decoding instance $inst_id"
 
 start_insystem_source_probe -device_name $dev -hardware_name $hw
 set raw [read_probe_data -instance_index $idx]
+# a build whose probe bus has another width can have its own table, fields_<id>_w<bits>
+set wtable fields_${inst_id}_w[string length $raw]
+if {[info exists $wtable]} { set fields [set $wtable]; puts "table $wtable" }
 puts "raw ([string length $raw] bits): $raw"
 puts ""
 

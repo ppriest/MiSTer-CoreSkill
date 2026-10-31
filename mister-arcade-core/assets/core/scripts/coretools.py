@@ -9,13 +9,13 @@ The core root is the parent of this scripts/ directory (or CORE_ROOT). From it:
     revision()   the Quartus revision to build: CORE_REV, else the one .qsf,
                  else the last PROJECT_REVISION the .qpf lists. A core with
                  several revisions (X and X_stp) picks with CORE_REV or --rev.
-    load_env()   settings: ~/.mister-core.env (or MISTER_CORE_ENV) for the whole
-                 machine, overridden by <core>/mister.env (gitignored).
+    load_env()   settings: ~/.mister-core.env (or MISTER_CORE_ENV), one file for the
+                 whole machine. There is no per-core settings file.
 
-Tool locations and the MiSTer connection, in order: the environment, the core's
-own keys in the per-machine file (<core>.<KEY>=..., e.g. Gaelco3D.MAME_EXE=gaelco3d.exe;
-<core> is the repository name without Arcade- and _MiSTer), the core's mister.env,
-the per-machine file, then a default.
+Tool locations, in order: the environment, the core's own keys in the per-machine
+file (<core>.<KEY>=..., e.g. Gaelco3D.MAME_EXE=gaelco3d.exe; <core> is the repository
+name without Arcade- and _MiSTer; the MCP's core_settings_set writes them), the
+per-machine file, then a default.
 
     QUARTUS_BIN    .../intelFPGA_lite/17.0/quartus/bin64
     MODELSIM_BIN   defaults to <quartus root>/modelsim_ase/win32aloem
@@ -81,12 +81,35 @@ def revision(root=None, override=None):
              % (root, len(qsfs)))
 
 
+CONFIG_DEFAULTS = {
+    "mra_folder": None,                # the .mra folder under /media/fat/_Arcade; default _<project>
+    "held_back_sets": [],              # .mra stems built but not copied to the device
+    "required_instances": ["hps_io"],  # blocks that must survive to the fitted netlist
+    "required_macros": {},             # VERILOG_MACRO name -> what breaks without it
+    "stage_copies": [],                # [source, destination] copied into build/ before Quartus runs
+    "probe_default_instance": "F",     # the ISSP instance probe reads and clears by default
+    "sta_clock": "emu|pll|pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk",
+}
+
+
+def core_config(root=None):
+    """scripts/core.json over CONFIG_DEFAULTS: the per-core values the MCP's scripts read.
+    The ISSP field tables are in scripts/issp_fields.tcl (Tcl reads them)."""
+    import json
+    root = Path(root or core_root())
+    cfg = dict(CONFIG_DEFAULTS)
+    p = root / "scripts" / "core.json"
+    if p.exists():
+        cfg.update(json.loads(p.read_text(encoding="utf-8")))
+    cfg["mra_folder"] = cfg["mra_folder"] or "_" + project(root)
+    return cfg
+
+
 def machine_env_path():
     """The per-machine settings file: MISTER_CORE_ENV, else ~/.mister-core.env.
 
-    Tool paths and the MiSTer connection are the same for every core on one machine;
-    keeping them here means a new core needs no mister.env at all. A core's own
-    mister.env still wins, and the environment wins over both.
+    Tool paths and the MiSTer connection; per-core values are <core>.<KEY> keys in it.
+    The environment wins over it.
     """
     p = os.environ.get("MISTER_CORE_ENV")
     return Path(p) if p else Path.home() / ".mister-core.env"
@@ -105,16 +128,12 @@ def _read_env_file(path):
 
 
 def load_env(root=None, path=None, require=()):
-    """KEY=VALUE pairs: the per-machine file, overridden by <core>/mister.env."""
-    path = Path(path or ((root or core_root()) / "mister.env"))
-    env = _read_env_file(machine_env_path())
-    env.update(_read_env_file(path))
-    if not env and require:
-        sys.exit("no settings found. Set %s in %s (per machine) or %s (per core, gitignored)."
-                 % (", ".join(require), machine_env_path(), path))
+    """KEY=VALUE pairs from the per-machine file. `root` is accepted and ignored."""
+    path = Path(path or machine_env_path())
+    env = _read_env_file(path)
     for k in require:
         if not env.get(k):
-            sys.exit("%s is not set in %s or %s" % (k, machine_env_path(), path))
+            sys.exit("%s is not set in %s" % (k, path))
     return env
 
 
@@ -134,8 +153,8 @@ def core_settings(root=None):
 
 
 def setting(name, default=None, root=None):
-    """A setting: environment, then the core's keys in the machine file, then the core's
-    mister.env, then the machine file, then the default."""
+    """A setting: environment, then the core's keys in the machine file, then the machine
+    file, then the default."""
     if os.environ.get(name):
         return os.environ[name]
     v = core_settings(root).get(name) or load_env(root).get(name)
@@ -161,8 +180,8 @@ def mame_dir(root=None):
     v = setting("MAME_DIR", None, root)
     if not v:
         sys.exit("MAME_DIR is not set: put MAME_DIR=<directory of the MAME "
-                 "executable> (and MAME_EXE=<name>, if not mame.exe) in the "
-                 "core's mister.env, ~/.mister-core.env, or export it")
+                 "executable> (and MAME_EXE=<name>, if not mame.exe) with the MCP's "
+                 "core_settings_set, or in ~/.mister-core.env")
     return Path(v)
 
 
@@ -188,7 +207,7 @@ def mame_src(root=None):
     v = setting("MAME_SRC", None, root)
     if not v:
         sys.exit("MAME_SRC is not set: put MAME_SRC=<path to the MAME driver "
-                 ".cpp this core follows> in the core's mister.env or ~/.mister-core.env, or export it")
+                 ".cpp this core follows> with the MCP's core_settings_set, or in ~/.mister-core.env")
     return Path(v)
 
 

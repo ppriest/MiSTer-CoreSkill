@@ -21,7 +21,7 @@ A code is 16 bytes, big-endian: flags (method << 8 | size << 4 | compare), addre
 data. The engine matches aligned codes only, so a long not on a 4-byte boundary becomes two
 words and a word at an odd address two bytes.
 
-Per core (the environment, the core's mister.env or ~/.mister-core.env, or the arguments):
+Per core (the environment, the core's keys in ~/.mister-core.env, or the arguments):
 
     CHEAT_CPU    the CPU tag in the cheat scripts             (default maincpu)
     CHEAT_RAM    the address ranges the engine sits on, hex   (e.g. C00000-C1FFFF,FF0000-FFFFFF)

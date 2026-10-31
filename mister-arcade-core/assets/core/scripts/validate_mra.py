@@ -20,7 +20,7 @@ Checks:
   3. <switches default="..."> byte count covers the declared bits, and the
      file declares a <setname> (the .CFG filename depends on it).
   4. <rotation> matches the set's orientation in the MAME driver's GAME()
-     line (MAME_SRC, from mister.env or the environment): ROT0 ->
+     line (MAME_SRC, from core_settings_set or the environment): ROT0 ->
      "horizontal", ROT90 -> "vertical (cw)", ROT270 -> "vertical (ccw)".
      Skipped, with a note, when the driver is not available.
   3'. No <dip> above bit 31 and no fifth default byte: Main_MiSTer's int shift

@@ -1,0 +1,8 @@
+{
+  "mra_folder": null,
+  "held_back_sets": [],
+  "required_instances": ["hps_io"],
+  "required_macros": {},
+  "stage_copies": [],
+  "probe_default_instance": "F"
+}

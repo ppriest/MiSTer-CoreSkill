@@ -14,7 +14,7 @@
 # parses every file it is given and not all vendored code is clean for it.
 # -G arguments are top-level parameter overrides and go to the build; the
 # rest go to the run. Output is in obj_verilator/<tb>/ (git-ignored), not
-# build/, which is scripts/build_staged.py's Quartus worktree.
+# build/, which is the MCP build_start's Quartus worktree.
 #
 # TOOLS: the MSYS2 MinGW64 install (verilator, g++, make, perl). The script
 # re-executes itself under that environment when started from Git bash,

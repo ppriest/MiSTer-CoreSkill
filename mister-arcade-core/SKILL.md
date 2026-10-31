@@ -24,8 +24,7 @@ then the core's own keys in the per-machine `~/.mister-core.env` (`<core>.<KEY>=
 `Gaelco3D.MAME_DIR=...`; `<core>` is the repository name without `Arcade-` and `_MiSTer`), then
 the rest of that file (`MISTER_CORE_ENV` to move it; template: `mister-core.env.example`), then a
 probed default. With the MCP server connected, `core_settings` shows what a core resolves and
-where each value comes from, and `core_settings_set` writes its keys. Cores have no
-`mister.env`; do not create one.
+where each value comes from, and `core_settings_set` writes its keys.
 
 | Setting | What | Default |
 |---|---|---|
@@ -55,16 +54,21 @@ core prints what it resolved.
 
 One server for the machine (`mcp/` in this skill's repository; `http://127.0.0.1:8770/mcp`,
 tools `mcp__mister__*`; install and internals in `mcp/README.md`, every argument in
-`mcp/TOOLS.md`). **Use its tools in place of the scripts wherever it has one**; run a script only
-when it has no tool for the job or is not connected. The tools run the core's own `scripts/`
-where it has them, the template's otherwise, so per-core edits still hold.
+`mcp/TOOLS.md`). **Builds, probes, MAME runs and everything on the MiSTer go through its tools.**
+No `plink`, `pscp`, `ssh` or script of your own against the board: the server holds the one SSH
+connection. The scripts the tools run are the server's (`mcp/mister_mcp/scripts/`), not copies in
+the core; what differs per core is in the core's `scripts/core.json` (`.mra` folder, held-back
+sets, blocks and macros the build must keep, stage copies, default probe instance) and
+`scripts/issp_fields.tcl` (probe field tables). An older core that still has its own copy of one
+of those scripts runs that copy until its values are moved into those two files and the copy
+deleted.
 
 | Task | Tool |
 |---|---|
 | build a revision, a seed; a standalone harness project | `build_start`; `build_project` |
 | timing, utilisation, worst paths, floorplan | `build_report`, `build_worst_paths`, `build_floorplan` |
 | ModelSim / Verilator bench; stray simulators | `sim_list`, `sim_run`, `sim_compare_boot`; `sim_sweep` |
-| MAME version check, frame capture, traces, Lua | `mame_version`, `mame_capture`, `mame_boot_trace`, `mame_sys_trace`, `mame_run_lua`, `mame_listxml` |
+| MAME version check, frame capture, traces, video-write sweep, Lua | `mame_version`, `mame_capture`, `mame_boot_trace`, `mame_sys_trace`, `mame_write_timing`, `mame_run_lua`, `mame_listxml` |
 | deploy, check an `.mra`, launch, screenshot | `mister_deploy`, `mister_check_mra`, `mister_launch`, `mister_screenshot` |
 | board state, files, memory, reboot | `mister_state`, `mister_playing`, `mister_osd`, `mister_ls`, `mister_get`, `mister_put`, `mister_devmem`, `mister_memdump` (DDR3 ranges to a file), `mister_reboot` |
 | ISSP probes | `probe_read`, `probe_issp`, `probe_sequence` |
@@ -87,8 +91,8 @@ where it has them, the template's otherwise, so per-core edits still hold.
   `mister_state` returns that reading (with `age_s`) at no cost to the board; ask it rather than
   reading `/tmp/RBFNAME` yourself. `live=true` reads now.
 - **When the server lacks something you need, or a tool fails, do not edit `mcp/` from a core
-  session.** Send the MCP server session (ListAgents names it) what you needed, the script or
-  command you used instead with its arguments, and the tool's output if one failed.
+  session, and do not work around it.** Send the MCP server session (ListAgents names it) what
+  you needed, with the arguments, and the tool's output if one failed.
 
 ## Phases
 
@@ -103,7 +107,8 @@ python <skill>/scripts/new_core.py <Name> [--owner <user>] [--root <dir>]
 Creates a private GitHub repo from the template (`--public` to override), clones it under the
 cores root as `Arcade-<Name>_MiSTer`, renames
 `Template.*` to `<Name>.*`, adds the `<Name>_stp` instrumented revision, deletes the
-Quartus 13 project, copies `assets/core/` (scripts, docs templates, `.gitignore`,
+Quartus 13 project, copies `assets/core/` (scripts: the shared library, the sim harness,
+`core.json` and `issp_fields.tcl` to fill in; docs templates, `.gitignore`,
 `CLAUDE.md`, `docs/LESSONS_LEARNED.md`), commits. `sys/` is untouched, now and always. If the
 Set the core's `MAME_SRC` (the driver `.cpp` it follows) with `core_settings_set`, and its
 `MAME_DIR` and `MAME_EXE` too if it drives a MAME build other than the machine's (a fork, a newer
@@ -164,7 +169,7 @@ is the status file, `LESSONS_LEARNED.md` is not.
 Per roadmap phase, typically CPU + ROM path, then video, then sound, then integration.
 
 - Every subsystem gets a testbench before it goes on hardware. Stimulus comes from MAME
-  captures (`scripts/mame_capture.py`, `scripts/mame/*.lua`); expected output is MAME's
+  captures (`mame_capture`, with the core's `scripts/mame/regions.json`); expected output is MAME's
   frame or trace. Verilator for pixel/frame comparison, ModelSim for bus-level and
   vendored VHDL. `references/tools.md` has the invocations and layout.
 - **Render per scanline, from buffered sprite RAM. A frame buffer needs hardware evidence.**
@@ -188,7 +193,7 @@ Per roadmap phase, typically CPU + ROM path, then video, then sound, then integr
   every write to sprite RAM (by field), tilemap VRAM, scroll and zoom RAM, and the video
   registers. It decides the snapshot and latch points; do not guess them.
   **Sweep in play, not only attract**, and over a long run: coin up, press Start and keep
-  playing (`--coin`), 1800 frames or more, every set. Attract is a demo loop and need not write
+  playing (`mame_write_timing` with `coin`), 1800 frames or more, every set. Attract is a demo loop and need not write
   the way the game does, and a set has been measured writing sprite codes in a different part
   of the frame in play than in attract. Where the two disagree, the play run wins. Record both
   in `docs/write_timing_mame.txt`.
@@ -232,16 +237,17 @@ Per roadmap phase, typically CPU + ROM path, then video, then sound, then integr
 
 ### 4. Hardware
 
-Through the MCP server (above); the scripts named are what its tools run.
+Through the MCP server (above).
 
-- Build with `build_start` (`scripts/build_staged.py`: snapshot of HEAD in a worktree, refuses a
-  dirty tree, gates on slack). Never compile in the tree.
+- Build with `build_start` (snapshot of HEAD in a worktree, refuses a dirty tree, gates on slack
+  and on `scripts/core.json`'s `required_instances` and `required_macros`). Never compile in the
+  tree.
 - `mister_deploy` to the MiSTer; `mister_launch`, `mister_screenshot` to run a game and see it.
 - ISSP probes only in the `_stp` revision, read with `probe_read`, `probe_issp` or
   `probe_sequence`, which take `hwlock.py`: JTAG during a Quartus compile has bugchecked the
-  machine. Every reading is
-  prefixed `<core>|<build>|<set>|` from the device and the deploy log (`scripts/identity.py`),
-  because the core answering may be another session's; quote readings with that prefix.
+  machine. Fields decode with `scripts/issp_fields.tcl`. Every reading is prefixed
+  `<core>|<build>|<set>|` from the device and the deploy log, because the core answering may be
+  another session's; quote readings with that prefix.
 - Simulation passes and hardware fails: `LESSONS_LEARNED.md`, "When simulation passes and
   hardware fails", before touching the RTL.
 
@@ -255,9 +261,9 @@ Through the MCP server (above); the scripts named are what its tools run.
   what would make it correct. `docs/MAME_KLUDGES.md`: MAME's own kludges reproduced on
   purpose. Both are kept current, not written at the end.
 - Release per `docs/RELEASE_PROCESS.md`; `.mra` files in `releases/`.
-- **Floorplan, every release:** after the release build, `python scripts/floorplan.py --rev <rev>`
-  for each release revision (no compile: it reads `build/`'s post-fit database). Keep
-  `scripts/floorplan.json` naming the core's blocks (`--list --depth 3` shows the tree; start
+- **Floorplan, every release:** after the release build, `build_floorplan` with `rev` for each
+  release revision (no compile: it reads `build/`'s post-fit database). Keep
+  `scripts/floorplan.json` naming the core's blocks (`list_depth=3` shows the tree; start
   from `floorplan.example.json`, same colours per kind of block as the other cores). Copy
   `debug/floorplan/<rev>.png` and `<rev>_groups.md` to `docs/floorplan/`, and keep the README's
   Hardware section's "Floorplan" subsection (after Video timing, in the template) showing one

@@ -49,39 +49,28 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from coretools import core_root, revision, quartus_bin   # noqa: E402
+from coretools import core_root, core_config, revision, quartus_bin   # noqa: E402
 
 REV = None          # set in main() from --rev / coretools
 QUARTUS_BIN = None
 
-# --- core-specific: edit for this core -------------------------------------
-# Every block that MUST survive to the fitted netlist, by the name Quartus
-# writes into the fit report. A build that passes timing because part of the
-# design was optimised away is the worst kind of green (an undriven clock
-# takes a whole video chain out and the build reports TIMING MET). Slack alone
-# cannot catch that; presence is asserted separately. Add each name in the
-# commit that adds the module it names, so the gate grows with the design.
-REQUIRED_INSTANCES = (
-    "hps_io",        # the framework's HPS interface; present from the template on
-    # "fx68k", "sdram", "arcade_video", "Hq2x", "screen_rotate_two", ...
-)
-
-# Macros the design needs defined in the .qsf, and what breaks without each.
-# Presence is not connection: a module can stay in the netlist with its ports
-# bound to implicitly declared wires because a VERILOG_MACRO went missing.
-REQUIRED_MACROS = {
-    # "MISTER_FB": "HDMI rotation and 180 flip need the FB_* ports",
-}
-
-# Files the compile expects in the project directory that the repo keeps
-# elsewhere, copied inside the stage before Quartus runs: (source, destination),
-# both relative to the repo root. fx68k's $readmemb looks for its microcode in
-# the directory Quartus runs from, not beside the RTL.
-STAGE_COPIES = (
-    # ("rtl/cpu/fx68k/microrom.mem", "microrom.mem"),
-    # ("rtl/cpu/fx68k/nanorom.mem", "nanorom.mem"),
-)
-# ---------------------------------------------------------------------------
+# The core's own values, from its scripts/core.json (coretools.core_config):
+# required_instances: every block that MUST survive to the fitted netlist, by the
+#   name Quartus writes into the fit report. A build that passes timing because part
+#   of the design was optimised away is the worst kind of green (an undriven clock
+#   takes a whole video chain out and the build reports TIMING MET). Slack alone
+#   cannot catch that; presence is asserted separately. Add each name in the commit
+#   that adds the module it names ("fx68k", "sdram", "arcade_video", ...).
+# required_macros: VERILOG_MACROs the design needs in the .qsf, and what breaks
+#   without each. Presence is not connection: a module can stay in the netlist with
+#   its ports bound to implicitly declared wires because a macro went missing.
+# stage_copies: [source, destination] relative to the repo root, copied inside the
+#   stage before Quartus runs. fx68k's $readmemb looks for its microcode in the
+#   directory Quartus runs from (["rtl/cpu/fx68k/microrom.mem", "microrom.mem"]).
+_CFG = core_config()
+REQUIRED_INSTANCES = tuple(_CFG["required_instances"])
+REQUIRED_MACROS = dict(_CFG["required_macros"])
+STAGE_COPIES = tuple(tuple(c) for c in _CFG["stage_copies"])
 
 
 def run(cmd, **kw):

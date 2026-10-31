@@ -1,8 +1,26 @@
 # mister_mcp
 
-MCP server over the skill's core scripts: Quartus builds, ModelSim and Verilator, MAME and its Lua
-scripts, the MiSTer (Remote API, plink/pscp) and ISSP probes. Plan and rationale:
+MCP server for MiSTer arcade cores: Quartus builds, ModelSim and Verilator, MAME and its Lua
+scripts, the MiSTer (Remote API, one held SSH connection) and ISSP probes. Plan and rationale:
 [`docs/MCP_PLAN.md`](../docs/MCP_PLAN.md).
+
+## Scripts and per-core values
+
+The scripts the tools run live here, in `mister_mcp/scripts/` (build_staged, build.sh, deploy,
+hw, identity, probe, read_issp, floorplan, report_worst_paths, the MAME capture and trace
+scripts, write_timing), and run with `CORE_ROOT` set to the core. They import `coretools` and
+`hwlock` from the skill's template (`PYTHONPATH`). What differs per core is in the core:
+
+| File | Keys |
+|---|---|
+| `scripts/core.json` | `mra_folder` (default `_<project>`), `held_back_sets`, `required_instances` (default `["hps_io"]`), `required_macros`, `stage_copies`, `probe_default_instance` (default `F`), `sta_clock` (default the framework's emu PLL output 0); defaults in `coretools.CONFIG_DEFAULTS` |
+| `scripts/issp_fields.tcl` | `set fields_<id> {{name lo hi format} ...}` per probe instance; `set fields_B $fields_A` to share one; `fields_<id>_w<bits>` for a build whose bus has that width |
+| `scripts/floorplan.json`, `scripts/mame/regions.json` | floorplan groups; MAME regions to capture, trace and sweep |
+
+A core that still has its own copy of a script (`scripts/<name>` in the core) runs that copy:
+most older cores changed theirs beyond the per-core values, so each is migrated by moving its
+values into the files above, folding generic changes into the server's copy, and deleting it.
+`run_sim.sh` and `run_verilator.sh` stay per core (they list the core's RTL).
 
 ## Install
 
@@ -55,7 +73,7 @@ over stdio (the MCP Inspector, tests).
 
 Settings come from the same places as the scripts', in order: the environment; the core's own keys
 in `~/.mister-core.env`, written `<core>.<KEY>=value` (`Gaelco3D.MAME_EXE=gaelco3d.exe`; set them
-with `core_settings_set`, see them with `core_settings`); the core's `mister.env`; the rest of
+with `core_settings_set`, see them with `core_settings`); the rest of
 `~/.mister-core.env`. Scripts the server runs get a core's keys as environment variables, so a
 core's older `coretools.py`, which ignores dotted keys, still sees them. The exception is the MiSTer connection
 (`MISTER_HOST`, `MISTER_USER`, `MISTER_PASSWORD`): the environment or `~/.mister-core.env`
@@ -176,7 +194,7 @@ Checks the tools add over the scripts:
 - **`build_project`** compiles a standalone harness project (not a core revision), in place or as
   a copy with SEED and `create_clock -period` changed, under the hwlock rule.
 - **`probe_sequence`** runs clear/set/pulse/sleep/read steps in one `quartus_stp` session, with
-  millisecond times, decoded with the core's `read_issp.tcl` field tables.
+  millisecond times, decoded with the core's `scripts/issp_fields.tcl` (or its own `read_issp.tcl`).
 - **`sim_run`** flags `$readmem` warnings, and refuses a second ModelSim job on the same core.
 
 ## Tested

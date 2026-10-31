@@ -1,5 +1,5 @@
 """Job runner for probe_sequence: ISSP steps in one quartus_stp session under hwlock's JTAG lock,
-the readings decoded with the field tables of the core's scripts/read_issp.tcl.
+the readings decoded with the core's field tables (scripts/issp_fields.tcl, or its own read_issp.tcl).
 
     python issp_seq.py <spec.json>
 
@@ -23,6 +23,9 @@ def field_tables(tcl):
     for m in re.finditer(r"^set fields_(\w+)\s*\{(.*?)^\}", text, re.S | re.M):
         rows = re.findall(r"\{\s*(\S+)\s+(\d+)\s+(\d+)\s+(\w+)\s*\}", m.group(2))
         out[m.group(1)] = [(n, int(lo), int(hi), f) for n, lo, hi, f in rows]
+    for a, b in re.findall(r"^set fields_(\w+)\s+\$fields_(\w+)\s*$", text, re.M):   # shared tables
+        if b in out:
+            out[a] = out[b]
     return out
 
 
@@ -73,8 +76,9 @@ def main():
         p = ln.split(" ", 3)
         if p[0] == "READ" and len(p) == 4:
             rec = {"instance": p[1], "t_ms": int(p[2]), "raw": p[3].strip()}
-            if p[1] in tables:
-                rec["fields"] = decode(rec["raw"], tables[p[1]])
+            t = tables.get(f"{p[1]}_w{len(rec['raw'])}") or tables.get(p[1])   # as read_issp.tcl picks
+            if t:
+                rec["fields"] = decode(rec["raw"], t)
             reads.append(rec)
         elif p[0] == "OK":
             done += 1
