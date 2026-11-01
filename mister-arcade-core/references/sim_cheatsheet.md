@@ -19,7 +19,7 @@ python scripts/extract_dips.py <set>             # INPUT_PORTS from the driver s
 mame <set> -autoboot_script scripts/mame/ports.lua   # the live port and field names
 ```
 
-The driver source is `MAME_SRC`; `mame.exe`, not a fork build.
+The driver source is `MAME_SRC`, a checkout of MAME master; the binary is built from it.
 
 ## MAME: references for benches
 

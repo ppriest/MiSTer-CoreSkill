@@ -171,9 +171,9 @@ To add a lesson:
   judge timing by ear.
 - **MAME's MIPS program space is physical.** Reading `0x80000800` returns 0 with no error; kseg0
   code is at `0x800`.
-- **The MAME binary must be the version of the source you read, and vanilla, not a fork.** 18
-  commits separated two versions of one sound device. Check `<exe> -version` against
-  `git describe --tags` at the start.
+- **The MAME binary must be built from the source you read, and both must be MAME master, not a
+  release.** 18 commits separated two versions of one sound device. Check with `mame_version` at
+  the start.
 
 ## Driving MAME (Lua, debugger, captures)
 

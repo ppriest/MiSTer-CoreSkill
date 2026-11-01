@@ -32,7 +32,7 @@ A core's tool settings as the tools resolve them, and where each comes from: env
 
 *acts*
 
-Set one of a core's tool settings in ~/.mister-core.env as <core>.<KEY>=value, which wins over the machine-wide value (e.g. a core that follows a newer MAME: MAME_DIR, MAME_EXE, MAME_SRC). An empty value removes it. Directories and files must exist.
+Set one of a core's tool settings in ~/.mister-core.env as <core>.<KEY>=value, which wins over the machine-wide value (e.g. a core whose MAME build carries local driver work on a branch rebased onto master: MAME_DIR, MAME_EXE, MAME_SRC). An empty value removes it. Directories and files must exist.
 
 | Argument | Type | Default |
 |---|---|---|
@@ -267,7 +267,7 @@ Orphaned vsim/vsimk processes (no running sim job) and stale work/_lock files. k
 
 *read-only*
 
-The MAME binary's version against `git describe` of MAME_SRC. A mismatch means traces from the binary do not describe the source being read.
+The MAME binary against MAME_SRC. Both must be MAME master: the binary a git build (its version names a commit) of the commit MAME_SRC is at, and MAME_SRC a checkout of mamedev master no further behind it than the last fetch shows. A release binary, a different commit or a stale checkout means traces do not describe current MAME.
 
 | Argument | Type | Default |
 |---|---|---|

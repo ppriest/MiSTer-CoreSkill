@@ -33,7 +33,7 @@
  },
  {
   "name": "core_settings_set",
-  "description": "Set one of a core's tool settings in ~/.mister-core.env as <core>.<KEY>=value, which wins\nover the machine-wide value (e.g. a core that follows a newer MAME:\nMAME_DIR, MAME_EXE, MAME_SRC). An empty value removes it. Directories and files must exist.",
+  "description": "Set one of a core's tool settings in ~/.mister-core.env as <core>.<KEY>=value, which wins\nover the machine-wide value (e.g. a core whose MAME build carries local driver work on a\nbranch rebased onto master: MAME_DIR, MAME_EXE, MAME_SRC). An empty value removes it.\nDirectories and files must exist.",
   "inputSchema": {
    "properties": {
     "core": {
@@ -656,7 +656,7 @@
  },
  {
   "name": "mame_version",
-  "description": "The MAME binary's version against `git describe` of MAME_SRC. A mismatch means traces\nfrom the binary do not describe the source being read.",
+  "description": "The MAME binary against MAME_SRC. Both must be MAME master: the binary a git build (its\nversion names a commit) of the commit MAME_SRC is at, and MAME_SRC a checkout of mamedev\nmaster no further behind it than the last fetch shows. A release binary, a different commit\nor a stale checkout means traces do not describe current MAME.",
   "inputSchema": {
    "properties": {
     "core": {

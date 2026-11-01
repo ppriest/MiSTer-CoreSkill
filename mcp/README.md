@@ -203,8 +203,8 @@ npx @modelcontextprotocol/inspector E:/MiSTer-CoreSkill/mcp/.venv/Scripts/mister
 
 Checks the tools add over the scripts:
 
-- **`mame_version`** compares the binary against `git describe` of `MAME_SRC`, including commits
-  past the release tag.
+- **`mame_version`** checks that the binary is a build of MAME master at the commit `MAME_SRC` is
+  at, and how far `MAME_SRC` is behind (and ahead of) `mamedev/master` as last fetched.
 - **`mister_check_mra`** (also run by `mister_launch`) resolves the `.mra`'s `<rbf>` to the file
   the device would launch, and checks the ROM zips.
   - Both the `<name>_` and `Arcade-<name>_` forms are counted.

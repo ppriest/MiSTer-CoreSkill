@@ -32,8 +32,8 @@ where each value comes from, and `core_settings_set` writes its keys.
 | `MISTER_CORE_OWNER` | GitHub account that owns new core repos | the signed-in `gh` account |
 | `QUARTUS_BIN`, `MODELSIM_BIN` | Quartus 17.0 Lite and ModelSim | the standard install, probed |
 | `MSYS2_ROOT` | MSYS2 MinGW64: Verilator, g++, make, perl | probed (`C:/msys64`, ...) |
-| `MAME_DIR`, `MAME_EXE` | the MAME binary to drive. Vanilla MAME, and the **same version as `MAME_SRC`**: check `<exe> -version` against the source tree's tag before trusting any capture | none; required for MAME work |
-| `MAME_SRC` | the **driver `.cpp`** this core follows, inside a checkout of `github.com/mamedev/mame` — that is what `extract_dips.py`, `extract_romstart.py` and `validate_mra.py` open. `git -C <its directory> log -1` gives the commit a finding cites | none; required for research |
+| `MAME_DIR`, `MAME_EXE` | the MAME binary to drive: a build of **MAME master**, never a release, built from the `MAME_SRC` checkout at the commit it is at. `mame_version` checks both before any capture is trusted | none; required for MAME work |
+| `MAME_SRC` | the **driver `.cpp`** this core follows, inside a checkout of `github.com/mamedev/mame` **master**, pulled and rebuilt as master moves (local driver work is a branch rebased onto master) — that is what `extract_dips.py`, `extract_romstart.py` and `validate_mra.py` open. `git -C <its directory> log -1` gives the commit a finding cites | none; required for research |
 | `MAME_ROMPATH` | extra ROM directories | `<core>/roms`, `<MAME_DIR>/roms` |
 | `MISTER_HOST`, `MISTER_USER`, `MISTER_PASSWORD` | the MiSTer on the LAN | none; required to deploy |
 
@@ -115,8 +115,8 @@ Quartus 13 project, copies `assets/core/` (scripts: the shared library, the sim 
 `core.json` and `issp_fields.tcl` to fill in; docs templates, `.gitignore`,
 `CLAUDE.md`, `docs/LESSONS_LEARNED.md`), commits. `sys/` is untouched, now and always. If the
 Set the core's `MAME_SRC` (the driver `.cpp` it follows) with `core_settings_set`, and its
-`MAME_DIR` and `MAME_EXE` too if it drives a MAME build other than the machine's (a fork, a newer
-checkout). Move the session into the new repo.
+`MAME_DIR` and `MAME_EXE` too if it drives a MAME build other than the machine's (a branch with
+local driver work, rebased onto master). Move the session into the new repo.
 
 ### 1. Research
 
@@ -218,7 +218,7 @@ Per roadmap phase, typically CPU + ROM path, then video, then sound, then integr
   rotated 180 degrees (`video_audio_options.md`, last section). If it cannot be made right,
   say so in `docs/HACKS.md` and the README.
 - **Every `.mra` carries `<mameversion>`** (e.g. `0289`), written by the generator from the MAME
-  it ran against, never typed; the validator fails a missing tag or one newer than the installed
+  it ran against (a master build reports the last release it is past), never typed; the validator fails a missing tag or one newer than the installed
   MAME.
 - **Button names in the `.mra` are the game's own**, from the manual or other sources ("Shot",
   "Bomb"), per game, never "Button 1". **Every DIP line fits the OSD's 28 columns** (name plus

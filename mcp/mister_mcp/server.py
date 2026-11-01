@@ -132,8 +132,9 @@ def _core_settings(root):
 @tool(ACT)
 def core_settings_set(core: str, key: str, value: str = "") -> dict:
     """Set one of a core's tool settings in ~/.mister-core.env as <core>.<KEY>=value, which wins
-    over the machine-wide value (e.g. a core that follows a newer MAME:
-    MAME_DIR, MAME_EXE, MAME_SRC). An empty value removes it. Directories and files must exist."""
+    over the machine-wide value (e.g. a core whose MAME build carries local driver work on a
+    branch rebased onto master: MAME_DIR, MAME_EXE, MAME_SRC). An empty value removes it.
+    Directories and files must exist."""
     root = C.resolve(core)
     if key not in CORE_KEYS:
         raise ToolError(f"key is one of {', '.join(CORE_KEYS)}")
@@ -520,37 +521,55 @@ def sim_sweep(kill: bool = False) -> dict:
 
 # ---------------------------------------------------------------- MAME
 
-def _git_describe(path):
+def _git(path, *args):
     p = Path(path)
     d = p if p.is_dir() else p.parent
-    r = subprocess.run(["git", "-C", str(d), "describe", "--tags"], capture_output=True, text=True,
-                       **C.NO_WINDOW)
-    return r.stdout.strip() or None
+    r = subprocess.run(["git", "-C", str(d), *args], capture_output=True, text=True, **C.NO_WINDOW)
+    return r.stdout.strip() if r.returncode == 0 else None
+
+
+def _mamedev_master(path):
+    """The remote-tracking ref of mamedev/mame's master in the checkout holding path, if any."""
+    for line in (_git(path, "remote", "-v") or "").splitlines():
+        name, url = line.split()[:2]
+        if "mamedev/mame" in url:
+            return f"{name}/master"
+    return None
 
 
 @tool(RO)
 def mame_version(core: str) -> dict:
-    """The MAME binary's version against `git describe` of MAME_SRC. A mismatch means traces
-    from the binary do not describe the source being read."""
+    """The MAME binary against MAME_SRC. Both must be MAME master: the binary a git build (its
+    version names a commit) of the commit MAME_SRC is at, and MAME_SRC a checkout of mamedev
+    master no further behind it than the last fetch shows. A release binary, a different commit
+    or a stale checkout means traces do not describe current MAME."""
     root = C.resolve(core)
     exe = C.coretools.mame_exe(root)
     r = subprocess.run([str(exe), "-version"], capture_output=True, text=True, timeout=30,
                        **C.NO_WINDOW)
     binary = r.stdout.strip()
     src = C.coretools.setting("MAME_SRC", None, root)
-    tag = _git_describe(src) if src else None
-    m = re.match(r"\s*0\.(\d+)", binary)
-    want = f"mame0{m.group(1)}" if m else None
-    match = None if not (tag and want) else tag.split("-")[0] == want
-    past = int(tag.split("-")[1]) if tag and match and "-" in tag else 0
-    note = None
-    if match is False:
-        note = f"binary is {want} but the source is at {tag}: rebuild or re-point MAME_DIR"
-    elif past:
-        note = (f"source is {past} commits past {want}; the driver being read may differ from "
-                f"the binary's (git -C <mame> diff {want} -- <driver>)")
-    return {"exe": str(exe), "binary": binary, "mame_src": src, "src_describe": tag,
-            "release_match": match, "commits_past_tag": past, "note": note}
+    m = re.search(r"-g([0-9a-f]{7,})", binary)
+    bin_commit = m.group(1) if m else None
+    head = _git(src, "rev-parse", "HEAD") if src else None
+    upstream = _mamedev_master(src) if src else None
+    behind = int(_git(src, "rev-list", "--count", f"HEAD..{upstream}") or 0) if upstream else None
+    ahead = int(_git(src, "rev-list", "--count", f"{upstream}..HEAD") or 0) if upstream else None
+    notes = []
+    if not bin_commit:
+        notes.append("binary is a release build: build MAME master and point MAME_DIR at it")
+    elif head and not head.startswith(bin_commit):
+        notes.append(f"binary is built from {bin_commit}, MAME_SRC is at {head[:11]}: rebuild")
+    if src and not upstream:
+        notes.append("MAME_SRC's checkout has no mamedev/mame remote")
+    elif behind:
+        notes.append(f"MAME_SRC is {behind} commits behind {upstream} as last fetched: "
+                     "pull (or rebase local driver work onto it) and rebuild")
+    if ahead:
+        notes.append(f"MAME_SRC has {ahead} commits not on {upstream}: local driver work")
+    return {"exe": str(exe), "binary": binary, "binary_commit": bin_commit, "mame_src": src,
+            "src_head": head, "upstream": upstream, "behind_master": behind,
+            "ahead_of_master": ahead, "note": "; ".join(notes) or None}
 
 
 def _capture_result(jid):
