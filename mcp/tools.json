@@ -1285,7 +1285,7 @@
  },
  {
   "name": "mister_get",
-  "description": "Copy a file from the device (allowed trees, /tmp/RBFNAME and the like, or a mister_memdump\nfile; about 6 MB/s, the board's SSH is the limit). A mister_memdump file is deleted from the\nboard after the copy (/tmp is its RAM) unless keep=True; unread ones expire after 10 minutes.",
+  "description": "Copy a file from the device (allowed trees, /tmp/RBFNAME and the like, or a mister_memdump\nfile). A job: the copy goes to <local>.partial and is renamed into place once its size matches\nthe board's. Waits up to wait_s (at most 240); a large file returns a job id, and jobs_status\nreports the result (about 2.5 MB/s sustained, the board's SSH is the limit; copies at the same\ntime slow each other). A mister_memdump file is deleted from the board after the copy (/tmp is\nits RAM) unless keep=True; unread ones expire after 10 minutes. Done: local, bytes.",
   "inputSchema": {
    "properties": {
     "remote": {
@@ -1301,6 +1301,11 @@
      "default": false,
      "title": "Keep",
      "type": "boolean"
+    },
+    "wait_s": {
+     "default": 120,
+     "title": "Wait S",
+     "type": "integer"
     }
    },
    "required": [
@@ -1315,7 +1320,7 @@
  },
  {
   "name": "mister_put",
-  "description": "Copy a local file to the device, into _Arcade, games, config or screenshots. Overwrites.\nA job: the file is uploaded to a hidden temporary name, its size checked against the local\nfile, then renamed over `remote`, so a failed or cancelled upload leaves `remote` as it was.\nWaits up to wait_s (at most 240); a large file returns a job id, and jobs_status reports the\nresult and the log has pscp's progress (about 1 to 6 MB/s). Missing directories are created.",
+  "description": "Copy a local file to the device, into _Arcade, games, config or screenshots. Overwrites.\nA job: the file is uploaded to `remote`.partial, its size checked against the local file,\nthen renamed over `remote`, so a failed or cancelled upload leaves `remote` as it was.\nWaits up to wait_s (at most 240); a large file returns a job id, and jobs_status reports the\nresult and the log has pscp's progress (about 2.5 MB/s sustained alone; uploads at the same\ntime slow each other, so send large files one at a time). Missing directories are created.",
   "inputSchema": {
    "properties": {
     "local": {

@@ -462,19 +462,20 @@ ls -la under /media/fat/_Arcade, games, config or screenshots.
 
 *read-only*
 
-Copy a file from the device (allowed trees, /tmp/RBFNAME and the like, or a mister_memdump file; about 6 MB/s, the board's SSH is the limit). A mister_memdump file is deleted from the board after the copy (/tmp is its RAM) unless keep=True; unread ones expire after 10 minutes.
+Copy a file from the device (allowed trees, /tmp/RBFNAME and the like, or a mister_memdump file). A job: the copy goes to <local>.partial and is renamed into place once its size matches the board's. Waits up to wait_s (at most 240); a large file returns a job id, and jobs_status reports the result (about 2.5 MB/s sustained, the board's SSH is the limit; copies at the same time slow each other). A mister_memdump file is deleted from the board after the copy (/tmp is its RAM) unless keep=True; unread ones expire after 10 minutes. Done: local, bytes.
 
 | Argument | Type | Default |
 |---|---|---|
 | `remote` | string | required |
 | `local` | string | `""` |
 | `keep` | boolean | `false` |
+| `wait_s` | integer | `120` |
 
 ### `mister_put`
 
 *destructive*
 
-Copy a local file to the device, into _Arcade, games, config or screenshots. Overwrites. A job: the file is uploaded to a hidden temporary name, its size checked against the local file, then renamed over `remote`, so a failed or cancelled upload leaves `remote` as it was. Waits up to wait_s (at most 240); a large file returns a job id, and jobs_status reports the result and the log has pscp's progress (about 1 to 6 MB/s). Missing directories are created.
+Copy a local file to the device, into _Arcade, games, config or screenshots. Overwrites. A job: the file is uploaded to `remote`.partial, its size checked against the local file, then renamed over `remote`, so a failed or cancelled upload leaves `remote` as it was. Waits up to wait_s (at most 240); a large file returns a job id, and jobs_status reports the result and the log has pscp's progress (about 2.5 MB/s sustained alone; uploads at the same time slow each other, so send large files one at a time). Missing directories are created.
 
 | Argument | Type | Default |
 |---|---|---|

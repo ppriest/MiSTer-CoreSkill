@@ -133,9 +133,9 @@ only, read on every call. Beyond the scripts' own (`MISTER_HOST`,
   - No general shell.
   - `mister_get`/`mister_put` are limited to `/media/fat/{_Arcade,games,config,screenshots}`;
     `mister_get` also reads `/tmp/RBFNAME` and the like, and `mister_memdump`'s files.
-  - `mister_put` is a job (`xfer.py`): upload to a hidden `.mcp-put-*.part`, size check, rename over
-    the destination. A failed upload leaves the destination as it was; a cancelled one or a
-    server-side crash can leave the `.part` file (no delete tool exists).
+  - `mister_put` and `mister_get` are jobs (`xfer.py`; `get` renames `<local>.partial` into place): upload to `<destination>.partial`, size check, rename over
+    the destination. A failed upload leaves the destination as it was; a cancelled one can leave
+    the `.partial` file beside it (no delete tool exists).
   - `mister_memdump` copies DDR3 ranges (below `0x40000000`, page-aligned) by mmap to a file it
     names, `/tmp/mcp/dump-<time>-<hex>.bin`: 73 MB in 2.3 s; fetching it with `mister_get` took
     12.3 s (`pscp`; a `cat` over the held connection took 11.0 s, so the board's SSH is the limit).

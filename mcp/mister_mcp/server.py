@@ -8,8 +8,6 @@ import functools
 import json
 import os
 import re
-import secrets
-import shlex
 import shutil
 import subprocess
 import sys
@@ -839,47 +837,53 @@ def mister_ls(path: str = "/media/fat/_Arcade") -> str:
     return B.Board().ls(path)
 
 
+def _xfer(mode, local, remote, wait_s, extra=(), meta=None):
+    """mister_get / mister_put: xfer.py as a job, whose result line is merged into the status."""
+    b = B.Board()
+    argv = [sys.executable, str(Path(__file__).with_name("xfer.py")), mode, B._putty("pscp.exe"),
+            B._putty("plink.exe"), f"{b.user}@{b.host}", str(local), remote, *extra]
+    env = dict(os.environ, MISTER_PASSWORD=b.pw, PYTHONIOENCODING="utf-8")
+    jid = J.start(mode, "", argv, Path(local).resolve().parent, env,
+                  dict(meta or {}, local=str(local), remote=remote))
+    st = J.wait(jid, wait_s)
+    if st["state"] in ("starting", "running"):
+        st["note"] = "still copying; poll jobs_status (the log has pscp's progress)"
+    else:
+        log = J.log(jid)
+        st["output"] = log[-2000:]
+        for ln in reversed(log.splitlines()):
+            if ln.startswith("{"):
+                st.update(json.loads(ln))
+                break
+    return st
+
+
 @tool(RO)
-def mister_get(remote: str, local: str = "", keep: bool = False) -> dict:
+def mister_get(remote: str, local: str = "", keep: bool = False, wait_s: int = 120) -> dict:
     """Copy a file from the device (allowed trees, /tmp/RBFNAME and the like, or a mister_memdump
-    file; about 6 MB/s, the board's SSH is the limit). A mister_memdump file is deleted from the
-    board after the copy (/tmp is its RAM) unless keep=True; unread ones expire after 10 minutes."""
+    file). A job: the copy goes to <local>.partial and is renamed into place once its size matches
+    the board's. Waits up to wait_s (at most 240); a large file returns a job id, and jobs_status
+    reports the result (about 2.5 MB/s sustained, the board's SSH is the limit; copies at the same
+    time slow each other). A mister_memdump file is deleted from the board after the copy (/tmp is
+    its RAM) unless keep=True; unread ones expire after 10 minutes. Done: local, bytes."""
     q = B.checked_path(remote)
-    remove = bool(B.DUMP.match(q)) and not keep
     dst = Path(local) if local else Path(tempfile.gettempdir()) / "mister_mcp" / Path(q).name
     dst.parent.mkdir(parents=True, exist_ok=True)
-    b = B.Board()
-    b.scp(b.remote(q), str(dst))
-    res = {"remote": q, "local": str(dst), "bytes": dst.stat().st_size}
-    if remove:
-        b.sh(f"rm -f {shlex.quote(q)}")
-        res["removed"] = True
-    return res
+    return _xfer("get", dst.resolve(), q, wait_s, ["rm"] if B.DUMP.match(q) and not keep else [])
 
 
 @tool(DESTRUCTIVE)
 def mister_put(local: str, remote: str, wait_s: int = 60) -> dict:
     """Copy a local file to the device, into _Arcade, games, config or screenshots. Overwrites.
-    A job: the file is uploaded to a hidden temporary name, its size checked against the local
-    file, then renamed over `remote`, so a failed or cancelled upload leaves `remote` as it was.
+    A job: the file is uploaded to `remote`.partial, its size checked against the local file,
+    then renamed over `remote`, so a failed or cancelled upload leaves `remote` as it was.
     Waits up to wait_s (at most 240); a large file returns a job id, and jobs_status reports the
-    result and the log has pscp's progress (about 1 to 6 MB/s). Missing directories are created."""
+    result and the log has pscp's progress (about 2.5 MB/s sustained alone; uploads at the same
+    time slow each other, so send large files one at a time). Missing directories are created."""
     q = B.checked_path(remote, write=True)
     if not Path(local).is_file():
         raise ToolError(f"no file {local}")
-    b = B.Board()
-    root = next(a for a in B.ALLOWED if q.startswith(a + "/"))
-    tmp = f"{root}/.mcp-put-{secrets.token_hex(4)}.part"
-    argv = [sys.executable, str(Path(__file__).with_name("xfer.py")), B._putty("pscp.exe"),
-            B._putty("plink.exe"), f"{b.user}@{b.host}", str(Path(local).resolve()), tmp, q]
-    env = dict(os.environ, MISTER_PASSWORD=b.pw, PYTHONIOENCODING="utf-8")
-    jid = J.start("put", "", argv, Path(local).resolve().parent, env, {"local": local, "remote": q})
-    st = J.wait(jid, wait_s)
-    if st["state"] in ("starting", "running"):
-        st["note"] = "still uploading; poll jobs_status"
-    else:
-        st["output"] = J.log(jid)[-2000:]
-    return st
+    return _xfer("put", Path(local).resolve(), q, wait_s)
 
 
 @tool(DESTRUCTIVE)
