@@ -491,6 +491,7 @@ in `scripts/core.json`, `scripts/issp_fields.tcl`, `scripts/floorplan.json` and
 | `build_rom_image.py`, `build_region.py` | the ROM image the benches load | GX, Seta |
 | `cfg.py` | read-modify-write of the per-core `.CFG` status word | Seta, Fuuki |
 | `issp_fields.tcl` | the probe field tables the `probe_*` tools decode with | skill |
+| `issp_hooks.tcl` (optional) | the core's own `probe_issp` actions, `proc hook_<name> {idx args}`; registered with `core_register` | KonamiGX |
 | `sta_*.tcl` | worst setup paths from the compiled database, run by hand (`build_worst_paths` is the tool) | skill |
 | `floorplan.example.json` | starting point for `scripts/floorplan.json`, the `build_floorplan` groups | skill |
 | `check_release_mras.py`, `hooks/pre-push` | refuses a push of published .mra files whose core is unreleased or whose layout changed without a new .rbf; also `.github/workflows/check-mras.yml` | skill |

@@ -1,4 +1,5 @@
-"""Per-core parameters a core registers with the server: scripts/core.json and scripts/issp_fields.tcl.
+"""Per-core parameters a core registers with the server: scripts/core.json, scripts/issp_fields.tcl
+and scripts/issp_hooks.tcl (the core's own read_issp commands, `proc hook_<name> {idx args}`).
 
 The core keeps the files; core_register validates them and stores a copy in ~/.mister/cores/. The
 server's scripts that need them (build, deploy, probes, STA) run from the registered copy, and
@@ -16,7 +17,7 @@ from .cores import ToolError, coretools
 from .issp_seq import field_tables
 
 REG = J.STATE / "cores"
-FILES = ("core.json", "issp_fields.tcl")
+FILES = ("core.json", "issp_fields.tcl", "issp_hooks.tcl")
 FORMATS = {"dec", "sdec", "hex", "bit"}
 # the server's scripts that read the registered parameters (hw and identity through these)
 USERS = {"build_staged.py", "deploy.py", "probe.py", "read_issp.py"}
@@ -112,25 +113,36 @@ def validate(root):
                     problems.append(f"fields_{tid} {name}: format {fmt} is not one of {sorted(FORMATS)}")
         if tables and cfg["probe_default_instance"] not in tables:
             warnings.append(f"probe_default_instance {cfg['probe_default_instance']} has no fields_ table")
+    hooks = []
+    if p["issp_hooks.tcl"].exists():
+        text = p["issp_hooks.tcl"].read_text(encoding="utf-8", errors="replace")
+        if text.count("{") != text.count("}"):
+            problems.append("issp_hooks.tcl: unbalanced braces")
+        hooks = re.findall(r"^\s*proc\s+hook_(\w+)\s", text, re.M)
+        if not hooks:
+            problems.append("issp_hooks.tcl: no `proc hook_<name> {idx args} {...}`")
+    cfg["_hooks"] = hooks
     return cfg, tables, problems, warnings
 
 
 def register(root, branch=None):
     cfg, tables, problems, warnings = validate(root)
+    hooks = cfg.pop("_hooks")
     if problems:
         raise ToolError("not registered:\n- " + "\n- ".join(problems))
     p = _paths(root)
     REG.mkdir(parents=True, exist_ok=True)
     name = coretools.core_name(root)
     (REG / f"{name}.core.json").write_text(json.dumps(cfg, indent=2) + "\n", encoding="utf-8")
-    tcl = REG / f"{name}.issp_fields.tcl"
-    if p["issp_fields.tcl"].exists():
-        tcl.write_bytes(p["issp_fields.tcl"].read_bytes())
-    elif tcl.exists():
-        tcl.unlink()
+    for f in ("issp_fields.tcl", "issp_hooks.tcl"):
+        copy = REG / f"{name}.{f}"
+        if p[f].exists():
+            copy.write_bytes(p[f].read_bytes())
+        elif copy.exists():
+            copy.unlink()
     rec = {"core": name, "root": str(root), "registered": time.strftime("%Y-%m-%d %H:%M:%S"),
            "branch": branch, "digests": {f: _digest(q) for f, q in p.items()},
-           "config": cfg, "tables": {k: len(v) for k, v in tables.items()}}
+           "config": cfg, "tables": {k: len(v) for k, v in tables.items()}, "hooks": hooks}
     _record(root).write_text(json.dumps(rec, indent=2) + "\n", encoding="utf-8")
     return dict(rec, warnings=warnings)
 
@@ -145,11 +157,12 @@ def status(root):
     rec = json.loads(rec_path.read_text(encoding="utf-8"))
     stale = [f for f, q in p.items() if _digest(q) != rec["digests"].get(f)]
     return {"registered": rec["registered"], "files": has, "stale": stale, "needed": bool(stale),
-            "config": rec["config"], "tables": rec["tables"]}
+            "config": rec["config"], "tables": rec["tables"], "hooks": rec.get("hooks", [])}
 
 
 def env(root):
-    """CORE_CONFIG and ISSP_FIELDS for the server's scripts; refuses when not registered or stale."""
+    """CORE_CONFIG, ISSP_FIELDS and ISSP_HOOKS for the server's scripts; refuses when not
+    registered or stale."""
     st = status(root)
     name = coretools.core_name(root)
     if st["registered"] is None:
@@ -161,9 +174,9 @@ def env(root):
         raise ToolError(f"scripts/{' and scripts/'.join(st['stale'])} changed since {name} registered "
                         f"them ({st['registered']}): call core_register")
     out = {"CORE_CONFIG": str(REG / f"{name}.core.json")}
-    tcl = REG / f"{name}.issp_fields.tcl"
-    if tcl.exists():
-        out["ISSP_FIELDS"] = str(tcl)
+    for f, key in (("issp_fields.tcl", "ISSP_FIELDS"), ("issp_hooks.tcl", "ISSP_HOOKS")):
+        if (REG / f"{name}.{f}").exists():
+            out[key] = str(REG / f"{name}.{f}")
     return out
 
 

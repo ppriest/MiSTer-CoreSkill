@@ -44,7 +44,7 @@ Set one of a core's tool settings in ~/.mister-core.env as <core>.<KEY>=value, w
 
 *acts*
 
-Register the core's parameters with the server: scripts/core.json (.mra folder, held-back sets, required instances and macros, stage copies, default probe instance, STA clock) and scripts/issp_fields.tcl (probe field tables). Validates both and stores a copy; build_start, mister_deploy, probe_* and build_worst_paths run from that copy and refuse while either file differs from it. Call it after every change to either file. Returns what was registered and any warnings; refuses, registering nothing, on a problem.
+Register the core's parameters with the server: scripts/core.json (.mra folder, held-back sets, required instances and macros, stage copies, default probe instance, STA clock), scripts/issp_fields.tcl (probe field tables) and scripts/issp_hooks.tcl (the core's own probe_issp commands, `proc hook_<name> {idx args}`). Validates them and stores a copy; build_start, mister_deploy, probe_* and build_worst_paths run from that copy and refuse while any file differs from it. Call it after every change to one. Returns what was registered and any warnings; refuses, registering nothing, on a problem.
 
 | Argument | Type | Default |
 |---|---|---|
@@ -54,7 +54,7 @@ Register the core's parameters with the server: scripts/core.json (.mra folder, 
 
 *read-only*
 
-The core's registered parameters, when they were registered, and which of scripts/core.json and scripts/issp_fields.tcl changed since (stale: call core_register). check=what the files would register as now, with problems and warnings, without registering.
+The core's registered parameters, when they were registered, and which of scripts/core.json, scripts/issp_fields.tcl and scripts/issp_hooks.tcl changed since (stale: call core_register). files_now: what the files would register as now, with problems and warnings, without registering.
 
 | Argument | Type | Default |
 |---|---|---|
@@ -546,7 +546,7 @@ scripts/probe.py read: ISSP probes over JTAG under the machine-wide lock (waits 
 
 *acts*
 
-scripts/read_issp.py <instance> [clear|set <v>|pulse <v>]: decode an instance, or drive its source and leave it (set) or return it to 0 (pulse).
+scripts/read_issp.py <instance> [clear|set <v>|pulse <v>|<hook> <args>]: decode an instance, or drive its source and leave it (set) or return it to 0 (pulse). Any other action is one of the core's registered hooks (scripts/issp_hooks.tcl, `proc hook_<action>`), run in the same session after the decode; value is its arguments, space-separated.
 
 | Argument | Type | Default |
 |---|---|---|

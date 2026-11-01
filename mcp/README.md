@@ -15,12 +15,14 @@ scripts, write_timing), and run with `CORE_ROOT` set to the core. They import `c
 |---|---|
 | `scripts/core.json` | `mra_folder` (default `_<project>`), `held_back_sets`, `required_instances` (default `["hps_io"]`), `required_instances_by_rev`, `required_macros`, `stage_copies`, `probe_default_instance` (default `F`), `sta_clock` (default the framework's emu PLL output 0); defaults in `coretools.CONFIG_DEFAULTS` |
 | `scripts/issp_fields.tcl` | `set fields_<id> {{name lo hi format} ...}` per probe instance; `set fields_B $fields_A` to share one; `fields_<id>_w<bits>` for a build whose bus has that width |
+| `scripts/issp_hooks.tcl` (optional) | the core's own `probe_issp` actions: `proc hook_<name> {idx args} {...}`, run in the read's session after the decode, with `bits_to_int`, `write_src` and `read_probe_data` (KonamiGX's `dump` and `peek`, handshakes over a probe's source) |
 | `scripts/floorplan.json`, `scripts/mame/regions.json` | floorplan groups; MAME regions to capture, trace and sweep |
 
 **Registration.** `core_register` validates `core.json` (known keys, types, `stage_copies`
-sources exist) and `issp_fields.tcl` (every table and row parses, `lo <= hi`, known formats) and
+sources exist) `issp_fields.tcl` (every table and row parses, `lo <= hi`, known formats) and `issp_hooks.tcl`
+(balanced, defines at least one `hook_<name>`), and
 stores a copy in `~/.mister/cores/`. The server's build_staged, deploy, probe and read_issp run
-with `CORE_CONFIG` and `ISSP_FIELDS` naming that copy, `probe_sequence` and `build_worst_paths`
+with `CORE_CONFIG`, `ISSP_FIELDS` and `ISSP_HOOKS` naming that copy, `probe_sequence` and `build_worst_paths`
 read it, and all of them refuse while either file in the core differs from what was registered
 (`registry.py`). A core with neither file runs on the defaults without registering.
 `core_config` shows the registered values, what changed since, and what the files would register

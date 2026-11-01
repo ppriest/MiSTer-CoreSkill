@@ -59,7 +59,8 @@ No `plink`, `pscp`, `ssh` or script of your own against the board: the server ho
 connection. The scripts the tools run are the server's (`mcp/mister_mcp/scripts/`), not copies in
 the core; what differs per core is in the core's `scripts/core.json` (`.mra` folder, held-back
 sets, blocks and macros the build must keep, stage copies, default probe instance) and
-`scripts/issp_fields.tcl` (probe field tables). **After any change to either file, call
+`scripts/issp_fields.tcl` (probe field tables), and optionally `scripts/issp_hooks.tcl` (the core's
+own `probe_issp` commands). **After any change to one of them, call
 `core_register`**: the server validates them and keeps the registered copy, and the build,
 deploy, probe and STA tools run from it and refuse while the files differ from it. An older core
 that still has its own copy of one of those scripts runs that copy until its values are moved

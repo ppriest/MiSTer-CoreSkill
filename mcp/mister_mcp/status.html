@@ -208,7 +208,8 @@ function regTip(r) {
   const p = Object.entries(r.params || {}).map(([k, v]) => `${k}: ${JSON.stringify(v)}`);
   const t = Object.entries(r.tables || {}).map(([k, n]) => `fields_${k} (${n})`);
   return [`scripts/${r.files.join(", scripts/")}`, ...(p.length ? p : ["all parameters at their defaults"]),
-          t.length ? `ISSP tables: ${t.join(", ")}` : ""].filter(Boolean).join("\n");
+          t.length ? `ISSP tables: ${t.join(", ")}` : "",
+          (r.hooks || []).length ? `probe_issp hooks: ${r.hooks.join(", ")}` : ""].filter(Boolean).join("\n");
 }
 function setting(s, key) {
   const x = s[key] || {};

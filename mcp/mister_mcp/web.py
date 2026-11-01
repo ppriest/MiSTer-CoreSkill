@@ -100,6 +100,7 @@ def _registration(root):
         dflt = dict(C.coretools.CONFIG_DEFAULTS, mra_folder="_" + C.coretools.project(root))
         out["params"] = {k: v for k, v in st["config"].items() if dflt.get(k) != v}
         out["tables"] = st["tables"]
+        out["hooks"] = st["hooks"]                # probe_issp actions from scripts/issp_hooks.tcl
     return out
 
 

@@ -22,6 +22,16 @@ if {[info exists env(ISSP_FIELDS)]} {
 if {![file exists $tables]} { puts "no $tables -- the core's probe field tables"; exit 1 }
 source $tables
 
+# The core's own commands, `proc hook_<name> {idx args}` (KonamiGX's dump and peek): the copy of
+# scripts/issp_hooks.tcl it registered (ISSP_HOOKS), else the file itself, if it has one. A hook
+# runs after the decode, in the same session, with bits_to_int, write_src and read_probe_data.
+if {[info exists env(ISSP_HOOKS)]} {
+    source $env(ISSP_HOOKS)
+} elseif {[file exists [file join $env(CORE_ROOT) scripts issp_hooks.tcl]]} {
+    source [file join $env(CORE_ROOT) scripts issp_hooks.tcl]
+}
+proc is_hook {w} { expr {[llength [info procs hook_$w]] == 1} }
+
 proc bits_to_int {s lo hi} {
     # read_probe_data returns the bus MSB-first, so index from the right.
     set n [string length $s]
@@ -64,20 +74,38 @@ if {[llength $insts] == 0} {
 }
 foreach i $insts { puts "instance: $i" }
 
-# Take the first instance unless one is named on the command line (a single
-# argument that is not a keyword or a keyword's value).
+# Arguments: the instance, `clear`, `set N`, `pulse N` in any order, or a hook and everything
+# after it as its arguments. Without an instance the first one is read; a named instance that
+# is not in the bitstream stops, never falls back.
 set want ""
+set hook ""
 set skip 0
-foreach a $argv {
+for {set k 0} {$k < [llength $argv]} {incr k} {
+    set a [lindex $argv $k]
     if {$skip} { set skip 0; continue }
+    if {[is_hook $a]} {
+        set hook $a
+        set hook_args [lrange $argv [expr {$k + 1}] end]
+        # a hook's arguments are its own, not clear/set/pulse
+        set do_clear [expr {[lsearch -exact [lrange $argv 0 [expr {$k - 1}]] "clear"] >= 0}]
+        set set_val -1; set pulse_val -1
+        break
+    }
     if {$a eq "set" || $a eq "pulse"} { set skip 1; continue }
     if {$a ne "clear"} { set want $a }
 }
 set idx [lindex [lindex $insts 0] 0]
 set inst_id [lindex [lindex $insts 0] 3]
 if {$want ne ""} {
+    set found 0
     foreach i $insts {
-        if {[lindex $i 3] eq $want} { set idx [lindex $i 0]; set inst_id $want }
+        if {[lindex $i 3] eq $want} { set idx [lindex $i 0]; set inst_id $want; set found 1 }
+    }
+    if {!$found} {
+        set ids {}
+        foreach i $insts { lappend ids [lindex $i 3] }
+        puts "instance '$want' is not in this bitstream (it has: $ids)"
+        exit 1
     }
 }
 
@@ -122,6 +150,10 @@ if {$do_clear} {
     write_src $idx 1
     write_src $idx 0
     puts "\ncounters cleared"
+}
+if {$hook ne ""} {
+    puts ""
+    hook_$hook $idx {*}$hook_args
 }
 
 end_insystem_source_probe

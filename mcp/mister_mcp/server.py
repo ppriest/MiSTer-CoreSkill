@@ -160,10 +160,11 @@ def core_settings_set(core: str, key: str, value: str = "") -> dict:
 @tool(ACT)
 def core_register(core: str) -> dict:
     """Register the core's parameters with the server: scripts/core.json (.mra folder, held-back
-    sets, required instances and macros, stage copies, default probe instance, STA clock) and
-    scripts/issp_fields.tcl (probe field tables). Validates both and stores a copy; build_start,
-    mister_deploy, probe_* and build_worst_paths run from that copy and refuse while either file
-    differs from it. Call it after every change to either file. Returns what was registered and
+    sets, required instances and macros, stage copies, default probe instance, STA clock),
+    scripts/issp_fields.tcl (probe field tables) and scripts/issp_hooks.tcl (the core's own
+    probe_issp commands, `proc hook_<name> {idx args}`). Validates them and stores a copy;
+    build_start, mister_deploy, probe_* and build_worst_paths run from that copy and refuse while
+    any file differs from it. Call it after every change to one. Returns what was registered and
     any warnings; refuses, registering nothing, on a problem."""
     root = C.resolve(core)
     return REG.register(root, branch=_git_branch(root))
@@ -171,13 +172,15 @@ def core_register(core: str) -> dict:
 
 @tool(RO)
 def core_config(core: str) -> dict:
-    """The core's registered parameters, when they were registered, and which of scripts/core.json
-    and scripts/issp_fields.tcl changed since (stale: call core_register). check=what the files
-    would register as now, with problems and warnings, without registering."""
+    """The core's registered parameters, when they were registered, and which of scripts/core.json,
+    scripts/issp_fields.tcl and scripts/issp_hooks.tcl changed since (stale: call core_register).
+    files_now: what the files would register as now, with problems and warnings, without
+    registering."""
     root = C.resolve(core)
     st = REG.status(root)
     cfg, tables, problems, warnings = REG.validate(root)
-    st["files_now"] = {"config": cfg, "tables": {k: len(v) for k, v in tables.items()},
+    hooks = cfg.pop("_hooks")
+    st["files_now"] = {"config": cfg, "tables": {k: len(v) for k, v in tables.items()}, "hooks": hooks,
                        "problems": problems, "warnings": warnings}
     return st
 
@@ -942,11 +945,18 @@ def probe_read(core: str, instance: str = "", fields: list[str] | None = None,
 @tool(ACT)
 def probe_issp(core: str, instance: str, action: str = "", value: str = "",
                wait_s: int = 120) -> dict:
-    """scripts/read_issp.py <instance> [clear|set <v>|pulse <v>]: decode an instance, or drive its
-    source and leave it (set) or return it to 0 (pulse)."""
+    """scripts/read_issp.py <instance> [clear|set <v>|pulse <v>|<hook> <args>]: decode an instance,
+    or drive its source and leave it (set) or return it to 0 (pulse). Any other action is one of
+    the core's registered hooks (scripts/issp_hooks.tcl, `proc hook_<action>`), run in the same
+    session after the decode; value is its arguments, space-separated."""
     root = C.resolve(core)
     if action not in ("", "clear", "set", "pulse"):
-        raise ToolError("action is clear, set or pulse")
+        hooks = REG.status(root).get("hooks") or []
+        if action not in hooks:
+            raise ToolError(f"action is clear, set, pulse or a registered hook ({', '.join(hooks) or 'none'})")
+        if not re.fullmatch(r"[\w .:+-]*", value):
+            raise ToolError("hook arguments: letters, digits and . : + - only")
+        return _probe_job(root, "read_issp.py", [instance, action, *value.split()], wait_s)
     if action in ("set", "pulse") and not value:
         raise ToolError(f"{action} needs a value")
     args = [instance] + ([action] if action else []) + ([value] if value else [])
