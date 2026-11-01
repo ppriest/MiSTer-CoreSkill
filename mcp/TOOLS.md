@@ -474,12 +474,13 @@ Copy a file from the device (allowed trees, /tmp/RBFNAME and the like, or a mist
 
 *destructive*
 
-Copy a local file to the device, into _Arcade, games, config or screenshots. Overwrites.
+Copy a local file to the device, into _Arcade, games, config or screenshots. Overwrites. A job: the file is uploaded to a hidden temporary name, its size checked against the local file, then renamed over `remote`, so a failed or cancelled upload leaves `remote` as it was. Waits up to wait_s (at most 240); a large file returns a job id, and jobs_status reports the result and the log has pscp's progress (about 1 to 6 MB/s). Missing directories are created.
 
 | Argument | Type | Default |
 |---|---|---|
 | `local` | string | required |
 | `remote` | string | required |
+| `wait_s` | integer | `60` |
 
 ### `mister_install_main`
 

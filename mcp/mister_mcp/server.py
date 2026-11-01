@@ -8,9 +8,11 @@ import functools
 import json
 import os
 import re
+import secrets
 import shlex
 import shutil
 import subprocess
+import sys
 import tempfile
 import time
 from pathlib import Path
@@ -856,14 +858,28 @@ def mister_get(remote: str, local: str = "", keep: bool = False) -> dict:
 
 
 @tool(DESTRUCTIVE)
-def mister_put(local: str, remote: str) -> dict:
-    """Copy a local file to the device, into _Arcade, games, config or screenshots. Overwrites."""
+def mister_put(local: str, remote: str, wait_s: int = 60) -> dict:
+    """Copy a local file to the device, into _Arcade, games, config or screenshots. Overwrites.
+    A job: the file is uploaded to a hidden temporary name, its size checked against the local
+    file, then renamed over `remote`, so a failed or cancelled upload leaves `remote` as it was.
+    Waits up to wait_s (at most 240); a large file returns a job id, and jobs_status reports the
+    result and the log has pscp's progress (about 1 to 6 MB/s). Missing directories are created."""
     q = B.checked_path(remote, write=True)
     if not Path(local).is_file():
         raise ToolError(f"no file {local}")
     b = B.Board()
-    b.scp(local, b.remote(q))
-    return {"local": local, "remote": q}
+    root = next(a for a in B.ALLOWED if q.startswith(a + "/"))
+    tmp = f"{root}/.mcp-put-{secrets.token_hex(4)}.part"
+    argv = [sys.executable, str(Path(__file__).with_name("xfer.py")), B._putty("pscp.exe"),
+            B._putty("plink.exe"), f"{b.user}@{b.host}", str(Path(local).resolve()), tmp, q]
+    env = dict(os.environ, MISTER_PASSWORD=b.pw, PYTHONIOENCODING="utf-8")
+    jid = J.start("put", "", argv, Path(local).resolve().parent, env, {"local": local, "remote": q})
+    st = J.wait(jid, wait_s)
+    if st["state"] in ("starting", "running"):
+        st["note"] = "still uploading; poll jobs_status"
+    else:
+        st["output"] = J.log(jid)[-2000:]
+    return st
 
 
 @tool(DESTRUCTIVE)

@@ -1315,7 +1315,7 @@
  },
  {
   "name": "mister_put",
-  "description": "Copy a local file to the device, into _Arcade, games, config or screenshots. Overwrites.",
+  "description": "Copy a local file to the device, into _Arcade, games, config or screenshots. Overwrites.\nA job: the file is uploaded to a hidden temporary name, its size checked against the local\nfile, then renamed over `remote`, so a failed or cancelled upload leaves `remote` as it was.\nWaits up to wait_s (at most 240); a large file returns a job id, and jobs_status reports the\nresult and the log has pscp's progress (about 1 to 6 MB/s). Missing directories are created.",
   "inputSchema": {
    "properties": {
     "local": {
@@ -1325,6 +1325,11 @@
     "remote": {
      "title": "Remote",
      "type": "string"
+    },
+    "wait_s": {
+     "default": 60,
+     "title": "Wait S",
+     "type": "integer"
     }
    },
    "required": [

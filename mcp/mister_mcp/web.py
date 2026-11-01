@@ -50,7 +50,7 @@ def _commit():
 # What this process has loaded: a change here needs a restart. The page itself is read per
 # request, and the job runners and the core scripts start fresh for every job. Compared by
 # content against what was on disk at start, committed or not.
-RUNNERS = {"jobrun.py", "qproject.py", "issp_seq.py"}
+RUNNERS = {"jobrun.py", "qproject.py", "issp_seq.py", "xfer.py"}
 LOADED = sorted([p for p in Path(__file__).parent.glob("*.py") if p.name not in RUNNERS]
                 + [C.TEMPLATE_SCRIPTS / "coretools.py", C.TEMPLATE_SCRIPTS / "hwlock.py"])
 STARTED_COMMIT = _commit()
