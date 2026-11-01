@@ -276,15 +276,28 @@ class Board:
         """Launch and wait for /tmp/CORENAME to name the game; the API answers 200 either way."""
         if bounce:                       # a relaunch of the same core does not reload the FPGA
             self.post("/launch", {"path": "/media/fat/menu.rbf"})
+            # a launch sent while the menu is still loading was dropped in the logs (the first
+            # launch after other work stayed at MENU, the retry a minute later worked)
+            end = time.time() + 12
             time.sleep(2)
+            while time.time() < end:
+                if self.sh("cat /tmp/CORENAME 2>/dev/null", 20)[1].strip().upper() == "MENU":
+                    break
+                time.sleep(1)
+            time.sleep(1)
         self.post("/launch", {"path": mra})
         deadline = time.time() + timeout
         name = None
+        resent = False
+        t0 = time.time()
         while time.time() < deadline:
             time.sleep(2)
             name = self.sh("cat /tmp/CORENAME 2>/dev/null", 20)[1].strip()
             if name and name.upper() != "MENU" and (not setname or name == setname):
                 return name
+            if not resent and time.time() - t0 > 10:    # still at MENU: send it again, as a retry does
+                self.post("/launch", {"path": mra})
+                resent = True
         raise ToolError(f"launched {mra} but /tmp/CORENAME is still {name!r} after {timeout} s"
                         + (f" (expected {setname})" if setname else ""))
 
