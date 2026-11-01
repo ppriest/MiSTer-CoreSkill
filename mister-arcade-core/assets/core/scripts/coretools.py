@@ -316,11 +316,16 @@ def mame_cmd(exe, game, lua, mame_dir=None, extra=(), root=None):
     autoboot script still loads and prints, so it looks alive. regions.json "mame_args" adds
     per-core options: -nodrc where the main CPU has a recompiler, because its fastram paths
     bypass the Lua write taps. `lua` is unused (run.lua reads CORE_SCRIPT) and kept so the
-    call names the script it runs; mame_dir is unused (rompath() finds it)."""
+    call names the script it runs; mame_dir is unused (rompath() finds it). A set with a
+    writable CHD needs a -diff_directory that exists (MAME's default, diff/ beside the exe, may
+    not); it is debug/mame-diff in the core, and mame_args or extra can name another."""
+    diff = (root or core_root()) / "debug" / "mame-diff"
+    diff.mkdir(parents=True, exist_ok=True)
     return [str(exe), game, "-nodebug", "-nowindow", "-video", "none", "-sound", "none",
             "-skip_gameinfo", "-nothrottle", "-autoboot_delay", "0",
             "-autoboot_script", str(lua_dir(root) / "run.lua"),
-            "-rompath", rompath(root), *regions(game, root).get("mame_args", []), *extra]
+            "-rompath", rompath(root), "-diff_directory", str(diff),
+            *regions(game, root).get("mame_args", []), *extra]
 
 
 def find_putty(name):
