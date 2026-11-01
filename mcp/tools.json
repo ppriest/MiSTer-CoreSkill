@@ -1512,7 +1512,7 @@
  },
  {
   "name": "probe_issp",
-  "description": "scripts/read_issp.py <instance> [clear|set <v>|pulse <v>|<hook> <args>]: decode an instance,\nor drive its source and leave it (set) or return it to 0 (pulse). Any other action is one of\nthe core's registered hooks (scripts/issp_hooks.tcl, `proc hook_<action>`), run in the same\nsession after the decode; value is its arguments, space-separated.",
+  "description": "scripts/read_issp.py <instance> [clear|set <v>|pulse <v>|<hook> <args>]: decode an instance,\nor drive its source and leave it (set) or return it to 0 (pulse). Any other action is one of\nthe core's registered hooks (scripts/issp_hooks.tcl, `proc hook_<action>`), run in the same\nsession after the decode; value is its arguments, space-separated. `output` is the last 6000\ncharacters; `log_path` is the whole output, for a core script to convert (KonamiGX's memdump).",
   "inputSchema": {
    "properties": {
     "core": {

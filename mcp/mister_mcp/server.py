@@ -927,6 +927,8 @@ def _probe_job(root, script, args, wait_s):
         st["note"] = "waiting for the JTAG lock or quartus_stp; poll jobs_status"
     else:
         st["output"] = J.log(st["id"])[-6000:]
+    # the whole output, for a core script that turns a long read (a hook's dump) into a file
+    st["log_path"] = str(J._dir(st["id"]) / "log.txt")
     return st
 
 
@@ -948,7 +950,8 @@ def probe_issp(core: str, instance: str, action: str = "", value: str = "",
     """scripts/read_issp.py <instance> [clear|set <v>|pulse <v>|<hook> <args>]: decode an instance,
     or drive its source and leave it (set) or return it to 0 (pulse). Any other action is one of
     the core's registered hooks (scripts/issp_hooks.tcl, `proc hook_<action>`), run in the same
-    session after the decode; value is its arguments, space-separated."""
+    session after the decode; value is its arguments, space-separated. `output` is the last 6000
+    characters; `log_path` is the whole output, for a core script to convert (KonamiGX's memdump)."""
     root = C.resolve(core)
     if action not in ("", "clear", "set", "pulse"):
         hooks = REG.status(root).get("hooks") or []

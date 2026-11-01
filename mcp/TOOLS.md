@@ -546,7 +546,7 @@ scripts/probe.py read: ISSP probes over JTAG under the machine-wide lock (waits 
 
 *acts*
 
-scripts/read_issp.py <instance> [clear|set <v>|pulse <v>|<hook> <args>]: decode an instance, or drive its source and leave it (set) or return it to 0 (pulse). Any other action is one of the core's registered hooks (scripts/issp_hooks.tcl, `proc hook_<action>`), run in the same session after the decode; value is its arguments, space-separated.
+scripts/read_issp.py <instance> [clear|set <v>|pulse <v>|<hook> <args>]: decode an instance, or drive its source and leave it (set) or return it to 0 (pulse). Any other action is one of the core's registered hooks (scripts/issp_hooks.tcl, `proc hook_<action>`), run in the same session after the decode; value is its arguments, space-separated. `output` is the last 6000 characters; `log_path` is the whole output, for a core script to convert (KonamiGX's memdump).
 
 | Argument | Type | Default |
 |---|---|---|
