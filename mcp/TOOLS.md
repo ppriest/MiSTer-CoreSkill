@@ -143,7 +143,7 @@ JTAG marker, queued JTAG sessions, running Quartus/ModelSim processes, active jo
 
 *acts*
 
-Full staged Quartus compile (scripts/build_staged.py) as a job. Refuses while JTAG is held, as the script does. Fails on negative slack on any clock unless allow_negative_slack (a debug revision only; a release must close timing). Builds take tens of minutes; poll jobs_status.
+Full staged Quartus compile (scripts/build_staged.py) as a job. Refuses while JTAG is held, as the script does. Fails on negative slack on any clock unless allow_negative_slack (a debug revision only; a release must close timing). Builds take tens of minutes; poll jobs_status. Each build has its own stage, a worktree under the core: a build with a seed gets build_seed<N> (build_stp_seed<N> for an _stp revision; or `stage`), so several seeds of one core, and a revision and its _stp twin, run at the same time; with no seed it uses build/. It refuses if a running build or sweep of the core holds that stage. Quartus uses several GB of RAM and a core or more per fit: size the number running at once to the machine (build_sweep does it for a list of seeds). The result is that stage's report; build_report(seed=N) and mister_deploy(seed=N) read it later.
 
 | Argument | Type | Default |
 |---|---|---|
@@ -153,35 +153,55 @@ Full staged Quartus compile (scripts/build_staged.py) as a job. Refuses while JT
 | `allow_dirty` | boolean | `false` |
 | `allow_negative_slack` | boolean | `false` |
 | `wait_s` | integer | `5` |
+| `stage` | string | `""` |
+
+### `build_sweep`
+
+*acts*
+
+A seed sweep: one build per seed, each in its own stage (build_seed<N>, or build_stp_seed<N> for an _stp revision, so a revision's sweep and its _stp twin's can run together), at most max_parallel at a time, stopping the rest at the first that meets timing and passes the design checks. One job. The result names the winning seed and stage with its report, and what became of each seed; deploy it with mister_deploy(seed=N). Cancel it with jobs_cancel: that stops every build. Each Quartus fit takes several GB of RAM and a core or more, so keep max_parallel modest.
+
+| Argument | Type | Default |
+|---|---|---|
+| `core` | string | required |
+| `seeds` | list[integer] | required |
+| `rev` | string | `""` |
+| `allow_dirty` | boolean | `false` |
+| `max_parallel` | integer | `3` |
+| `wait_s` | integer | `5` |
 
 ### `build_report`
 
 *read-only*
 
-The last build's commit, setup/hold slack and TNS per clock, fit resources, .rbf path.
+A build's commit, setup/hold slack and TNS per clock, fit resources, .rbf path. seed or stage names the build; without either it is the stage built most recently.
 
 | Argument | Type | Default |
 |---|---|---|
 | `core` | string | required |
 | `rev` | string | `""` |
+| `seed` | integer or null | `null` |
+| `stage` | string | `""` |
 
 ### `build_worst_paths`
 
 *acts*
 
-quartus_sta with scripts/report_worst_paths.tcl on the compiled database (no recompile). Writes output_files/worst_paths_<rev>.rpt.
+quartus_sta with scripts/report_worst_paths.tcl on the compiled database (no recompile). seed or stage names the build (build_seed<N>); without either it is build/. Writes output_files/worst_paths_<rev>.rpt (clk_sys setup) in that stage, and worst_paths_<rev>_clocks.rpt: the worst 15 setup/hold paths into every clock whose slack is negative, from any clock. The result lists each clock's setup and hold slack.
 
 | Argument | Type | Default |
 |---|---|---|
 | `core` | string | required |
 | `rev` | string | `""` |
+| `seed` | integer or null | `null` |
+| `stage` | string | `""` |
 | `wait_s` | integer | `300` |
 
 ### `build_project`
 
 *acts*
 
-Compile a standalone Quartus project in the core (a synth harness such as rtl/synth_check, not a revision of the core) as a job, under the hwlock rule. `project` is its .qpf or directory, relative to the core. With no seed or clocks it compiles in place. With either, it compiles a copy in build/<project dir>/<tag or s<seed>>/: the .qsf's paths outside the project are made absolute, SEED is set, and each create_clock named in `clocks` (clock -name or port; "*" for all) gets that -period in ns. Result: slack per clock and fit totals.
+Compile a standalone Quartus project in the core (a synth harness such as rtl/synth_check, not a revision of the core) as a job, under the hwlock rule. `project` is its .qpf or directory, relative to the core. With no seed or clocks it compiles in place. With either, it compiles a copy in debug/build_project/<project dir>/<tag or s<seed>>/ (not build/, which build_start's worktree needs): the .qsf's paths outside the project are made absolute, SEED is set, and each create_clock named in `clocks` (clock -name or port; "*" for all) gets that -period in ns. Result: slack per clock and fit totals.
 
 | Argument | Type | Default |
 |---|---|---|
@@ -254,11 +274,12 @@ scripts/compare_boot_trace.py replay|compare|dups <set>: the RTL's boot against 
 
 *acts*
 
-Orphaned vsim/vsimk processes (no running sim job) and stale work/_lock files. kill=True ends the processes and removes the locks.
+Orphaned vsim/vsimk and Verilator bench (V*tb*.exe) processes (no running sim job) and stale work/_lock files. kill=True ends the processes and removes the locks. pids=[...] ends just those listed processes, also while a sim job runs (for an orphan next to a live run).
 
 | Argument | Type | Default |
 |---|---|---|
 | `kill` | boolean | `false` |
+| `pids` | list[integer] or null | `null` |
 
 <a id="mame"></a>
 ## MAME
@@ -398,7 +419,7 @@ Before a launch: which .rbf the .mra's <rbf> prefix resolves to on the device (t
 
 *acts*
 
-scripts/deploy.py: checks the build log, .rbf age and timing, copies the .rbf and .mras. The .rbf goes up as <stem>_<next number>.rbf. stem defaults to the script's (the project), except that a revision whose name (less _stp) is an <rbf> tag in releases/ deploys under that name: a core shipping several bitstreams (KonamiGX, KonamiGXT1, KonamiGXT34) must not put one revision's build under another's name.
+scripts/deploy.py: checks the build log, .rbf age and timing, copies the .rbf and .mras. The .rbf goes up as <stem>_<next number>.rbf. stem defaults to the script's (the project), except that a revision whose name (less _stp) is an <rbf> tag in releases/ deploys under that name: a core shipping several bitstreams (KonamiGX, KonamiGXT1, KonamiGXT34) must not put one revision's build under another's name. seed or stage deploys that stage's build (a seed sweep's winner is build_seed<N>, or build_stp_seed<N> for an _stp revision); without either it is build/.
 
 | Argument | Type | Default |
 |---|---|---|
@@ -410,6 +431,8 @@ scripts/deploy.py: checks the build log, .rbf age and timing, copies the .rbf an
 | `allow_timing_miss` | boolean | `false` |
 | `dry_run` | boolean | `false` |
 | `wait_s` | integer | `180` |
+| `seed` | integer or null | `null` |
+| `stage` | string | `""` |
 
 ### `mister_launch`
 

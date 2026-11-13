@@ -55,6 +55,8 @@ tr:last-child td { border-bottom: 0; }
 button, .btn { font: inherit; font-size: 12.5px; padding: 3px 10px; border-radius: 5px; cursor: pointer;
   border: 1px solid var(--line); background: var(--chip); color: var(--ink); text-decoration: none; }
 button:hover, .btn:hover { border-color: var(--accent); }
+button.cancel, #dcancel { color: var(--bad); }
+button.cancel:hover, #dcancel:hover { border-color: var(--bad); }
 input[type=search] { font: inherit; font-size: 13px; padding: 3px 8px; border-radius: 5px;
   border: 1px solid var(--line); background: var(--bg); color: var(--ink); width: 200px; }
 label { font-size: 12.5px; color: var(--muted); display: inline-flex; gap: 4px; align-items: center; }
@@ -174,6 +176,7 @@ a { color: var(--accent); }
     <span id="dstate"></span>
     <label><input type="checkbox" id="follow" checked> follow</label>
     <a class="btn" id="ddown" href="#">Download log</a>
+    <button id="dcancel" hidden>Cancel job</button>
     <button id="dclose" style="margin-left:auto">Close</button>
   </div>
   <div class="metaline mono" id="dmeta"></div>
@@ -201,7 +204,17 @@ function jobRow(j) {
     `<a href="#" data-job="${esc(j.id)}" class="mono nw">${esc(j.id)}</a>`, esc(j.kind), esc(j.core),
     state(j.state), dur(j.elapsed_s),
     `<span class="mono muted">${esc(m.script || "")}${m.rev ? " " + esc(m.rev) : ""}${m.tag ? " " + esc(m.tag) : ""}</span>`,
-    `<a href="/download/jobs/${esc(j.id)}/log.txt">log</a>`];
+    `<a href="/download/jobs/${esc(j.id)}/log.txt">log</a>` + (isActive(j.state)
+      ? ` <button class="cancel" data-cancel="${esc(j.id)}" title="Kill this job and everything it started">Cancel</button>` : "")];
+}
+const isActive = s => s === "running" || s === "starting";
+async function cancelJob(id) {
+  if (!confirm(`Cancel job ${id}? Its whole process tree is killed.`)) return;
+  try {
+    const r = await fetch(`/api/jobs/${id}/cancel`, {method: "POST", headers: {"X-Mister-UI": "1"}});
+    if (!r.ok) throw new Error(`${r.status} ${await r.text()}`);
+  } catch (e) { alert(`cancel failed: ${e.message}`); }
+  load();
 }
 function regTip(r) {
   // the registered files, the parameters that differ from the defaults, the probe tables
@@ -336,6 +349,7 @@ async function openJob(id) {
   if (!r.ok) { $("dlog").textContent = await r.text(); return; }
   const j = await r.json();
   $("dstate").innerHTML = `${state(j.state)} ${j.returncode != null ? "rc " + j.returncode : ""} · ${dur(j.elapsed_s)}`;
+  $("dcancel").hidden = !isActive(j.state); $("dcancel").dataset.cancel = id;
   $("dmeta").textContent = `${j.kind} · ${j.core} · ${JSON.stringify(j.meta)}`;
   const pre = $("dlog");
   pre.textContent = j.log_tail ? j.log_tail + "\n" : "(no output yet)\n";
@@ -345,6 +359,7 @@ async function openJob(id) {
   ws.onmessage = ev => {
     const line = String(ev.data);
     if (line.startsWith("END ")) {
+      $("dcancel").hidden = true;
       try { const e = JSON.parse(line.slice(4)); $("dstate").innerHTML = `${state(e.state)} ${e.returncode != null ? "rc " + e.returncode : ""}`; } catch {}
       load();
     }
@@ -353,6 +368,8 @@ async function openJob(id) {
   };
 }
 document.addEventListener("click", ev => {
+  const c = ev.target.closest("[data-cancel]");
+  if (c) { ev.preventDefault(); cancelJob(c.dataset.cancel); return; }
   const a = ev.target.closest("[data-job]");
   if (a) { ev.preventDefault(); openJob(a.dataset.job); }
 });

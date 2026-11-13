@@ -287,40 +287,153 @@ def _rev(root, rev):
 
 
 def _build_result(jid):
+    """The job's own report, from its own stage. A job that was refused before it built (a build
+    already running in that stage, JTAG held) has none: the stage still holds an earlier build's."""
     m = J.meta(jid)
     root = C.resolve(m["cwd"])
-    return R.build_summary(root, m["meta"]["rev"])
+    stage = m["meta"].get("stage") or "build"      # a job from before stages built in build/
+    stamp = root / stage / "BUILT_COMMIT"
+    if not stamp.exists() or stamp.stat().st_mtime < m["started"] - 5:
+        return {"stage": stage, "note": "this job never started a build; any report in "
+                "the stage is an earlier build's, which build_report shows"}
+    return R.build_summary(root, m["meta"]["rev"], stage)
+
+
+def _stage_for(seed, stage, rev=""):
+    """The stage folder: `stage` as given, else for a seed build_seed<N>, or build_stp_seed<N> for
+    an _stp revision, so a revision's builds and its _stp twin's can run at the same time."""
+    if stage and not re.fullmatch(r"[A-Za-z0-9_-]+", stage):
+        raise ToolError("stage: letters, digits, _ and - only")
+    if stage or seed is None:
+        return stage
+    return f"build_stp_seed{seed}" if rev.endswith("_stp") else f"build_seed{seed}"
+
+
+def _stage_busy(root, stages):
+    """Refuse to start where a running build or sweep of this core already holds a stage."""
+    want = set(stages)
+    for j in J.listing(60, True):
+        if j["core"] != root.name:
+            continue
+        m = j.get("meta") or {}
+        held = {m["stage"]} if j["kind"] == "build" and m.get("stage") else \
+            {_stage_for(sd, "", m.get("rev", "")) for sd in m.get("seeds", [])} if j["kind"] == "sweep" else set()
+        if held & want:
+            raise ToolError(f"job {j['id']} ({j['kind']}) is using stage {', '.join(sorted(held & want))}; "
+                            "cancel it, wait for it, or use another stage")
+
+
+def _need_option(root, script, option):
+    path, _ = C.script(root, script)
+    if option not in path.read_text(errors="replace"):
+        raise ToolError(f"{path} has no {option} option; copy the server's {script}, or delete the core's own copy")
 
 
 @tool(ACT)
 def build_start(core: str, rev: str = "", seed: int | None = None, allow_dirty: bool = False,
-                allow_negative_slack: bool = False, wait_s: int = 5) -> dict:
+                allow_negative_slack: bool = False, wait_s: int = 5, stage: str = "") -> dict:
     """Full staged Quartus compile (scripts/build_staged.py) as a job. Refuses while JTAG is held,
     as the script does. Fails on negative slack on any clock unless allow_negative_slack (a debug
-    revision only; a release must close timing). Builds take tens of minutes; poll jobs_status."""
+    revision only; a release must close timing). Builds take tens of minutes; poll jobs_status.
+    Each build has its own stage, a worktree under the core: a build with a seed gets build_seed<N>
+    (build_stp_seed<N> for an _stp revision; or `stage`), so several seeds of one core, and a revision
+    and its _stp twin, run at the same time; with no seed it uses build/. It refuses if a running
+    build or sweep of the core holds that stage.
+    Quartus uses several GB of RAM and a core or more per fit: size the number running at once
+    to the machine (build_sweep does it for a list of seeds). The result is that stage's report;
+    build_report(seed=N) and mister_deploy(seed=N) read it later."""
     root = C.resolve(core)
     r = _rev(root, rev)
+    st = _stage_for(seed, stage, r)
+    _stage_busy(root, [st or "build"])
+    if st:
+        _need_option(root, "build_staged.py", "--stage")
     args = ["--rev", r] + (["--seed", seed] if seed is not None else []) + \
+        (["--stage", st] if st else []) + \
         (["--allow-dirty"] if allow_dirty else []) + \
         (["--allow-negative-slack"] if allow_negative_slack else [])
-    return _job("build", root, "build_staged.py", args, wait_s, {"rev": r}, _build_result)
+    res = _job("build", root, "build_staged.py", args, wait_s, {"rev": r, "stage": st or "build"}, _build_result)
+    res["stage"] = st or "build"
+    return res
 
 
-@tool(RO)
-def build_report(core: str, rev: str = "") -> dict:
-    """The last build's commit, setup/hold slack and TNS per clock, fit resources, .rbf path."""
-    root = C.resolve(core)
-    return R.build_summary(root, _rev(root, rev))
+def _sweep_result(jid):
+    m = J.meta(jid)
+    root = C.resolve(m["cwd"])
+    out = None
+    for ln in reversed(J.log(jid).splitlines()):
+        if ln.startswith("{"):
+            try:
+                out = json.loads(ln)
+            except ValueError:
+                pass
+            break
+    if out and out.get("stage"):
+        out["report"] = R.build_summary(root, m["meta"]["rev"], out["stage"])
+    return out
 
 
 @tool(ACT)
-def build_worst_paths(core: str, rev: str = "", wait_s: int = 300) -> dict:
+def build_sweep(core: str, seeds: list[int], rev: str = "", allow_dirty: bool = False,
+                max_parallel: int = 3, wait_s: int = 5) -> dict:
+    """A seed sweep: one build per seed, each in its own stage (build_seed<N>, or build_stp_seed<N> for an
+    _stp revision, so a revision's sweep and its _stp twin's can run together), at most max_parallel
+    at a time, stopping the rest at the first that meets timing and passes the design checks. One job.
+    The result names the winning seed and stage with its report, and what became of each seed;
+    deploy it with mister_deploy(seed=N). Cancel it with jobs_cancel: that stops every build.
+    Each Quartus fit takes several GB of RAM and a core or more, so keep max_parallel modest."""
+    if not seeds or len(seeds) > 16 or len(set(seeds)) != len(seeds):
+        raise ToolError("seeds: 1 to 16 different seeds")
+    if not 1 <= max_parallel <= 8:
+        raise ToolError("max_parallel is 1 to 8")
+    root = C.resolve(core)
+    r = _rev(root, rev)
+    _need_option(root, "build_staged.py", "--stage")
+    _stage_busy(root, [_stage_for(sd, "", r) for sd in seeds])
+    jobs = []
+    for sd in seeds:
+        sg = _stage_for(sd, "", r)
+        args = ["--rev", r, "--seed", sd, "--stage", sg] + (["--allow-dirty"] if allow_dirty else [])
+        argv, env, _ = C.command(root, "build_staged.py", *args)
+        jobs.append({"seed": sd, "stage": sg, "argv": argv, "cwd": str(root),
+                     "env": {k: v for k, v in env.items() if os.environ.get(k) != v}})
+    spec = json.dumps({"jobs": jobs, "max_parallel": max_parallel})
+    argv = [sys.executable, str(Path(__file__).with_name("sweep.py")), spec]
+    env = dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONUNBUFFERED="1")
+    jid = J.start("sweep", root.name, argv, root, env, {"rev": r, "seeds": list(seeds)})
+    st = J.wait(jid, wait_s)
+    if st["state"] not in ("starting", "running"):
+        st["result"] = _sweep_result(jid)
+    return st
+
+
+@tool(RO)
+def build_report(core: str, rev: str = "", seed: int | None = None, stage: str = "") -> dict:
+    """A build's commit, setup/hold slack and TNS per clock, fit resources, .rbf path. seed or stage
+    names the build; without either it is the stage built most recently."""
+    root = C.resolve(core)
+    r = _rev(root, rev)
+    return R.build_summary(root, r, _stage_for(seed, stage, r) or None)
+
+
+@tool(ACT)
+def build_worst_paths(core: str, rev: str = "", seed: int | None = None, stage: str = "",
+                      wait_s: int = 300) -> dict:
     """quartus_sta with scripts/report_worst_paths.tcl on the compiled database (no recompile).
-    Writes output_files/worst_paths_<rev>.rpt."""
+    seed or stage names the build (build_seed<N>); without either it is build/.
+    Writes output_files/worst_paths_<rev>.rpt (clk_sys setup) in that stage, and
+    worst_paths_<rev>_clocks.rpt: the worst 15 setup/hold paths into every clock whose slack is
+    negative, from any clock. The result lists each clock's setup and hold slack."""
     root = C.resolve(core)
     r = _rev(root, rev)
     tcl, shared = C.script(root, "report_worst_paths.tcl")
-    db = root / "build" if (root / "build" / "db").is_dir() else root
+    st_name = _stage_for(seed, stage, r)
+    if st_name:
+        db = R.stage_dir(root, st_name)
+        if not (db / "db").is_dir():
+            raise ToolError(f"no compiled database in {db}")
+    else:
+        db = root / "build" if (root / "build" / "db").is_dir() else root
     sta = C.coretools.quartus_bin(root) / "quartus_sta.exe"
     argv = [str(sta), "-t", str(tcl), r]
     env = dict(os.environ, CORE_ROOT=str(root))
@@ -359,7 +472,8 @@ def build_project(core: str, project: str, rev: str = "", seed: int | None = Non
     """Compile a standalone Quartus project in the core (a synth harness such as rtl/synth_check,
     not a revision of the core) as a job, under the hwlock rule. `project` is its .qpf or
     directory, relative to the core. With no seed or clocks it compiles in place. With either,
-    it compiles a copy in build/<project dir>/<tag or s<seed>>/: the .qsf's paths outside the
+    it compiles a copy in debug/build_project/<project dir>/<tag or s<seed>>/ (not build/, which
+    build_start's worktree needs): the .qsf's paths outside the
     project are made absolute, SEED is set, and each create_clock named in `clocks` (clock -name
     or port; "*" for all) gets that -period in ns. Result: slack per clock and fit totals."""
     root = C.resolve(core)
@@ -374,7 +488,7 @@ def build_project(core: str, project: str, rev: str = "", seed: int | None = Non
     if seed is not None or clocks:
         name = tag or "_".join([f"s{seed}" if seed is not None else "s-"] +
                                [f"{k}{v:g}".replace("*", "all") for k, v in (clocks or {}).items()])
-        dest = root / "build" / qpf.parent.name / re.sub(r"[^\w.-]", "_", name)
+        dest = root / "debug" / "build_project" / qpf.parent.name / re.sub(r"[^\w.-]", "_", name)
     work = dest or qpf.parent
     for j in J.listing(limit=50, active_only=True):
         if j["kind"] == "project" and j["meta"].get("work") == str(work):
@@ -402,7 +516,19 @@ def _sta_result(jid):
         return None
     text = p.read_text(errors="replace")
     slacks = re.findall(r"^; (-?\d+\.\d+)\s*;\s*(\S+)\s*;\s*(\S+)\s*;", text, re.M)
-    return {"report": str(p), "paths": [{"slack": float(s), "from": f, "to": t} for s, f, t in slacks[:15]]}
+    out = {"report": str(p), "paths": [{"slack": float(s), "from": f, "to": t} for s, f, t in slacks[:15]]}
+    clocks = []
+    for ln in J.log(jid).splitlines():
+        mm = re.match(r"CLK-SLACK (\S+) setup (\S*) hold (\S*)\s*$", ln.strip())
+        if mm:
+            clocks.append({"clock": mm.group(1), "setup": mm.group(2) or None, "hold": mm.group(3) or None})
+    if clocks:
+        out["clocks"] = clocks
+        failing = [c for c in clocks if any(c[k] and float(c[k]) < 0 for k in ("setup", "hold"))]
+        if failing:
+            out["failing_clocks"] = [c["clock"] for c in failing]
+            out["clocks_report"] = str(p.with_name(f"worst_paths_{m['meta']['rev']}_clocks.rpt"))
+    return out
 
 
 @tool(ACT)
@@ -496,11 +622,12 @@ def sim_compare_boot(core: str, set: str, cmd: str = "compare", sys_trace: bool 
 
 
 @tool(ACT)
-def sim_sweep(kill: bool = False) -> dict:
-    """Orphaned vsim/vsimk processes (no running sim job) and stale work/_lock files.
-    kill=True ends the processes and removes the locks."""
+def sim_sweep(kill: bool = False, pids: list[int] | None = None) -> dict:
+    """Orphaned vsim/vsimk and Verilator bench (V*tb*.exe) processes (no running sim job) and stale work/_lock files.
+    kill=True ends the processes and removes the locks. pids=[...] ends just those listed
+    processes, also while a sim job runs (for an orphan next to a live run)."""
     r = subprocess.run(["powershell", "-NoProfile", "-Command",
-                        "Get-Process vsim*,vlog,vcom -ErrorAction SilentlyContinue | "
+                        "Get-Process vsim*,vlog,vcom,V*tb* -ErrorAction SilentlyContinue | "
                         "ForEach-Object { \"$($_.Id) $($_.ProcessName)\" }"],
                        capture_output=True, text=True, **C.NO_WINDOW)
     procs = [ln.split(None, 1) for ln in r.stdout.splitlines() if ln.strip()]
@@ -510,6 +637,16 @@ def sim_sweep(kill: bool = False) -> dict:
     out = {"processes": [{"pid": int(p), "name": n} for p, n in procs], "running_sim_jobs":
            [j["id"] for j in running], "stale_locks": locks if not running else [],
            "note": "processes are not killed while a sim job is running" if running else None}
+    if pids:
+        listed = {int(p) for p, _ in procs}
+        out["killed_pids"] = {}
+        for pid in pids:
+            if pid not in listed:
+                out["killed_pids"][pid] = "not a listed process"
+                continue
+            r = subprocess.run(["taskkill", "/T", "/F", "/PID", str(pid)], capture_output=True,
+                               text=True, **C.NO_WINDOW)
+            out["killed_pids"][pid] = (r.stdout + r.stderr).strip()
     if kill and not running:
         for p, _ in procs:
             subprocess.run(["taskkill", "/T", "/F", "/PID", p], capture_output=True, **C.NO_WINDOW)
@@ -776,13 +913,17 @@ def _mra_rbf_tags(root):
 @tool(ACT)
 def mister_deploy(core: str, rev: str = "", stem: str = "", mra_only: bool = False,
                   rbf_only: bool = False, allow_timing_miss: bool = False, dry_run: bool = False,
-                  wait_s: int = 180) -> dict:
+                  wait_s: int = 180, seed: int | None = None, stage: str = "") -> dict:
     """scripts/deploy.py: checks the build log, .rbf age and timing, copies the .rbf and .mras.
     The .rbf goes up as <stem>_<next number>.rbf. stem defaults to the script's (the project),
     except that a revision whose name (less _stp) is an <rbf> tag in releases/ deploys under that
     name: a core shipping several bitstreams (KonamiGX, KonamiGXT1, KonamiGXT34) must not put one
-    revision's build under another's name."""
+    revision's build under another's name. seed or stage deploys that stage's build (a seed sweep's
+    winner is build_seed<N>, or build_stp_seed<N> for an _stp revision); without either it is build/."""
     root = C.resolve(core)
+    stg = _stage_for(seed, stage, _rev(root, rev))
+    if stg:
+        _need_option(root, "deploy.py", "--stage")
     if not stem and rev:
         cand = re.sub(r"_stp$", "", rev)
         tags = {t.lower(): t for t in _mra_rbf_tags(root)}
@@ -792,7 +933,7 @@ def mister_deploy(core: str, rev: str = "", stem: str = "", mra_only: bool = Fal
         path, _ = C.script(root, "deploy.py")
         if "--stem" not in path.read_text(errors="replace"):
             raise ToolError(f"{path} has no --stem option; copy the skill's deploy.py, or deploy by hand")
-    args = (["--rev", rev] if rev else []) + (["--stem", stem] if stem else []) +         (["--mra-only"] if mra_only else []) + (["--rbf-only"] if rbf_only else []) +         (["--allow-timing-miss"] if allow_timing_miss else []) + (["--dry-run"] if dry_run else [])
+    args = (["--rev", rev] if rev else []) + (["--stem", stem] if stem else []) +         (["--mra-only"] if mra_only else []) + (["--rbf-only"] if rbf_only else []) +         (["--allow-timing-miss"] if allow_timing_miss else []) + (["--dry-run"] if dry_run else []) +         (["--stage", stg] if stg else [])
     st = _job("deploy", root, "deploy.py", args, wait_s, {"stem": stem or None})
     st["stem"] = stem or "(script default)"
     return st

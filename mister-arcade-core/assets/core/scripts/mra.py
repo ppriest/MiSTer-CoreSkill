@@ -141,6 +141,16 @@ def interleave(parts, output_bits):
         if len(m) != owidth:
             raise ValueError(f"map {m!r} is not {owidth} digits for output={output_bits}")
 
+    # Main_MiSTer (support/arcade/mra_loader.cpp) sends `romlen[0]` bytes at the end of the
+    # region, and only writes to output byte 0 (the rightmost map digit) advance it. An
+    # interleave with no part on byte 0 sends nothing and the parts after it overwrite the
+    # same addresses (Lemmings sprites: ROM_LOAD32_BYTE with byte 0 erased, maps 1000/0100/0010).
+    # Zero-filling the byte here would build an image the board never receives.
+    if not any(m[-1] != "0" for _, m in parts):
+        raise ValueError("no part of this <interleave> writes output byte 0 (rightmost map digit "
+                         "non-zero): Main_MiSTer sends nothing for it; maps %s"
+                         % ", ".join(repr(m) for _, m in parts))
+
     decoded = [pattern_from_map(m) for _, m in parts]
     chunk = {i: len(pat) for i, (_, pat) in enumerate(decoded)}
     n_words = min(len(d) // chunk[i] for i, (d, _) in enumerate(parts) if chunk[i])

@@ -35,10 +35,10 @@ DELIM = "|"
 LOG = Path(os.environ.get("MISTER_STATE_DIR") or Path.home() / ".mister") / "mister_deployed.tsv"
 
 
-def built_commit(root=None):
-    """The commit a deploy is shipping: build/BUILT_COMMIT, else HEAD."""
+def built_commit(root=None, stage="build"):
+    """The commit a deploy is shipping: <stage>/BUILT_COMMIT, else HEAD."""
     root = root or core_root()
-    f = root / "build" / "BUILT_COMMIT"
+    f = root / stage / "BUILT_COMMIT"
     if f.exists():
         return f.read_text(encoding="utf-8").split()[0][:12]
     r = subprocess.run(["git", "rev-parse", "--short=12", "HEAD"], cwd=root,
@@ -46,12 +46,12 @@ def built_commit(root=None):
     return r.stdout.strip() or "?"
 
 
-def record_deploy(rbf_name, root=None):
+def record_deploy(rbf_name, root=None, stage="build"):
     """Append one line to the machine-wide deploy log (called by deploy.py)."""
     root = root or core_root()
     LOG.parent.mkdir(parents=True, exist_ok=True)
     with open(LOG, "a", encoding="utf-8") as f:
-        f.write("%s\t%s\t%s\t%s\n" % (rbf_name, project(root), built_commit(root),
+        f.write("%s\t%s\t%s\t%s\n" % (rbf_name, project(root), built_commit(root, stage),
                                       time.strftime("%Y-%m-%d %H:%M:%S")))
 
 

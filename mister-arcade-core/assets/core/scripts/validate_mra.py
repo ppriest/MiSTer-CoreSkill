@@ -36,6 +36,10 @@ Checks:
   7. <buttons names> are the game's own control names, from the manual or
      another source, not "Button 1". Start, Coin, Pause, Service, Test and "-"
      are exempt. --allow-generic-buttons lets early bring-up through.
+  8. Every <interleave> has a part whose map ends in a non-zero digit (writes output byte 0).
+     Main_MiSTer sends romlen[0] bytes and only byte-0 writes advance it, so an interleave
+     without one is never sent and later parts overwrite its addresses (Lemmings sprites,
+     maps 1000/0100/0010: noise on the board; the image built here looked right).
 
 Usage:
     python scripts/validate_mra.py releases/*.mra
@@ -181,6 +185,15 @@ def check(path, rotations, allow_generic_buttons=False, installed=None):
                 'DIP %r with setting %r needs %d columns, the OSD has %d: the value '
                 'wraps off screen. Abbreviate the name or the settings in the '
                 'generator' % (name, widest, cols, OSD_COLS))
+
+    for il in root.iter('interleave'):
+        maps = [p.get('map') or '' for p in il.findall('part')]
+        if maps and not any(m[-1:] not in ('', '0') for m in maps):
+            problems.append(
+                '<interleave output=%s> has no part on output byte 0 (maps %s): Main_MiSTer '
+                'advances the transfer length only on byte-0 writes, so it sends nothing and '
+                'later parts overwrite these addresses. Load the lanes as plain parts and '
+                'interleave in RTL' % (il.get('output'), ', '.join(maps)))
 
     if not allow_generic_buttons:
         gen = generic_buttons(root)

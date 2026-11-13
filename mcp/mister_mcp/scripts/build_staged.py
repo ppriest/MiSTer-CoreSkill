@@ -17,6 +17,7 @@ The build is exactly HEAD:
     python scripts/build_staged.py                     # compile HEAD, default revision
     python scripts/build_staged.py --rev <project>     # another revision
     python scripts/build_staged.py --seed 12345        # try another placement
+    python scripts/build_staged.py --seed 5 --stage build_seed5   # its own worktree: seeds in parallel
     python scripts/build_staged.py --allow-dirty       # HEAD, ignoring edits
 
 The revision defaults to CORE_REV, else the one .qsf, else the last
@@ -35,7 +36,9 @@ Deploy it by pointing deploy.py at the stage (its defaults):
 
 The worktree persists between builds -- Quartus's db/ with it -- and each run
 hard-resets it to HEAD. A .build_running marker refuses two overlapping
-staged builds.
+staged builds of one stage. --stage names another worktree under the core
+(build_seed5, say), so builds of one core can overlap, one stage each; its
+outputs sit under that directory the way build/'s do.
 
 scripts/build.sh still builds in-tree; use it when you want the compile to
 see uncommitted work and are willing to leave the tree alone.
@@ -46,6 +49,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -80,6 +84,60 @@ def run(cmd, **kw):
     if r.returncode != 0:
         sys.exit("FAILED: %s\n%s%s" % (" ".join(cmd), r.stdout, r.stderr))
     return r.stdout.strip()
+
+
+def marker_is_stale(marker):
+    """True if the marker names a builder process that no longer exists. A marker without a pid
+    (written by an older version) is never judged stale."""
+    try:
+        first = open(marker, errors="replace").readline().strip()
+    except OSError:
+        return False
+    if not first.startswith("pid="):
+        return False
+    try:
+        pid = int(first[4:])
+    except ValueError:
+        return False
+    if os.name != "nt":
+        try:
+            os.kill(pid, 0)
+            return False
+        except ProcessLookupError:
+            return True
+        except OSError:
+            return False
+    out = subprocess.run(["tasklist", "/FI", "PID eq %d" % pid, "/FO", "CSV", "/NH"],
+                         capture_output=True, text=True,
+                         creationflags=subprocess.CREATE_NO_WINDOW).stdout
+    return ('"%d"' % pid) not in out
+
+
+def add_worktree(here, stage, head):
+    """git worktree add, retried: two builds starting together contend for git's locks.
+    A stage other than build/ is kept out of `git status` through the repository's local
+    exclude file, which no commit carries."""
+    for attempt in range(5):
+        r = subprocess.run(["git", "-C", here, "worktree", "add", "--detach", stage, head],
+                           capture_output=True, text=True)
+        if r.returncode == 0:
+            break
+        if attempt == 4:
+            sys.exit("FAILED: git worktree add %s\n%s%s" % (stage, r.stdout, r.stderr))
+        time.sleep(1 + attempt)
+    name = os.path.basename(stage)
+    if name != "build":
+        common = run(["git", "-C", here, "rev-parse", "--git-common-dir"])
+        exclude = Path(common if os.path.isabs(common) else os.path.join(here, common)) / "info" / "exclude"
+        exclude.parent.mkdir(parents=True, exist_ok=True)
+        line = "/%s/" % name
+        for _ in range(8):             # builds starting together append at once: check it stuck
+            have = exclude.read_text(errors="replace").splitlines() if exclude.exists() else []
+            if line in have:
+                break
+            with open(exclude, "a") as f:
+                f.write(line + "\n")
+            time.sleep(0.2)
 
 
 def read_slacks(summary):
@@ -159,6 +217,9 @@ def main():
                     help="override the fitter SEED in the STAGED .qsf "
                          "(placement only; worth trying before restructuring "
                          "RTL for a sub-ns violation)")
+    ap.add_argument("--stage", default="build",
+                    help="the worktree's directory name under the core (default build). "
+                         "Give each build running at the same time its own")
     ap.add_argument("--allow-negative-slack", action="store_true",
                     help="do not fail on a build that misses timing; the "
                          "shortfall must then be stated wherever it is used")
@@ -171,7 +232,9 @@ def main():
     here = str(core_root())
     REV = revision(Path(here), args.rev)
     QUARTUS_BIN = str(quartus_bin(Path(here)))
-    stage = os.path.join(here, "build")
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+", args.stage) or args.stage.startswith("."):
+        sys.exit("--stage is a directory name: letters, digits, _ . -")
+    stage = os.path.join(here, args.stage)
 
     # scripts/hwlock.py: a compile must not start while a JTAG tool is
     # reading the device. The marker is machine-wide, so this also refuses
@@ -194,14 +257,23 @@ def main():
     head_short = run(["git", "-C", here, "rev-parse", "--short", "HEAD"])
 
     marker = os.path.join(stage, ".build_running")
+    if os.path.exists(marker) and marker_is_stale(marker):
+        os.remove(marker)              # its builder was killed (taskkill /F skips the finally)
     if os.path.exists(marker):
         sys.exit("a staged build already appears to be running (%s exists) -- "
                  "wait for it, or delete the marker if it is stale" % marker)
 
+    # A stage directory that is not a worktree (build_project harness output, a stray file) is in
+    # the way: name what is there instead of git's "already exists".
+    if os.path.isdir(stage) and not os.path.exists(os.path.join(stage, ".git")) and os.listdir(stage):
+        sys.exit("%s exists and is not a build worktree; it holds: %s\n"
+                 "Move it aside (debug/ is the place for scratch) or pass --stage with another name."
+                 % (stage, ", ".join(sorted(os.listdir(stage))[:8])))
+
     # Create or update the stage worktree to exactly HEAD.
     if not os.path.isdir(os.path.join(stage, ".git")) and \
        not os.path.isfile(os.path.join(stage, ".git")):
-        run(["git", "-C", here, "worktree", "add", "--detach", stage, head])
+        add_worktree(here, stage, head)
     else:
         # --force: a seed override patches the STAGED .qsf, and a leftover
         # patch must never wedge the next build. The stage is a disposable
@@ -249,7 +321,7 @@ def main():
 
     quartus = os.path.join(QUARTUS_BIN, "quartus_sh.exe")
     log_path = os.path.join(stage, "q_staged.log")
-    open(marker, "w").write(stamp)
+    open(marker, "w").write("pid=%d\n%s" % (os.getpid(), stamp))
     try:
         with open(log_path, "w") as log:
             subprocess.run([quartus, "--flow", "compile", REV, "-c", REV],

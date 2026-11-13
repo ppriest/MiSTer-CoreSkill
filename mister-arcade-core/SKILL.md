@@ -68,7 +68,7 @@ into those two files and the copy deleted.
 
 | Task | Tool |
 |---|---|
-| build a revision, a seed; a standalone harness project | `build_start`; `build_project` |
+| build a revision, a seed (each seed its own stage, so seeds can build together); a seed sweep; a standalone harness project | `build_start`; `build_sweep`; `build_project` |
 | timing, utilisation, worst paths, floorplan | `build_report`, `build_worst_paths`, `build_floorplan` |
 | ModelSim / Verilator bench; stray simulators | `sim_list`, `sim_run`, `sim_compare_boot`; `sim_sweep` |
 | MAME version check, frame capture, traces, video-write sweep, Lua | `mame_version`, `mame_capture`, `mame_boot_trace`, `mame_sys_trace`, `mame_write_timing`, `mame_run_lua`, `mame_listxml` |

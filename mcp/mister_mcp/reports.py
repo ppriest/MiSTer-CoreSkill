@@ -3,13 +3,30 @@ import re
 from pathlib import Path
 
 
-def output_dirs(root):
-    """build_staged.py's worktree first, then build.sh's in-place outputs."""
-    return [d for d in (root / "build" / "output_files", root / "output_files") if d.is_dir()]
+def stages(root):
+    """build_staged.py's worktrees under the core: build/, and build_seed<N>/ and the like."""
+    return [d for d in [root / "build", *sorted(root.glob("build_*"))]
+            if (d / "BUILT_COMMIT").exists() or (d / "output_files").is_dir()]
 
 
-def find_output(root, rev, suffix):
-    for d in output_dirs(root):
+def latest_stage(root):
+    """The stage built most recently (by its BUILT_COMMIT stamp), or None."""
+    st = [d for d in stages(root) if (d / "BUILT_COMMIT").exists()]
+    return max(st, key=lambda d: (d / "BUILT_COMMIT").stat().st_mtime) if st else None
+
+
+def stage_dir(root, stage=None):
+    """The named stage, else the latest one, else build/."""
+    return root / stage if stage else (latest_stage(root) or root / "build")
+
+
+def output_dirs(root, stage=None):
+    """The stage's outputs (the latest stage's when none is named), then build.sh's in-place ones."""
+    return [d for d in (stage_dir(root, stage) / "output_files", root / "output_files") if d.is_dir()]
+
+
+def find_output(root, rev, suffix, stage=None):
+    for d in output_dirs(root, stage):
         p = d / f"{rev}{suffix}"
         if p.exists():
             return p
@@ -43,8 +60,8 @@ def fit(path):
     return out
 
 
-def built_commit(root):
-    for p in (root / "build" / "BUILT_COMMIT", root / "BUILT_COMMIT"):
+def built_commit(root, stage=None):
+    for p in (stage_dir(root, stage) / "BUILT_COMMIT", root / "BUILT_COMMIT"):
         if p.exists():
             parts = p.read_text(errors="replace").split()
             return {"commit": parts[0] if parts else None, "built": parts[1] if len(parts) > 1 else None,
@@ -52,9 +69,10 @@ def built_commit(root):
     return None
 
 
-def build_summary(root, rev):
-    res = {"rev": rev, "commit": built_commit(root)}
-    s = find_output(root, rev, ".sta.summary")
+def build_summary(root, rev, stage=None):
+    """The build's report from its stage: the one named, else the one built most recently."""
+    res = {"rev": rev, "stage": stage_dir(root, stage).name, "commit": built_commit(root, stage)}
+    s = find_output(root, rev, ".sta.summary", stage)
     if s:
         blocks = sta(s)
         res["sta_path"] = str(s)
@@ -66,14 +84,14 @@ def build_summary(root, rev):
     else:
         res["timing"] = None
         res["timing_met"] = None
-    f = find_output(root, rev, ".fit.summary")
+    f = find_output(root, rev, ".fit.summary", stage)
     if f:
         kv = fit(f)
         keep = ("Fitter Status", "Logic utilization (in ALMs)", "Total registers", "Total pins",
                 "Total block memory bits", "Total RAM Blocks", "Total DSP Blocks", "Total PLLs")
         res["fit"] = {k: kv[k] for k in keep if k in kv}
         res["fit_path"] = str(f)
-    rbf = find_output(root, rev, ".rbf")
+    rbf = find_output(root, rev, ".rbf", stage)
     res["rbf"] = str(rbf) if rbf else None
     return res
 

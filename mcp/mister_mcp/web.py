@@ -6,9 +6,12 @@ Quartus/ModelSim state, jobs, deploys and recent calls; logs download from it.
     /api/board                read what the MiSTer is running now (/api/state has the monitor's last reading)
     /api/jobs/<id>            a job's status and log tail
     /download/jobs/<id>/log.txt, /download/<file>   files, as attachments
+    POST /api/jobs/<id>/cancel   the page's Cancel button: the same as the jobs_cancel tool
 
-Read-only. Requests whose Host or Origin is not this machine are refused, so a web page
-elsewhere cannot read this one through DNS rebinding.
+Read-only apart from that one POST. Requests whose Host or Origin is not this machine are
+refused, so a web page elsewhere cannot read this one through DNS rebinding; the POST also
+needs the X-Mister-UI header, which a page on another origin cannot send without a CORS
+preflight this server does not answer.
 """
 import hashlib
 import json
@@ -50,7 +53,7 @@ def _commit():
 # What this process has loaded: a change here needs a restart. The page itself is read per
 # request, and the job runners and the core scripts start fresh for every job. Compared by
 # content against what was on disk at start, committed or not.
-RUNNERS = {"jobrun.py", "qproject.py", "issp_seq.py", "xfer.py"}
+RUNNERS = {"jobrun.py", "qproject.py", "issp_seq.py", "xfer.py", "sweep.py"}
 LOADED = sorted([p for p in Path(__file__).parent.glob("*.py") if p.name not in RUNNERS]
                 + [C.TEMPLATE_SCRIPTS / "coretools.py", C.TEMPLATE_SCRIPTS / "hwlock.py"])
 STARTED_COMMIT = _commit()
@@ -253,6 +256,11 @@ def routes(core_settings, calls_path):
         jid = request.path_params["id"]
         return JSONResponse(J.status(jid, int(request.query_params.get("lines", 200))))
 
+    def job_cancel(request):
+        if request.headers.get("x-mister-ui") != "1":
+            return PlainTextResponse("missing X-Mister-UI header", status_code=403)
+        return JSONResponse(J.cancel(request.path_params["id"]))
+
     def job_log(request):
         jid = request.path_params["id"]
         p = J._dir(jid) / "log.txt"
@@ -272,5 +280,6 @@ def routes(core_settings, calls_path):
 
     return [Route("/", _guard(page)), Route("/api/state", _guard(state)),
             Route("/api/board", _guard(board)), Route("/api/jobs/{id}", _guard(job)),
+            Route("/api/jobs/{id}/cancel", _guard(job_cancel), methods=["POST"]),
             Route("/download/jobs/{id}/log.txt", _guard(job_log)),
             Route("/download/{name}", _guard(download))]

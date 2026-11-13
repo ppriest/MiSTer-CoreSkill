@@ -104,8 +104,9 @@ frame-level benches compared against MAME captures.
 ## Build
 
 ```
-build_start(core[, rev="<Name>_stp"])
-build_report(core[, rev])
+build_start(core[, rev="<Name>_stp"][, seed=N])   # a seed builds in build_seed<N>/ (build_stp_seed<N>/ for an _stp rev)
+build_sweep(core, seeds=[4, 5, 6][, max_parallel=3])   # seeds together; stops at the first that meets timing
+build_report(core[, rev][, seed=N])
 build_worst_paths(core[, rev])           # quartus_sta on the compiled database, no recompile
 build_project(core, "rtl/synth_check")   # a standalone harness project, not the core's own
 ```
@@ -113,6 +114,15 @@ build_project(core, "rtl/synth_check")   # a standalone harness project, not the
 `build_start` compiles HEAD in a worktree at `build/`, refuses a dirty tree, fails on
 negative slack on any clock and writes `build/BUILT_COMMIT`. Its gates and stage copies come
 from `scripts/core.json`.
+
+Builds of one core can run together if each has its own stage. A build with a seed takes
+`build_seed<N>/` (`build_stp_seed<N>/` for an `_stp` revision, so a revision and its `_stp` twin build together; a worktree like `build/`, kept out of `git status` through the repository's local
+exclude file), so `build_start(seed=4)` and `build_start(seed=5)` overlap; `build_sweep` starts a
+list of them at most `max_parallel` at a time and stops the rest at the first that meets timing and
+passes the design checks. `build_report(seed=N)` and `mister_deploy(seed=N)` read that stage; with no
+seed they read the stage built most recently. Each Quartus fit takes several GB of RAM and a core or
+more. A job's result is its own stage's report; a job that was refused before it built says so,
+instead of showing the stage's earlier build.
 
 ## Floorplan
 

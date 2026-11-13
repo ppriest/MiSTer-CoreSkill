@@ -202,6 +202,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--rev", help="Quartus revision the staged build used "
                                   "(default: coretools.revision)")
+    ap.add_argument("--stage", default="build",
+                    help="the staged build's directory under the core (default build; "
+                         "build_staged.py --stage)")
     ap.add_argument("--rbf", help="default: build/output_files/<rev>.rbf")
     ap.add_argument("--log", help="default: build/q_staged.log")
     ap.add_argument("--sta", help="default: build/output_files/<rev>.sta.summary")
@@ -228,7 +231,7 @@ def main():
     RBF_STEM = a.stem or RBF_STEM
 
     rev = revision(REPO, a.rev)
-    stage = REPO / "build"
+    stage = REPO / a.stage
     rbf = Path(a.rbf or stage / "output_files" / f"{rev}.rbf")
     log = Path(a.log or stage / "q_staged.log")
     sta = Path(a.sta or stage / "output_files" / f"{rev}.sta.summary")
@@ -260,7 +263,7 @@ def main():
         # machine-wide: which commit this numbered file is, for identity.py
         if not a.dry_run:                  # a dry run copies nothing, so records nothing
             from identity import record_deploy
-            record_deploy(name, REPO)
+            record_deploy(name, REPO, a.stage)
 
     # ---- .mra files ----
     if not a.rbf_only:
