@@ -562,7 +562,7 @@
  },
  {
   "name": "build_floorplan",
-  "description": "scripts/floorplan.py: placement image by hierarchy from the compiled database (build/),\ngrouped by the core's scripts/floorplan.json; debug/floorplan/<rev>.png and <rev>_groups.md.\nlist_depth=N prints the hierarchy to that depth with resource counts instead, to write the\ngroups from. reuse: the last atom dump, no Quartus run.",
+  "description": "scripts/floorplan.py: placement image by hierarchy from the compiled database (build/, or the\nstage named by seed= / stage=, e.g. a sweep's build_seed<N>), grouped by the core's\nscripts/floorplan.json; debug/floorplan/<rev>.png and <rev>_groups.md (under debug/floorplan/<stage>/\nfor a stage, so stages do not overwrite each other).\nlist_depth=N prints the hierarchy to that depth with resource counts instead, to write the\ngroups from. reuse: the last atom dump, no Quartus run.",
   "inputSchema": {
    "properties": {
     "core": {
@@ -588,6 +588,23 @@
      "default": 600,
      "title": "Wait S",
      "type": "integer"
+    },
+    "seed": {
+     "anyOf": [
+      {
+       "type": "integer"
+      },
+      {
+       "type": "null"
+      }
+     ],
+     "default": null,
+     "title": "Seed"
+    },
+    "stage": {
+     "default": "",
+     "title": "Stage",
+     "type": "string"
     }
    },
    "required": [
@@ -1181,6 +1198,47 @@
   },
   "annotations": {
    "readOnlyHint": true
+  }
+ },
+ {
+  "name": "mister_hold",
+  "description": "Hold back the numbered deploys of one core on the board: files <stem>_<N>.rbf in _Arcade/cores\nwith N above `number` get a .hold suffix, so MiSTer no longer picks them; those with N at or below\n`number` lose it. One call sets the boundary: hold_after N. A number below the lowest holds every\ndeploy of that stem, a number at or above the highest releases them all. Only this core's stem\n(as mister_deploy: the project's name, or the revision's <rbf> tag, or stem=) and only\ndeploy numbers (30000000 and up; dated release names are never touched) are renamed. Renames only,\nnothing is deleted. dry_run lists what would change.",
+  "inputSchema": {
+   "properties": {
+    "core": {
+     "title": "Core",
+     "type": "string"
+    },
+    "number": {
+     "title": "Number",
+     "type": "integer"
+    },
+    "rev": {
+     "default": "",
+     "title": "Rev",
+     "type": "string"
+    },
+    "stem": {
+     "default": "",
+     "title": "Stem",
+     "type": "string"
+    },
+    "dry_run": {
+     "default": false,
+     "title": "Dry Run",
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "core",
+    "number"
+   ],
+   "title": "mister_holdArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "destructiveHint": false
   }
  },
  {

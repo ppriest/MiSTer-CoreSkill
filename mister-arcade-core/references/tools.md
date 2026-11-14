@@ -57,6 +57,8 @@ mister_state(core)
 - Files and memory: `mister_ls`, `mister_get`, `mister_put`, `mister_devmem`, `mister_memdump`.
 
 `mister_deploy` copies the `.rbf` and `.mra` files, only for a build that met timing.
+`mister_hold(core, number)` renames this core's numbered deploys on the board: those above `number` get
+`.hold` (MiSTer ignores them), those at or below lose it. Only deploy numbers (30000000 up) of one stem; nothing is deleted.
 
 ## JTAG probe (ISSP)
 

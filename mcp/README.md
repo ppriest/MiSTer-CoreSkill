@@ -198,7 +198,7 @@ npx @modelcontextprotocol/inspector E:/MiSTer-CoreSkill/mcp/.venv/Scripts/mister
 | build | `build_start`, `build_sweep`, `build_project`, `build_report`, `build_worst_paths`, `build_floorplan` |
 | sim | `sim_list`, `sim_run`, `sim_compare_boot`, `sim_sweep` |
 | MAME | `mame_version`, `mame_capture`, `mame_boot_trace`, `mame_sys_trace`, `mame_run_lua`, `mame_listxml` |
-| MiSTer | `mister_state`, `mister_check_mra`, `mister_deploy`, `mister_launch`, `mister_screenshot`, `mister_playing`, `mister_osd`, `mister_ls`, `mister_get`, `mister_put`, `mister_devmem`, `mister_memdump`, `mister_reboot` |
+| MiSTer | `mister_state`, `mister_check_mra`, `mister_deploy`, `mister_hold`, `mister_launch`, `mister_screenshot`, `mister_playing`, `mister_osd`, `mister_ls`, `mister_get`, `mister_put`, `mister_devmem`, `mister_memdump`, `mister_reboot` |
 | probes | `probe_read`, `probe_issp`, `probe_sequence` |
 
 Checks the tools add over the scripts:

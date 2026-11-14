@@ -8,6 +8,7 @@ import functools
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -533,13 +534,21 @@ def _sta_result(jid):
 
 @tool(ACT)
 def build_floorplan(core: str, rev: str = "", reuse: bool = False, list_depth: int = 0,
-                    wait_s: int = 600) -> dict:
-    """scripts/floorplan.py: placement image by hierarchy from the compiled database (build/),
-    grouped by the core's scripts/floorplan.json; debug/floorplan/<rev>.png and <rev>_groups.md.
+                    wait_s: int = 600, seed: int | None = None, stage: str = "") -> dict:
+    """scripts/floorplan.py: placement image by hierarchy from the compiled database (build/, or the
+    stage named by seed= / stage=, e.g. a sweep's build_seed<N>), grouped by the core's
+    scripts/floorplan.json; debug/floorplan/<rev>.png and <rev>_groups.md (under debug/floorplan/<stage>/
+    for a stage, so stages do not overwrite each other).
     list_depth=N prints the hierarchy to that depth with resource counts instead, to write the
     groups from. reuse: the last atom dump, no Quartus run."""
     root = C.resolve(core)
     args = (["--rev", rev] if rev else []) + (["--reuse"] if reuse else [])
+    stg = _stage_for(seed, stage, _rev(root, rev))
+    if stg:
+        db = R.stage_dir(root, stg)
+        if not (db / "db").is_dir():
+            raise ToolError(f"no compiled database in {db}")
+        args += ["--db", str(db), "--out", str(root / "debug" / "floorplan" / stg)]
     args += ["--list", "--depth", int(list_depth)] if list_depth else []
     return _job("floorplan", root, "floorplan.py", args, wait_s)
 
@@ -910,6 +919,62 @@ def _mra_rbf_tags(root):
     return {B.mra_rbf(p.read_text(errors="replace")) for p in root.glob("releases/**/*.mra")} - {None}
 
 
+def _rbf_stem(root, rev, stem):
+    """The stem a revision's .rbf files carry: `stem` if given; else the revision's name (less _stp)
+    when it is an <rbf> tag in releases/ other than the project's; else "" (the project's name)."""
+    if not stem and rev:
+        cand = re.sub(r"_stp$", "", rev)
+        tags = {t.lower(): t for t in _mra_rbf_tags(root)}
+        if cand.lower() in tags and cand.lower() != C.coretools.project(root).lower():
+            stem = tags[cand.lower()]
+    return stem
+
+
+@tool(ACT)
+def mister_hold(core: str, number: int, rev: str = "", stem: str = "", dry_run: bool = False) -> dict:
+    """Hold back the numbered deploys of one core on the board: files <stem>_<N>.rbf in _Arcade/cores
+    with N above `number` get a .hold suffix, so MiSTer no longer picks them; those with N at or below
+    `number` lose it. One call sets the boundary: hold_after N. A number below the lowest holds every
+    deploy of that stem, a number at or above the highest releases them all. Only this core's stem
+    (as mister_deploy: the project's name, or the revision's <rbf> tag, or stem=) and only
+    deploy numbers (30000000 and up; dated release names are never touched) are renamed. Renames only,
+    nothing is deleted. dry_run lists what would change."""
+    root = C.resolve(core)
+    stem = _rbf_stem(root, rev, stem) or C.coretools.project(root)
+    if number < 0:
+        raise ToolError("number: the deploy number to hold after, e.g. 30000016")
+    b = B.Board(root)
+    d = "/media/fat/_Arcade/cores"
+    rc, out, err = b.sh(f"ls -1 {shlex.quote(d)}", 30)
+    if rc:
+        raise ToolError(err.strip() or f"ls {d} failed")
+    pat = re.compile(rf"^{re.escape(stem)}_(\d+)\.rbf(\.hold)?$", re.I)
+    files = {}
+    for name in out.splitlines():
+        m = pat.match(name.strip())
+        if m and int(m.group(1)) >= 30000000:
+            files[name.strip()] = (int(m.group(1)), bool(m.group(2)))
+    held, released, same, skipped = [], [], [], []
+    cmds = []
+    for name, (n, is_held) in sorted(files.items(), key=lambda kv: kv[1][0]):
+        want_hold = n > number
+        if want_hold == is_held:
+            same.append(name)
+            continue
+        dst = name + ".hold" if want_hold else name[:-len(".hold")]
+        if dst in files:
+            skipped.append(f"{name}: {dst} already exists")
+            continue
+        (held if want_hold else released).append(name)
+        cmds.append(f"mv {shlex.quote(d + '/' + name)} {shlex.quote(d + '/' + dst)}")
+    if cmds and not dry_run:
+        rc, out, err = b.sh(" && ".join(cmds), 60)
+        if rc:
+            raise ToolError(err.strip() or "rename failed")
+    return {"stem": stem, "number": number, "dry_run": dry_run, "held": held, "released": released,
+            "unchanged": same, "skipped": skipped}
+
+
 @tool(ACT)
 def mister_deploy(core: str, rev: str = "", stem: str = "", mra_only: bool = False,
                   rbf_only: bool = False, allow_timing_miss: bool = False, dry_run: bool = False,
@@ -924,11 +989,7 @@ def mister_deploy(core: str, rev: str = "", stem: str = "", mra_only: bool = Fal
     stg = _stage_for(seed, stage, _rev(root, rev))
     if stg:
         _need_option(root, "deploy.py", "--stage")
-    if not stem and rev:
-        cand = re.sub(r"_stp$", "", rev)
-        tags = {t.lower(): t for t in _mra_rbf_tags(root)}
-        if cand.lower() in tags and cand.lower() != C.coretools.project(root).lower():
-            stem = tags[cand.lower()]
+    stem = _rbf_stem(root, rev, stem)
     if stem:
         path, _ = C.script(root, "deploy.py")
         if "--stem" not in path.read_text(errors="replace"):

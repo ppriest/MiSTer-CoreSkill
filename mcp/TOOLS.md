@@ -217,7 +217,7 @@ Compile a standalone Quartus project in the core (a synth harness such as rtl/sy
 
 *acts*
 
-scripts/floorplan.py: placement image by hierarchy from the compiled database (build/), grouped by the core's scripts/floorplan.json; debug/floorplan/<rev>.png and <rev>_groups.md. list_depth=N prints the hierarchy to that depth with resource counts instead, to write the groups from. reuse: the last atom dump, no Quartus run.
+scripts/floorplan.py: placement image by hierarchy from the compiled database (build/, or the stage named by seed= / stage=, e.g. a sweep's build_seed<N>), grouped by the core's scripts/floorplan.json; debug/floorplan/<rev>.png and <rev>_groups.md (under debug/floorplan/<stage>/ for a stage, so stages do not overwrite each other). list_depth=N prints the hierarchy to that depth with resource counts instead, to write the groups from. reuse: the last atom dump, no Quartus run.
 
 | Argument | Type | Default |
 |---|---|---|
@@ -226,6 +226,8 @@ scripts/floorplan.py: placement image by hierarchy from the compiled database (b
 | `reuse` | boolean | `false` |
 | `list_depth` | integer | `0` |
 | `wait_s` | integer | `600` |
+| `seed` | integer or null | `null` |
+| `stage` | string | `""` |
 
 <a id="sim"></a>
 ## Simulation
@@ -414,6 +416,20 @@ Before a launch: which .rbf the .mra's <rbf> prefix resolves to on the device (t
 |---|---|---|
 | `core` | string | required |
 | `mra` | string | required |
+
+### `mister_hold`
+
+*acts*
+
+Hold back the numbered deploys of one core on the board: files <stem>_<N>.rbf in _Arcade/cores with N above `number` get a .hold suffix, so MiSTer no longer picks them; those with N at or below `number` lose it. One call sets the boundary: hold_after N. A number below the lowest holds every deploy of that stem, a number at or above the highest releases them all. Only this core's stem (as mister_deploy: the project's name, or the revision's <rbf> tag, or stem=) and only deploy numbers (30000000 and up; dated release names are never touched) are renamed. Renames only, nothing is deleted. dry_run lists what would change.
+
+| Argument | Type | Default |
+|---|---|---|
+| `core` | string | required |
+| `number` | integer | required |
+| `rev` | string | `""` |
+| `stem` | string | `""` |
+| `dry_run` | boolean | `false` |
 
 ### `mister_deploy`
 
