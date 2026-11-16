@@ -143,7 +143,7 @@ JTAG marker, queued JTAG sessions, running Quartus/ModelSim processes, active jo
 
 *acts*
 
-Full staged Quartus compile (scripts/build_staged.py) as a job. Refuses while JTAG is held, as the script does. Fails on negative slack on any clock unless allow_negative_slack (a debug revision only; a release must close timing). Builds take tens of minutes; poll jobs_status. Each build has its own stage, a worktree under the core: a build with a seed gets build_seed<N> (build_stp_seed<N> for an _stp revision; or `stage`), so several seeds of one core, and a revision and its _stp twin, run at the same time; with no seed it uses build/. It refuses if a running build or sweep of the core holds that stage. Quartus uses several GB of RAM and a core or more per fit: size the number running at once to the machine (build_sweep does it for a list of seeds). The result is that stage's report; build_report(seed=N) and mister_deploy(seed=N) read it later.
+Full staged Quartus compile (scripts/build_staged.py) as a job. Refuses while JTAG is held, as the script does. Fails on negative slack on any clock unless allow_negative_slack (a debug revision only; a release must close timing). Builds take tens of minutes; poll jobs_status. Each build has its own stage, a worktree under the core: a build with a seed gets build_seed<N> (build_stp_seed<N> for an _stp revision; or `stage`), so several seeds of one core, and a revision and its _stp twin, run at the same time; with no seed it uses build/. It refuses if a running build or sweep of the core holds that stage. Quartus uses several GB of RAM and a core or more per fit: size the number running at once to the machine (build_sweep does it for a list of seeds). The result is that stage's report; build_report(seed=N) and mister_deploy(seed=N) read it later. The build is of the core checkout's HEAD, or of `ref` (a branch or commit in the core's repository) or `worktree` (the path of another worktree of it, built at its HEAD, its tracked edits refused unless allow_dirty): for work on a branch that is not checked out in the core's own folder. Name the revision with rev=, as the checkout's own files may not have it. build_report and mister_deploy read the stage the build wrote, so they need no ref. The core's scripts/core.json is still the checkout's.
 
 | Argument | Type | Default |
 |---|---|---|
@@ -154,6 +154,8 @@ Full staged Quartus compile (scripts/build_staged.py) as a job. Refuses while JT
 | `allow_negative_slack` | boolean | `false` |
 | `wait_s` | integer | `5` |
 | `stage` | string | `""` |
+| `ref` | string | `""` |
+| `worktree` | string | `""` |
 
 ### `build_sweep`
 
@@ -521,6 +523,16 @@ Copy a local file to the device, into _Arcade, games, config or screenshots. Ove
 | `local` | string | required |
 | `remote` | string | required |
 | `wait_s` | integer | `60` |
+
+### `mister_rm_config`
+
+*destructive*
+
+Delete one file under /media/fat/config/ on the device (a bad .nvm or .CFG, say). Refuses a path outside that folder, one with '..', a directory, a symlink, or a missing file; no wildcards, one file per call. The file is gone: no copy is kept.
+
+| Argument | Type | Default |
+|---|---|---|
+| `remote` | string | required |
 
 ### `mister_install_main`
 

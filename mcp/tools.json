@@ -297,7 +297,7 @@
  },
  {
   "name": "build_start",
-  "description": "Full staged Quartus compile (scripts/build_staged.py) as a job. Refuses while JTAG is held,\nas the script does. Fails on negative slack on any clock unless allow_negative_slack (a debug\nrevision only; a release must close timing). Builds take tens of minutes; poll jobs_status.\nEach build has its own stage, a worktree under the core: a build with a seed gets build_seed<N>\n(build_stp_seed<N> for an _stp revision; or `stage`), so several seeds of one core, and a revision\nand its _stp twin, run at the same time; with no seed it uses build/. It refuses if a running\nbuild or sweep of the core holds that stage.\nQuartus uses several GB of RAM and a core or more per fit: size the number running at once\nto the machine (build_sweep does it for a list of seeds). The result is that stage's report;\nbuild_report(seed=N) and mister_deploy(seed=N) read it later.",
+  "description": "Full staged Quartus compile (scripts/build_staged.py) as a job. Refuses while JTAG is held,\nas the script does. Fails on negative slack on any clock unless allow_negative_slack (a debug\nrevision only; a release must close timing). Builds take tens of minutes; poll jobs_status.\nEach build has its own stage, a worktree under the core: a build with a seed gets build_seed<N>\n(build_stp_seed<N> for an _stp revision; or `stage`), so several seeds of one core, and a revision\nand its _stp twin, run at the same time; with no seed it uses build/. It refuses if a running\nbuild or sweep of the core holds that stage.\nQuartus uses several GB of RAM and a core or more per fit: size the number running at once\nto the machine (build_sweep does it for a list of seeds). The result is that stage's report;\nbuild_report(seed=N) and mister_deploy(seed=N) read it later.\nThe build is of the core checkout's HEAD, or of `ref` (a branch or commit in the core's repository)\nor `worktree` (the path of another worktree of it, built at its HEAD, its tracked edits refused\nunless allow_dirty): for work on a branch that is not checked out in the core's own folder. Name\nthe revision with rev=, as the checkout's own files may not have it. build_report and mister_deploy\nread the stage the build wrote, so they need no ref. The core's scripts/core.json is still the\ncheckout's.",
   "inputSchema": {
    "properties": {
     "core": {
@@ -339,6 +339,16 @@
     "stage": {
      "default": "",
      "title": "Stage",
+     "type": "string"
+    },
+    "ref": {
+     "default": "",
+     "title": "Ref",
+     "type": "string"
+    },
+    "worktree": {
+     "default": "",
+     "title": "Worktree",
      "type": "string"
     }
    },
@@ -1520,6 +1530,27 @@
     "remote"
    ],
    "title": "mister_putArguments",
+   "type": "object"
+  },
+  "annotations": {
+   "readOnlyHint": false,
+   "destructiveHint": true
+  }
+ },
+ {
+  "name": "mister_rm_config",
+  "description": "Delete one file under /media/fat/config/ on the device (a bad .nvm or .CFG, say). Refuses a path\noutside that folder, one with '..', a directory, a symlink, or a missing file; no wildcards, one\nfile per call. The file is gone: no copy is kept.",
+  "inputSchema": {
+   "properties": {
+    "remote": {
+     "title": "Remote",
+     "type": "string"
+    }
+   },
+   "required": [
+    "remote"
+   ],
+   "title": "mister_rm_configArguments",
    "type": "object"
   },
   "annotations": {

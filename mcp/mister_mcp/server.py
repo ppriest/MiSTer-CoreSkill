@@ -332,7 +332,8 @@ def _need_option(root, script, option):
 
 @tool(ACT)
 def build_start(core: str, rev: str = "", seed: int | None = None, allow_dirty: bool = False,
-                allow_negative_slack: bool = False, wait_s: int = 5, stage: str = "") -> dict:
+                allow_negative_slack: bool = False, wait_s: int = 5, stage: str = "",
+                ref: str = "", worktree: str = "") -> dict:
     """Full staged Quartus compile (scripts/build_staged.py) as a job. Refuses while JTAG is held,
     as the script does. Fails on negative slack on any clock unless allow_negative_slack (a debug
     revision only; a release must close timing). Builds take tens of minutes; poll jobs_status.
@@ -342,14 +343,26 @@ def build_start(core: str, rev: str = "", seed: int | None = None, allow_dirty: 
     build or sweep of the core holds that stage.
     Quartus uses several GB of RAM and a core or more per fit: size the number running at once
     to the machine (build_sweep does it for a list of seeds). The result is that stage's report;
-    build_report(seed=N) and mister_deploy(seed=N) read it later."""
+    build_report(seed=N) and mister_deploy(seed=N) read it later.
+    The build is of the core checkout's HEAD, or of `ref` (a branch or commit in the core's repository)
+    or `worktree` (the path of another worktree of it, built at its HEAD, its tracked edits refused
+    unless allow_dirty): for work on a branch that is not checked out in the core's own folder. Name
+    the revision with rev=, as the checkout's own files may not have it. build_report and mister_deploy
+    read the stage the build wrote, so they need no ref. The core's scripts/core.json is still the
+    checkout's."""
     root = C.resolve(core)
+    if ref and worktree:
+        raise ToolError("ref and worktree are alternatives")
+    if ref and not re.fullmatch(r"[A-Za-z0-9_./@{}^~-]+", ref) or ref.startswith("-"):
+        raise ToolError("ref: a branch name or commit id")
     r = _rev(root, rev)
     st = _stage_for(seed, stage, r)
     _stage_busy(root, [st or "build"])
-    if st:
-        _need_option(root, "build_staged.py", "--stage")
-    args = ["--rev", r] + (["--seed", seed] if seed is not None else []) + \
+    if st or ref or worktree:
+        for opt, on in (("--stage", st), ("--ref", ref), ("--worktree", worktree)):
+            if on:
+                _need_option(root, "build_staged.py", opt)
+    args = (["--ref", ref] if ref else []) + (["--worktree", worktree] if worktree else []) + ["--rev", r] + (["--seed", seed] if seed is not None else []) + \
         (["--stage", st] if st else []) + \
         (["--allow-dirty"] if allow_dirty else []) + \
         (["--allow-negative-slack"] if allow_negative_slack else [])
@@ -1105,6 +1118,27 @@ def mister_put(local: str, remote: str, wait_s: int = 60) -> dict:
     if not Path(local).is_file():
         raise ToolError(f"no file {local}")
     return _xfer("put", Path(local).resolve(), q, wait_s)
+
+
+@tool(DESTRUCTIVE)
+def mister_rm_config(remote: str) -> dict:
+    """Delete one file under /media/fat/config/ on the device (a bad .nvm or .CFG, say). Refuses a path
+    outside that folder, one with '..', a directory, a symlink, or a missing file; no wildcards, one
+    file per call. The file is gone: no copy is kept."""
+    q = B.checked_path(remote, write=True)
+    if not q.startswith("/media/fat/config/"):
+        raise ToolError(f"{remote}: only files under /media/fat/config/")
+    if any(c in q for c in "*?[]\n\r"):
+        raise ToolError(f"{remote}: no wildcards, one file per call")
+    qq = shlex.quote(q)
+    b = B.Board()
+    rc, out, err = b.sh(f"test -f {qq} && ! test -L {qq}", 30)
+    if rc:
+        raise ToolError(f"{q} is not a regular file on the board")
+    rc, out, err = b.sh(f"rm -- {qq}", 30)
+    if rc:
+        raise ToolError(err.strip() or f"rm {q} failed")
+    return {"deleted": q}
 
 
 @tool(DESTRUCTIVE)
