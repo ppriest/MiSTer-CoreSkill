@@ -692,6 +692,14 @@ To add a lesson:
 
 ## Timing closure
 
+- **[Firebeat] Quartus Lite has no LogicLock.** A region (`LL_*` assignments) to hold the SDRAM
+  controller beside its pins compiled without error, and a seed that had failed then met timing,
+  which read as the region working. The fit report said otherwise: Critical Warning 140003,
+  "Current license file does not support LogicLock regions", and the floorplan showed the block
+  spread over the device's height as before. Read the fit report's warnings for any placement
+  assignment before crediting it; on Lite, placement is steered by RTL (registers, duplication)
+  and seeds only.
+
 - **Open `.sta.summary` before believing any hardware-vs-simulation divergence.** "Fitter was
   successful" shipped a build at -8.879 ns. Read the Fmax Summary first.
 - **Treat "wrong in hardware, reproducible, insensitive to interface tuning, right in simulation" as

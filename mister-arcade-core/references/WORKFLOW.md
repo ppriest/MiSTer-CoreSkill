@@ -209,6 +209,13 @@ tables in `scripts/issp_fields.tcl` (`set fields_<id> {{name lo hi format} ...}`
 step with the bit layout — say so in a comment at both ends — and registered with `core_register`
 after each change; the probe tools decode with the registered copy.
 
+**Sources are not synchronous to the core clock.** The wrapper sets `enable_metastability("NO")`, so
+`source_clk` is unused and a source bit changes on the JTAG clock, at any moment relative to the
+core's. A run or clear bit taken straight from a source gave about 1 bad run in 10 on Firebeat's
+test core (one-word checksums, counters a clear should have zeroed); two flops in the core's
+clock took it to 0 in 40 (Firebeat's LESSONS_LEARNED, "ISSP sources are not synchronous"). Pass
+every source bit that controls logic through a two-flop synchroniser in the clock it acts in.
+
 The **source** direction is as valuable as the probe direction: pausing the CPU, selecting a
 memory page to dump, re-arming a capture and stepping the SDRAM clock phase are runtime pokes that
 would otherwise be rebuilds. One trap: `write_source_data -value` takes a **binary string**, and a
