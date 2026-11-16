@@ -140,7 +140,15 @@ foreach f $fields {
 
 # write_source_data takes a BINARY STRING unless -value_in_hex is given; a
 # decimal "8" is silently rejected. Every write goes through this, in hex.
-proc write_src {idx v} { write_source_data -instance_index $idx -value [format %X $v] -value_in_hex }
+# [format %X] keeps only 32 bits in Quartus's Tcl, so the hex string is built a nibble at a time.
+proc hex_of {v} {
+    set v [expr {wide($v)}]
+    set s ""
+    while {$v > 0} { set s "[string index 0123456789ABCDEF [expr {$v & 15}]]$s"; set v [expr {$v >> 4}] }
+    if {$s eq ""} { return 0 }
+    return $s       ;# not expr: it would read 40000E4000 as a float
+}
+proc write_src {idx v} { write_source_data -instance_index $idx -value [hex_of $v] -value_in_hex }
 if {$set_val >= 0}   { write_src $idx $set_val;   puts "source set to $set_val (reads back 0x[read_source_data -instance_index $idx -value_in_hex])" }
 if {$pulse_val >= 0} { write_src $idx $pulse_val; write_src $idx 0; puts "source pulsed $pulse_val" }
 

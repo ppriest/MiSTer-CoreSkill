@@ -31,7 +31,15 @@ proc index_of {id} {
     return $idx($id)
 }
 # write_source_data takes binary unless -value_in_hex; a decimal "8" is silently rejected.
-proc write_src {i v} { write_source_data -instance_index $i -value [format %X $v] -value_in_hex }
+# [format %X] keeps only 32 bits in Quartus's Tcl, so the hex string is built a nibble at a time.
+proc hex_of {v} {
+    set v [expr {wide($v)}]
+    set s ""
+    while {$v > 0} { set s "[string index 0123456789ABCDEF [expr {$v & 15}]]$s"; set v [expr {$v >> 4}] }
+    if {$s eq ""} { return 0 }
+    return $s       ;# not expr: it would read 40000E4000 as a float
+}
+proc write_src {i v} { write_source_data -instance_index $i -value [hex_of $v] -value_in_hex }
 
 start_insystem_source_probe -device_name $dev -hardware_name $hw
 set t0 [clock milliseconds]
