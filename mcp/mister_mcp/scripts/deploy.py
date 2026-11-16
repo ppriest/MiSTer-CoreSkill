@@ -174,7 +174,7 @@ def check_build(rbf, log, sta, allow_timing_miss=False):
 # in .rbf) and the one before it is what the .mra launches. The counter starts at
 # 30000001, above any dated file (<project>_YYYYMMDD.rbf from a release or another
 # source, which sorts with the numbers and would otherwise win), and is read back
-# from the device, .held files included, so a held build's number is never reused;
+# from the device, .held and .hold files included, so a held build's number is never reused;
 # numbers below the start (the old 10000001 series, dated files) are ignored. A
 # plain <project>.rbf from before this convention is moved aside to .held.
 # ---------------------------------------------------------------------------
@@ -187,7 +187,7 @@ def next_rbf_name(m):
         return f"{RBF_STEM}_{RBF_FIRST}.rbf"   # a dry run never asks the device
     listing = m.run(f"ls -1 {REMOTE_CORES} 2>/dev/null; true")
     numbers = [int(n) for n in
-               re.findall(rf"^{RBF_STEM}_(\d+)\.rbf(?:\.held)?$", listing, re.M)
+               re.findall(rf"^{RBF_STEM}_(\d+)\.rbf(?:\.held|\.hold)?$", listing, re.M)
                if int(n) >= RBF_FIRST]
     plain = f"{RBF_STEM}.rbf"
     if plain in listing.split():
