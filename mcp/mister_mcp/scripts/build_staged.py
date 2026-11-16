@@ -19,6 +19,8 @@ The build is exactly HEAD:
     python scripts/build_staged.py --seed 12345        # try another placement
     python scripts/build_staged.py --seed 5 --stage build_seed5   # its own worktree: seeds in parallel
     python scripts/build_staged.py --allow-dirty       # HEAD, ignoring edits
+    python scripts/build_staged.py --ref claude/x      # a branch or commit of this repository
+    python scripts/build_staged.py --worktree <path>   # HEAD of another worktree of this repository
 
 The revision defaults to CORE_REV, else the one .qsf, else the last
 PROJECT_REVISION in the .qpf (scripts/coretools.py). A core with an
@@ -226,7 +228,13 @@ def main():
     ap.add_argument("--allow-dirty", action="store_true",
                     help="build HEAD even though the tree has uncommitted "
                          "changes (they are NOT included in the build)")
+    ap.add_argument("--ref", help="build this branch or commit of the core's repository instead "
+                                  "of HEAD (a commit is fixed, so there is no dirty check)")
+    ap.add_argument("--worktree", help="build HEAD of this other worktree of the core's repository "
+                                       "(its tracked edits are checked as the checkout's are)")
     args = ap.parse_args()
+    if args.ref and args.worktree:
+        sys.exit("--ref and --worktree are alternatives")
 
     global REV, QUARTUS_BIN
     here = str(core_root())
@@ -242,7 +250,16 @@ def main():
     from hwlock import require_no_jtag
     require_no_jtag("this build")
 
-    dirty = run(["git", "-C", here, "status", "--porcelain"])
+    src = here                      # the checkout whose HEAD (and edits) the build is of
+    if args.worktree:
+        src = os.path.abspath(args.worktree)
+        if not os.path.isdir(src):
+            sys.exit("--worktree: no directory %s" % src)
+        common = [os.path.realpath(run(["git", "-C", d, "rev-parse", "--path-format=absolute",
+                                        "--git-common-dir"])) for d in (here, src)]
+        if common[0] != common[1]:
+            sys.exit("--worktree %s is not a worktree of %s's repository" % (src, here))
+    dirty = "" if args.ref else run(["git", "-C", src, "status", "--porcelain"])
     # Untracked files are not part of HEAD either, but they are usually
     # scratch; only tracked modifications are treated as a divergence worth
     # refusing over.
@@ -253,8 +270,9 @@ def main():
                  "or pass --allow-dirty to build HEAD without these:\n"
                  + tracked_dirty)
 
-    head = run(["git", "-C", here, "rev-parse", "HEAD"])
-    head_short = run(["git", "-C", here, "rev-parse", "--short", "HEAD"])
+    what = (args.ref + "^{commit}") if args.ref else "HEAD"
+    head = run(["git", "-C", src, "rev-parse", "--verify", what])
+    head_short = run(["git", "-C", src, "rev-parse", "--short", head])
 
     marker = os.path.join(stage, ".build_running")
     if os.path.exists(marker) and marker_is_stale(marker):
